@@ -311,14 +311,14 @@ BFS ruchu na planszy 36×27 to < 1000 pozycji – liczymy tylko po kliknięciu j
 
 #### Automated
 
-- [ ] 1.1 Testy przechodzą: `node tests/run-tests.js`
-- [ ] 1.2 Zrzut ekranu (Edge headless) pokazuje planszę bez błędów
+- [x] 1.1 Testy przechodzą: `node tests/run-tests.js`
+- [x] 1.2 Zrzut ekranu (Edge headless) pokazuje planszę bez błędów
 
 #### Manual
 
-- [ ] 1.3 Tytuł → Singleplayer → Edytor → ustawienia → START pokazuje planszę z ratuszami i chłopami w kolorach
-- [ ] 1.4 WSTECZ działa na każdym ekranie, Multiplayer i 1 vs BOT pokazują „wkrótce”
-- [ ] 1.5 8 graczy na małej planszy wygląda czytelnie
+- [x] 1.3 Tytuł → Singleplayer → Edytor → ustawienia → START pokazuje planszę z ratuszami i chłopami w kolorach
+- [x] 1.4 WSTECZ działa na każdym ekranie, Multiplayer i 1 vs BOT pokazują „wkrótce”
+- [x] 1.5 8 graczy na małej planszy wygląda czytelnie
 
 ### Phase 2: Tury, budowanie i rekrutacja
 

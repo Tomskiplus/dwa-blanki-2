@@ -69,7 +69,7 @@ Gdy zasada się zmieni, poprawiamy ją tutaj (nie robimy kopii pliku).
 | Koszary | kwadrat 3×3 (❓ sprawdzić) |
 | Strzelnica | kształt litery L |
 | Stajnia | prostokąt 2×3 |
-| Ratusz | kwadrat 2×2 (tymczasowo), tylko na starcie – drugiego nie da się zbudować |
+| Ratusz | 2×2 kwadraty + trójkątny dach na górze (dach zajmuje rząd 2 kratek, razem 2×3); tylko na starcie – drugiego nie da się zbudować |
 
 ## Jednostki
 Oznaczenia z zeszytu: **D** = życie ❤️, **K** = atak ⚔️, **Z** = zasięg.
@@ -105,7 +105,6 @@ Kształty jednostek (z zeszytu, przybliżone):
 
 ## Pytania otwarte (do zeszytu / kolegi)
 - Co gracze mają na starcie (na razie: ratusz + 2 chłopów)?
-- Kształt ratusza (na razie 2×2).
 - Które jednostki są w której erze (np. włócznik – era 1, pikinier – era 2; reszta zgadnięta w `data.js`).
 - Wymagania do kolejnych er.
 - Dokładne kształty jednostek i budynków (ile kratek kosztują).

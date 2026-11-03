@@ -1,0 +1,118 @@
+// =====================================================
+//  DWA BLANKI II - DANE GRY
+//  Tu są wszystkie liczby i kształty. Możesz je śmiało zmieniać!
+//  (Zasady, które z nich korzystają, są w rules.js)
+// =====================================================
+
+// --- Punkty w turze ---
+const BUILD_POINTS = 8;          // punkty budowy na turę
+const BARRACKS_BONUS = 1;        // dodatkowy punkt, który można wydać TYLKO na koszary
+const MOVE_POINTS = 5;           // punkty ruchu dla każdego oddziału
+const BUILDING_HP_PER_CELL = 2;  // budynek ma 2 życia za każdą swoją kratkę
+
+// --- Kształty ---
+// Kształt to lista kratek [x, y]. [0, 0] to lewy górny róg.
+// x rośnie w prawo, y rośnie w dół (tak jak na canvasie).
+// Przykład: [[0, 0], [0, 1]] to dwie kratki jedna pod drugą (prostokąt 1×2).
+
+// --- Budynki ---
+// canBuild: false = tego budynku nie da się postawić w trakcie gry
+const BUILDING_TYPES = {
+  ratusz: {
+    name: "Ratusz",
+    short: "R",
+    // 2 kratki szerokości, 3 wysokości: górny rząd to dach, pod nim 2×2 kwadraty
+    shape: [[0, 0], [1, 0], [0, 1], [1, 1], [0, 2], [1, 2]],
+    hasRoof: true,
+    canBuild: false,
+  },
+  koszary: {
+    name: "Koszary",
+    short: "K",
+    // kwadrat 3×3
+    shape: [[0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [2, 1], [0, 2], [1, 2], [2, 2]],
+    canBuild: true,
+  },
+  strzelnica: {
+    name: "Strzelnica",
+    short: "S",
+    // litera L: słupek z lewej i podstawa na dole
+    shape: [[0, 0], [0, 1], [0, 2], [1, 2], [2, 2]],
+    canBuild: true,
+  },
+  stajnia: {
+    name: "Stajnia",
+    short: "St",
+    // prostokąt 2×3
+    shape: [[0, 0], [1, 0], [0, 1], [1, 1], [0, 2], [1, 2]],
+    canBuild: true,
+  },
+};
+
+// --- Kilka gotowych kształtów jednostek (żeby nie pisać ich wiele razy) ---
+const SHAPE_1x1 = [[0, 0]];                          // 1 kratka
+const SHAPE_1x2 = [[0, 0], [0, 1]];                  // 2 kratki w pionie
+const SHAPE_1x3 = [[0, 0], [0, 1], [0, 2]];          // 3 kratki w pionie
+const SHAPE_LONG4 = [[0, 0], [1, 0], [2, 0], [3, 0]]; // 4 kratki w poziomie ("ołówek")
+const SHAPE_L3 = [[1, 0], [0, 1], [1, 1]];           // małe L z 3 kratek
+const SHAPE_SQUARE4 = [[0, 0], [1, 0], [0, 1], [1, 1]]; // kwadrat 2×2
+const SHAPE_T4 = [[1, 0], [0, 1], [1, 1], [2, 1]];   // litera T do góry nogami
+
+// --- Jednostki ---
+// hp = życie ❤️, attack = atak ⚔️, range = zasięg
+// era = od której ery można ją zrobić
+// building = który budynek ją produkuje
+// cavalry: true = to jest kawaleria (włócznicy zadają jej więcej obrażeń)
+// bonusVsCavalry = ile DODATKOWYCH obrażeń zadaje kawalerii
+// symbol = krótki napis rysowany na jednostce
+// ⚠️ Ery i kształty są odczytane z zeszytu "na oko" - popraw, jeśli są inne!
+const UNIT_TYPES = {
+  // ----- Ratusz -----
+  chlop:             { name: "Chłop",                 symbol: "Ch", shape: SHAPE_1x1, hp: 1,  attack: 0,   range: 0, era: 1, building: "ratusz" },
+
+  // ----- Koszary -----
+  piechur:           { name: "Piechur",               symbol: "P",  shape: SHAPE_1x2, hp: 3,  attack: 1,   range: 1, era: 1, building: "koszary" },
+  piechurUlepszony:  { name: "Piechur ulepszony",     symbol: "P+", shape: SHAPE_1x3, hp: 4,  attack: 1.5, range: 1, era: 2, building: "koszary" },
+  wlocznik:          { name: "Włócznik",              symbol: "W",  shape: SHAPE_1x2, hp: 2,  attack: 1,   range: 1, era: 1, building: "koszary", bonusVsCavalry: 3 },
+  pikinier:          { name: "Pikinier",              symbol: "Pk", shape: SHAPE_1x2, hp: 4,  attack: 2,   range: 1, era: 2, building: "koszary", bonusVsCavalry: 2 },
+  halabardnik:       { name: "Halabardnik",           symbol: "H",  shape: SHAPE_1x2, hp: 6,  attack: 3,   range: 1, era: 3, building: "koszary", bonusVsCavalry: 3 },
+  wojownikOrlow:     { name: "Wojownik orłów",        symbol: "WO", shape: SHAPE_LONG4, hp: 3, attack: 2,  range: 2, era: 2, building: "koszary" },
+  eWojownikOrlow:    { name: "Elit. wojownik orłów",  symbol: "EW", shape: SHAPE_LONG4, hp: 4, attack: 4,  range: 2, era: 3, building: "koszary" },
+  eWojownikOrlowUl:  { name: "Elit. wojownik orłów+", symbol: "E+", shape: SHAPE_LONG4, hp: 6, attack: 5,  range: 2, era: 4, building: "koszary" },
+
+  // ----- Strzelnica -----
+  lucznik:           { name: "Łucznik",               symbol: "Ł",  shape: SHAPE_1x1, hp: 2,  attack: 1,   range: 4, era: 1, building: "strzelnica" },
+  wyszkolonyLucznik: { name: "Wyszkolony łucznik",    symbol: "Ł+", shape: SHAPE_1x1, hp: 2,  attack: 1.5, range: 6, era: 2, building: "strzelnica" },
+  oszczepnik:        { name: "Oszczepnik",            symbol: "O",  shape: SHAPE_1x1, hp: 2,  attack: 1,   range: 4, era: 1, building: "strzelnica" },
+  eOszczepnik:       { name: "Elit. oszczepnik",      symbol: "O+", shape: SHAPE_1x1, hp: 3,  attack: 2,   range: 5, era: 2, building: "strzelnica" },
+  slon:              { name: "Słoń bojowy",           symbol: "S",  shape: SHAPE_T4,  hp: 10, attack: 4,   range: 6, era: 3, building: "strzelnica" },
+
+  // ----- Stajnia -----
+  kawaleria1:        { name: "Kawaleria (1)",         symbol: "K1", shape: SHAPE_L3,      hp: 5, attack: 2, range: 1, era: 1, building: "stajnia", cavalry: true },
+  ciezkaKawaleria:   { name: "Ciężka kawaleria",      symbol: "CK", shape: SHAPE_SQUARE4, hp: 6, attack: 3, range: 1, era: 2, building: "stajnia", cavalry: true },
+  kawaleria2:        { name: "Kawaleria (2)",         symbol: "K2", shape: SHAPE_L3,      hp: 5, attack: 2, range: 1, era: 3, building: "stajnia", cavalry: true },
+  paladyn:           { name: "Paladyn",               symbol: "Pd", shape: SHAPE_L3,      hp: 9, attack: 4, range: 1, era: 3, building: "stajnia", cavalry: true },
+  ulan:              { name: "Ułan",                  symbol: "U",  shape: SHAPE_L3,      hp: 6, attack: 4, range: 1, era: 4, building: "stajnia", cavalry: true },
+};
+
+// --- Kolory graczy (maksymalnie 8 graczy) ---
+const PLAYER_COLORS = [
+  { name: "Czerwony",    color: "#d63031" },
+  { name: "Niebieski",   color: "#0984e3" },
+  { name: "Zielony",     color: "#00a046" },
+  { name: "Żółty",       color: "#e1b000" },
+  { name: "Fioletowy",   color: "#8e44ad" },
+  { name: "Pomarańczowy", color: "#e67e22" },
+  { name: "Błękitny",    color: "#00b5b0" },
+  { name: "Różowy",      color: "#e84393" },
+];
+
+const MIN_PLAYERS = 2;
+const MAX_PLAYERS = 8;
+
+// --- Rozmiary planszy (cols = kolumny, rows = rzędy) ---
+const BOARD_SIZES = {
+  mala:    { name: "MAŁA",    cols: 20, rows: 15 },
+  srednia: { name: "ŚREDNIA", cols: 28, rows: 21 },
+  duza:    { name: "DUŻA",    cols: 36, rows: 27 },
+};
