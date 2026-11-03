@@ -347,7 +347,7 @@ BFS ruchu na planszy 36×27 to < 1000 pozycji – liczymy tylko po kliknięciu j
 
 #### Automated
 
-- [x] 4.1 Testy przechodzą: `node tests/run-tests.js`
+- [x] 4.1 Testy przechodzą: `node tests/run-tests.js` — eb0bdec
 
 #### Manual
 
