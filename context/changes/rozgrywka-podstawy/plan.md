@@ -324,24 +324,24 @@ BFS ruchu na planszy 36×27 to < 1000 pozycji – liczymy tylko po kliknięciu j
 
 #### Automated
 
-- [x] 2.1 Testy przechodzą: `node tests/run-tests.js`
+- [x] 2.1 Testy przechodzą: `node tests/run-tests.js` — fdf548e
 
 #### Manual
 
-- [x] 2.2 Postawienie koszar obok chłopa, potem piechura obok koszar; punkty maleją poprawnie
-- [x] 2.3 Obrót R zmienia kształt strzelnicy, duch jest czerwony w złym miejscu i pokazuje powód
-- [x] 2.4 Koniec tury przechodzi do następnego gracza i odnawia punkty
+- [x] 2.2 Postawienie koszar obok chłopa, potem piechura obok koszar; punkty maleją poprawnie — fdf548e
+- [x] 2.3 Obrót R zmienia kształt strzelnicy, duch jest czerwony w złym miejscu i pokazuje powód — fdf548e
+- [x] 2.4 Koniec tury przechodzi do następnego gracza i odnawia punkty — fdf548e
 
 ### Phase 3: Ruch oddziałów
 
 #### Automated
 
-- [ ] 3.1 Testy przechodzą: `node tests/run-tests.js`
+- [x] 3.1 Testy przechodzą: `node tests/run-tests.js`
 
 #### Manual
 
-- [ ] 3.2 Oddział 2 chłopów rusza się razem, liczba punktów w panelu maleje
-- [ ] 3.3 Po zostawieniu 2 punktów budowy oddział ma 7 ruchu
+- [x] 3.2 Oddział 2 chłopów rusza się razem, liczba punktów w panelu maleje
+- [x] 3.3 Po zostawieniu 2 punktów budowy oddział ma 7 ruchu
 
 ### Phase 4: Walka i wygrana
 

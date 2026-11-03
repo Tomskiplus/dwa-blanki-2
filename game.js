@@ -43,6 +43,9 @@ let board = null;  // gdzie i jak duża jest plansza na ekranie
 // null = nic, albo { kind: "building" lub "unit", key: typ, rotation: 0-3 }
 let action = null;
 let selectedBuildingId = null;  // numer klikniętego budynku (żeby zrobić w nim jednostki)
+let selectedUnitId = null;      // numer klikniętej jednostki (żeby nią ruszyć)
+let selectedAnchor = null;      // kratka jednostki, którą kliknęliśmy - "uchwyt" do przesuwania
+let reachableMoves = new Map(); // dokąd może dojść oddział: "dx,dy" -> koszt
 let showTurnBanner = false;     // czy pokazać duży napis "Tura gracza X"
 
 // Zmienia ekran i czyści stary komunikat
@@ -285,7 +288,13 @@ function getGameButtons() {
   const w = PANEL_WIDTH - 30;
   const selected = getSelectedBuilding();
 
-  if (selected) {
+  if (getSelectedUnit()) {
+    // Wybrana jednostka: tylko przycisk ZAMKNIJ (informacje rysuje drawPanel)
+    buttons.push({ label: "ZAMKNIJ", x: x, y: 255, w: w, h: 34, fontSize: 15,
+      onClick: clearSelection });
+  } else if (game.phase === "move") {
+    // Po ruchu nie ma już przycisków budowania
+  } else if (selected) {
     // Kliknięty budynek: przyciski jednostek, które może zrobić
     getRecruitOptions(game, selected).forEach((key, index) => {
       const type = UNIT_TYPES[key];
@@ -394,8 +403,7 @@ function startGame() {
     offsetY: Math.floor((BOARD_AREA - cell * game.rows) / 2),
   };
 
-  action = null;
-  selectedBuildingId = null;
+  clearSelection();
   showTurnBanner = true;   // na start pokazujemy, kto zaczyna
   goToScreen("game");
 }
@@ -412,8 +420,45 @@ function getSelectedBuilding() {
   return building;
 }
 
+// Zwraca klikniętą jednostkę, jeśli należy do gracza, który ma turę (albo null)
+function getSelectedUnit() {
+  if (selectedUnitId === null) return null;
+  const unit = game.objects.find(obj => obj.id === selectedUnitId);
+  if (!unit || unit.owner !== game.current) return null;
+  return unit;
+}
+
+// Odznacza wszystko: budynek, jednostkę i stawianie
+function clearSelection() {
+  action = null;
+  selectedBuildingId = null;
+  selectedUnitId = null;
+  selectedAnchor = null;
+  reachableMoves = new Map();
+}
+
+// Wybiera jednostkę i liczy, dokąd może dojść jej oddział
+function selectUnit(unit, cell) {
+  clearSelection();
+  selectedUnitId = unit.id;
+  selectedAnchor = cell;
+  refreshReachable();
+  if (unit.isNew) message = "Nowa jednostka - ruszy się w następnej turze.";
+}
+
+// Liczy od nowa pola, na które może dojść oddział wybranej jednostki.
+// Robimy to tylko po kliknięciu i po ruchu, a nie co klatkę (bo to sporo liczenia).
+function refreshReachable() {
+  const unit = getSelectedUnit();
+  const squad = unit ? getSquadOfUnit(game, unit) : null;
+  reachableMoves = squad ? getReachableMoves(game, squad) : new Map();
+}
+
 // Zaczyna stawianie budynku albo jednostki - za myszką pojawi się "duch" kształtu
 function startPlacing(kind, key) {
+  const building = selectedBuildingId;
+  clearSelection();
+  selectedBuildingId = building;  // budynek zostaje wybrany (jeśli robimy w nim jednostkę)
   action = { kind: kind, key: key, rotation: 0 };
   message = "";
 }
@@ -421,10 +466,20 @@ function startPlacing(kind, key) {
 // Kończy turę i pokazuje baner następnego gracza
 function finishTurn() {
   endTurn(game);
-  action = null;
-  selectedBuildingId = null;
+  clearSelection();
   message = "";
   showTurnBanner = true;
+}
+
+// Jeśli myszka jest nad polem, na które oddział może dojść, zwraca { dx, dy, cost }
+function getHoveredMove() {
+  const cell = mouseToCell(mouse);
+  if (!cell || !selectedAnchor) return null;
+  const dx = cell.x - selectedAnchor.x;
+  const dy = cell.y - selectedAnchor.y;
+  const cost = reachableMoves.get(dx + "," + dy);
+  if (cost === undefined) return null;
+  return { dx: dx, dy: dy, cost: cost };
 }
 
 // Zamienia pozycję myszki na kratkę planszy ({x, y}) albo null, gdy myszka jest poza planszą
@@ -478,14 +533,35 @@ function clickBoard(pos) {
     return;
   }
 
-  // 2. Jeśli nic nie stawiamy - kliknięcie własnego budynku go wybiera
-  const obj = getObjectAt(game, cell.x, cell.y);
-  if (obj && obj.kind === "building" && obj.owner === game.current) {
-    selectedBuildingId = obj.id;
-  } else {
-    selectedBuildingId = null;
-  }
   message = "";
+
+  // 2. Jeśli wybraliśmy jednostkę i kliknęliśmy pole, na które oddział dojdzie - ruszamy!
+  const unit = getSelectedUnit();
+  const dx = selectedAnchor ? cell.x - selectedAnchor.x : 0;
+  const dy = selectedAnchor ? cell.y - selectedAnchor.y : 0;
+  if (unit && reachableMoves.has(dx + "," + dy)) {
+    const result = moveSquad(game, unit, dx, dy);
+    if (result.ok) {
+      // "Uchwyt" przesuwa się razem z jednostką, więc można iść dalej
+      selectedAnchor = { x: selectedAnchor.x + dx, y: selectedAnchor.y + dy };
+      refreshReachable();
+    } else {
+      message = result.reason;
+    }
+    return;
+  }
+
+  // 3. Kliknięcie własnego budynku albo jednostki je wybiera
+  const obj = getObjectAt(game, cell.x, cell.y);
+  if (obj && obj.owner === game.current && obj.kind === "unit") {
+    selectUnit(obj, cell);
+  } else if (obj && obj.owner === game.current && obj.kind === "building") {
+    clearSelection();
+    if (game.phase === "build") selectedBuildingId = obj.id;
+    else message = "Po ruchu nie można już budować ani robić jednostek.";
+  } else {
+    clearSelection();
+  }
 }
 
 // Zamienia kratkę planszy (kolumna, rząd) na piksele na canvasie (lewy górny róg kratki)
@@ -653,6 +729,47 @@ function drawObjects() {
   // Wybrany budynek dostaje grubą żółtą ramkę
   const selected = getSelectedBuilding();
   if (selected) drawShapeOutline(selected.cells, 5, HOVER_COLOR);
+
+  drawUnitSelection();
+}
+
+// Wybrana jednostka: żółte ramki wokół całego oddziału, niebieskie kropki tam,
+// gdzie może dojść, i zielony "duch" oddziału pod myszką
+function drawUnitSelection() {
+  const unit = getSelectedUnit();
+  if (!unit) return;
+
+  const squad = getSquadOfUnit(game, unit);
+  const squadUnits = squad ? game.objects.filter(obj => squad.unitIds.includes(obj.id)) : [unit];
+  for (const member of squadUnits) {
+    drawShapeOutline(member.cells, 4, HOVER_COLOR);
+  }
+  drawShapeOutline(unit.cells, 4, "#e67e22");  // kliknięta jednostka - pomarańczowa ramka
+
+  // Kropki na polach, na które może trafić "uchwyt" (kliknięta kratka jednostki)
+  ctx.fillStyle = "rgba(41, 128, 185, 0.45)";
+  for (const key of reachableMoves.keys()) {
+    const [dx, dy] = key.split(",").map(Number);
+    const p = cellToPixel(selectedAnchor.x + dx, selectedAnchor.y + dy);
+    const r = board.cell * 0.2;
+    ctx.beginPath();
+    ctx.arc(p.x + board.cell / 2, p.y + board.cell / 2, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Duch oddziału w miejscu, na które wskazuje myszka
+  const move = getHoveredMove();
+  if (move && squad) {
+    ctx.globalAlpha = 0.45;
+    ctx.fillStyle = "#2ecc71";
+    for (const member of squadUnits) {
+      for (const c of member.cells) {
+        const p = cellToPixel(c.x + move.dx, c.y + move.dy);
+        ctx.fillRect(p.x, p.y, board.cell, board.cell);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
 }
 
 // Rysuje "ducha": półprzezroczysty kształt pod myszką.
@@ -706,15 +823,25 @@ function drawPanel() {
   drawPlayerSquares(centerX, 95);
 
   // Punkty
-  drawText("Punkty budowy: " + game.buildPoints, left, 125, 17, "#000000", "left");
-  if (game.barracksBonus > 0) {
-    drawText("+" + game.barracksBonus + " bonus na koszary", left, 146, 13, "#555555", "left");
+  if (game.phase === "build") {
+    drawText("Punkty budowy: " + game.buildPoints, left, 125, 17, "#000000", "left");
+    if (game.barracksBonus > 0) {
+      drawText("+" + game.barracksBonus + " bonus na koszary", left, 146, 13, "#555555", "left");
+    }
+  } else {
+    drawText("Faza ruchu", left, 125, 17, "#000000", "left");
+    drawText("budowanie skończone", left, 146, 13, "#555555", "left");
   }
 
-  // Nagłówek nad przyciskami
-  const selected = getSelectedBuilding();
-  const header = selected ? BUILDING_TYPES[selected.type].name + " - jednostki:" : "Zbuduj obok chłopa:";
-  drawText(header, left, 170, 14, "#555555", "left");
+  // Środek panelu: informacje o jednostce albo nagłówek nad przyciskami
+  const unit = getSelectedUnit();
+  if (unit) {
+    drawUnitInfo(unit, left);
+  } else if (game.phase === "build") {
+    const selected = getSelectedBuilding();
+    const header = selected ? BUILDING_TYPES[selected.type].name + " - jednostki:" : "Zbuduj obok chłopa:";
+    drawText(header, left, 170, 14, "#555555", "left");
+  }
 
   drawPanelInfo(left);
 
@@ -748,10 +875,42 @@ function drawPlayerSquares(centerX, y) {
   });
 }
 
+// Informacje o wybranej jednostce: nazwa, życie, atak, zasięg i punkty ruchu oddziału
+function drawUnitInfo(unit, left) {
+  const type = UNIT_TYPES[unit.type];
+  const squad = getSquadOfUnit(game, unit);
+
+  drawText(type.name, left, 172, 17, "#000000", "left");
+  drawText("Życie: " + unit.hp + "/" + unit.maxHp + "   Atak: " + type.attack, left, 195, 13, "#333333", "left");
+  drawText("Zasięg: " + type.range, left, 213, 13, "#333333", "left");
+
+  if (squad) {
+    const size = squad.unitIds.length;
+    const squadText = size === 1 ? "Sama (bez oddziału)" : "Oddział: " + size + " jedn.";
+    drawText(squadText + "   Ruch: " + squad.points, left, 236, 13, "#000000", "left");
+  }
+}
+
 // Podpowiedź albo powód, dla którego czegoś nie wolno (nad przyciskiem KONIEC TURY)
 function drawPanelInfo(left) {
-  let text = "Kliknij swój budynek, żeby robić w nim jednostki.";
+  let text = "Kliknij swój budynek, żeby robić w nim jednostki, albo jednostkę, żeby nią ruszyć.";
   let color = "#555555";
+
+  if (game.phase === "move") text = "Kliknij swoją jednostkę, żeby nią ruszyć.";
+
+  const unit = getSelectedUnit();
+  if (unit) {
+    text = "Kliknij podświetlone pole, żeby ruszyć oddział.";
+    if (game.phase === "build") {
+      text = "Uwaga: pierwszy ruch kończy budowanie w tej turze!";
+      color = "#b9770e";
+    }
+    const move = getHoveredMove();
+    if (move) {
+      text = "Ten ruch kosztuje " + move.cost + " pkt.";
+      color = "#1e8449";
+    }
+  }
 
   if (action) {
     text = "Kliknij na planszy, żeby postawić. R = obróć, Esc = anuluj.";

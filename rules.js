@@ -301,3 +301,144 @@ function endTurn(game) {
     }
   }
 }
+
+// =====================================================
+//  RUCH ODDZIAŁÓW
+//  Oddział = jednostki jednego gracza, które się stykają (bokiem albo rogiem).
+//  Oddział rusza się razem, jak jeden klocek.
+// =====================================================
+
+// Znajduje oddziały gracza. Zwraca listę oddziałów, a każdy oddział to lista numerów (id) jednostek.
+// Nowe jednostki (isNew) nie należą do żadnego oddziału - w tej turze jeszcze stoją.
+function findSquads(game, owner) {
+  const units = game.objects.filter(obj => obj.kind === "unit" && obj.owner === owner && !obj.isNew);
+  const visited = new Set();
+  const squads = [];
+
+  for (const start of units) {
+    if (visited.has(start.id)) continue;
+
+    // Zbieramy wszystkie jednostki połączone z "start" - jak rozlewanie wody:
+    // bierzemy jednostkę z kolejki i dokładamy do kolejki każdą, która jej dotyka
+    const squad = [];
+    const queue = [start];
+    visited.add(start.id);
+    while (queue.length > 0) {
+      const unit = queue.shift();
+      squad.push(unit.id);
+      for (const other of units) {
+        if (!visited.has(other.id) && distance(unit.cells, other.cells) === 1) {
+          visited.add(other.id);
+          queue.push(other);
+        }
+      }
+    }
+    squads.push(squad);
+  }
+  return squads;
+}
+
+// Zaczyna fazę ruchu: od teraz nie można budować.
+// Każdy oddział dostaje pulę: 5 punktów ruchu + niewydane punkty budowy.
+function startMovePhase(game) {
+  if (game.phase === "move") return;
+  const points = MOVE_POINTS + game.buildPoints;
+  game.squads = findSquads(game, game.current).map(ids => ({ unitIds: ids, points: points }));
+  game.phase = "move";
+  game.buildPoints = 0;
+  game.barracksBonus = 0;
+}
+
+// Zwraca oddział, do którego należy jednostka: { unitIds, points }.
+// W fazie budowy pokazujemy "podgląd" - ile punktów ruchu oddział BĘDZIE miał.
+// Zwraca null, gdy jednostka nie może się ruszać (np. jest nowa albo nie jest nasza).
+function getSquadOfUnit(game, unit) {
+  if (unit.owner !== game.current || unit.isNew) return null;
+
+  if (game.phase === "move") {
+    return game.squads.find(squad => squad.unitIds.includes(unit.id)) || null;
+  }
+  const ids = findSquads(game, game.current).find(squad => squad.includes(unit.id));
+  return { unitIds: ids, points: MOVE_POINTS + game.buildPoints };
+}
+
+// Wszystkie kratki wszystkich jednostek oddziału
+function getSquadCells(game, squad) {
+  const cells = [];
+  for (const obj of game.objects) {
+    if (squad.unitIds.includes(obj.id)) cells.push(...obj.cells);
+  }
+  return cells;
+}
+
+// Czy oddział zmieści się po przesunięciu o (dx, dy)?
+// Każda kratka musi być na planszy i być wolna albo zajęta przez ten sam oddział.
+function squadFitsAt(game, squad, squadCells, dx, dy) {
+  for (const cell of squadCells) {
+    const x = cell.x + dx;
+    const y = cell.y + dy;
+    if (!isInsideBoard(game, x, y)) return false;
+    const obj = getObjectAt(game, x, y);
+    if (obj && !squad.unitIds.includes(obj.id)) return false;
+  }
+  return true;
+}
+
+// Szuka wszystkich przesunięć (dx, dy), na które oddział może dojść.
+// Zwraca Map: "dx,dy" -> ile punktów kosztuje dojście.
+// Każdy krok (też po skosie) kosztuje 1 punkt. Oddział idzie krok po kroku,
+// więc omija przeszkody - jak woda, która rozlewa się dookoła kamieni.
+function getReachableMoves(game, squad) {
+  const squadCells = getSquadCells(game, squad);
+  const costs = new Map();
+  costs.set("0,0", 0);
+  const queue = [{ dx: 0, dy: 0 }];
+
+  // 8 kierunków: góra, dół, lewo, prawo i 4 skosy
+  const directions = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    const cost = costs.get(current.dx + "," + current.dy);
+    if (cost >= squad.points) continue; // brak punktów na kolejny krok
+
+    for (const [stepX, stepY] of directions) {
+      const dx = current.dx + stepX;
+      const dy = current.dy + stepY;
+      const key = dx + "," + dy;
+      if (costs.has(key)) continue; // tu już byliśmy (i to taniej)
+      if (!squadFitsAt(game, squad, squadCells, dx, dy)) continue;
+      costs.set(key, cost + 1);
+      queue.push({ dx: dx, dy: dy });
+    }
+  }
+
+  costs.delete("0,0"); // stanie w miejscu to nie ruch
+  return costs;
+}
+
+// Przesuwa cały oddział, do którego należy jednostka "unit", o (dx, dy).
+// Pierwszy ruch w turze kończy budowanie. Zwraca { ok, reason }.
+function moveSquad(game, unit, dx, dy) {
+  if (unit.owner !== game.current) return { ok: false, reason: "To nie twoja jednostka." };
+  if (unit.isNew) return { ok: false, reason: "Nowa jednostka ruszy się w następnej turze." };
+
+  // Najpierw sprawdzamy, czy ruch jest możliwy (bez kończenia budowania!)
+  const preview = getSquadOfUnit(game, unit);
+  if (!preview) return { ok: false, reason: "Ta jednostka nie może się ruszyć." };
+  const cost = getReachableMoves(game, preview).get(dx + "," + dy);
+  if (cost === undefined) return { ok: false, reason: "Oddział nie dojdzie w to miejsce." };
+
+  // Ruch jest możliwy - dopiero teraz zaczyna się faza ruchu
+  startMovePhase(game);
+  const squad = getSquadOfUnit(game, unit);
+
+  // Przesuwamy każdą kratkę każdej jednostki oddziału
+  for (const obj of game.objects) {
+    if (squad.unitIds.includes(obj.id)) {
+      obj.cells = obj.cells.map(c => ({ x: c.x + dx, y: c.y + dy }));
+    }
+  }
+  squad.points -= cost;
+  return { ok: true, reason: "" };
+}

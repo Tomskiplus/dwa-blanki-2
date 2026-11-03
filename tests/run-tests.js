@@ -182,6 +182,86 @@ function buildingCells(key, x, y, rotation) {
 }
 
 // =====================================================
+//  ETAP 3: Ruch oddziałów
+//  Gracz 0 na małej planszy: ratusz (2,2)-(3,4), chłopi na (2,5) i (3,5)
+// =====================================================
+
+// Pomocnicze: pierwsza jednostka gracza 0 danego typu
+function firstUnit(game, type) {
+  return objectsOf(game, 0, type)[0];
+}
+
+{
+  const game = createGame(2, "mala");
+  const squads = findSquads(game, 0);
+  check("Dwaj chłopi stojący obok siebie to 1 oddział", squads.length === 1 && squads[0].length === 2);
+
+  // Jednostki stykające się tylko rogiem też tworzą oddział
+  addUnit(game, "piechur", 0, [{ x: 4, y: 6 }, { x: 4, y: 7 }]);  // dotyka chłopa (3,5) rogiem
+  check("Jednostka stykająca się rogiem dołącza do oddziału", findSquads(game, 0)[0].length === 3);
+
+  addUnit(game, "lucznik", 0, [{ x: 10, y: 10 }]);  // daleko od reszty
+  check("Jednostka daleko od innych to osobny oddział", findSquads(game, 0).length === 2);
+
+  const newOne = addUnit(game, "lucznik", 0, [{ x: 12, y: 12 }]);
+  newOne.isNew = true;
+  check("Nowa jednostka nie należy do żadnego oddziału", findSquads(game, 0).length === 2);
+  check("Nowa jednostka nie może się ruszyć", !moveSquad(game, newOne, 1, 0).ok);
+}
+
+{
+  const game = createGame(2, "mala");
+  game.buildPoints = 2;  // jakby gracz wydał 6 punktów na budowanie
+  const peasant = firstUnit(game, "chlop");
+  check("Pula ruchu = 5 + niewydane punkty budowy (2) = 7", getSquadOfUnit(game, peasant).points === 7);
+
+  const moves = getReachableMoves(game, getSquadOfUnit(game, peasant));
+  check("Krok po skosie kosztuje 1 punkt", moves.get("1,1") === 1);
+  check("Oddział nie wejdzie na ratusz (krok w górę zablokowany)", !moves.has("0,-1"));
+  check("Oddział dojdzie 7 pól w dół, ale nie 8", moves.has("0,7") && !moves.has("0,8"));
+
+  check("Nieudany ruch NIE kończy budowania", !moveSquad(game, peasant, 0, 9).ok && game.phase === "build");
+
+  const result = moveSquad(game, peasant, 0, 3);
+  check("Ruch o 3 pola w dół się udaje", result.ok);
+  check("Obaj chłopi przesunęli się razem", firstUnit(game, "chlop").cells[0].y === 8 && objectsOf(game, 0, "chlop")[1].cells[0].y === 8);
+  check("Z puli zostały 4 punkty", getSquadOfUnit(game, peasant).points === 4);
+  check("Po ruchu nie można już budować", game.phase === "move" && !canPlaceBuilding(game, "stajnia", buildingCells("stajnia", 2, 9)).ok);
+}
+
+{
+  // Jednostka zamknięta w rogu planszy nie ma dokąd iść
+  const game = createGame(2, "mala");
+  const trapped = addUnit(game, "lucznik", 0, [{ x: 0, y: 0 }]);
+  addUnit(game, "lucznik", 1, [{ x: 1, y: 0 }]);
+  addUnit(game, "lucznik", 1, [{ x: 0, y: 1 }]);
+  addUnit(game, "lucznik", 1, [{ x: 1, y: 1 }]);
+  check("Zablokowana jednostka nie ma żadnego ruchu", getReachableMoves(game, getSquadOfUnit(game, trapped)).size === 0);
+}
+
+{
+  // Oddział omija przeszkodę: ściana wroga między (5,0) a (5,8), przejście tylko dołem
+  const game = createGame(2, "mala");
+  const walker = addUnit(game, "lucznik", 0, [{ x: 4, y: 0 }]);
+  for (let y = 0; y <= 8; y++) addUnit(game, "lucznik", 1, [{ x: 5, y: y }]);
+  const moves = getReachableMoves(game, { unitIds: [walker.id], points: 20 });
+  check("Przez ścianę nie da się przejść - trzeba ją obejść", moves.get("2,0") > 2);
+}
+
+{
+  // Oddziały są "zamrożone" do końca tury: po zetknięciu się nie łączą od razu
+  const game = createGame(2, "mala");
+  const a = addUnit(game, "lucznik", 0, [{ x: 10, y: 0 }]);
+  const b = addUnit(game, "lucznik", 0, [{ x: 14, y: 0 }]);
+  moveSquad(game, a, 2, 0);  // a staje na (12,0), b stoi na (14,0) - jeszcze się nie stykają
+  moveSquad(game, a, 1, 0);  // a staje na (13,0) i dotyka b
+  check("Zetknięte oddziały w tej turze ruszają się osobno", getSquadOfUnit(game, a).unitIds.length === 1);
+  endTurn(game);
+  endTurn(game);
+  check("W następnej turze to już jeden oddział", getSquadOfUnit(game, a).unitIds.includes(b.id));
+}
+
+// =====================================================
 //  WYNIK
 // =====================================================
 console.log("");
