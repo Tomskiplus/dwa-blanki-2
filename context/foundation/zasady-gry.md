@@ -29,7 +29,8 @@ Gdy zasada się zmieni, poprawiamy ją tutaj (nie robimy kopii pliku).
 - Postawienie budynku lub jednostki kosztuje tyle punktów budowy, ile ma **kratek**.
 - **Budynek** można postawić tylko tak, żeby **dotykał chłopa** (bokiem lub rogiem).
 - **Jednostka** pojawia się obok budynku, który ją zrobił.
-- Najpierw budujesz, potem chodzisz – po pierwszym ruchu w turze nie można już budować.
+- ⚠️ Na razie w grze: najpierw budujesz, potem chodzisz – po pierwszym ruchu nie można już budować.
+  **Do zmiany:** po ruchu ma się dać dalej budować (punkt 6 w `do-zrobienia.md`).
 - Nowa jednostka nie rusza się i nie atakuje w turze, w której powstała.
 - **Niewydane punkty budowy przechodzą na ruch.**
   Przykład: zostały 2 punkty budowy → ruch = 5 + 2 = 7.

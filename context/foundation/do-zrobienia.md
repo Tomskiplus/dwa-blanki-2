@@ -36,6 +36,15 @@ Gdy nie ma punktów budowy, oddział i tak ma 5 punktów ruchu.
 Oddział nie przechodzi przez budynki, więc obejście przeszkody kosztuje więcej kroków.
 Jeśli w grze wygląda to inaczej – opisać dokładnie, kiedy.
 
+## 6. Budowanie także po ruchu
+Teraz pierwszy ruch oddziału kończy budowanie w tej turze. **Ma być inaczej:**
+po ruchu nadal można budować i robić jednostki.
+- ❓ Do ustalenia: jak liczyć punkty, skoro niewydane punkty budowy zamieniają się w ruch?
+  Przykład: ruszasz się o 7 pól (5 ruchu + 2 z budowy), czy potem zostaje ci 6 punktów budowy?
+  Pomysł: ruch najpierw zużywa 5 „darmowych” punktów ruchu, a dopiero potem punkty budowy.
+  Ale co, jeśli masz kilka oddziałów, a każdy ma swoją pulę?
+- Miejsce w kodzie: `startMovePhase`, `canPlaceBuilding`, `canPlaceUnit` w `rules.js`.
+
 ## Później (po MVP)
 - Gra z botem (1 vs bot).
 - Multiplayer przez internet (z TATĄ – serwer i konto).
