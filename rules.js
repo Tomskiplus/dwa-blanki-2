@@ -442,3 +442,74 @@ function moveSquad(game, unit, dx, dy) {
   squad.points -= cost;
   return { ok: true, reason: "" };
 }
+
+// =====================================================
+//  WALKA
+// =====================================================
+
+// Lista wrogich obiektów (jednostek i budynków), które jednostka może teraz zaatakować.
+// Pusta, gdy jednostka nie umie walczyć, już atakowała w tej turze albo dopiero powstała.
+function getAttackTargets(game, unit) {
+  const type = UNIT_TYPES[unit.type];
+  if (unit.owner !== game.current) return [];
+  if (unit.isNew || unit.hasAttacked) return [];
+  if (type.attack <= 0 || type.range <= 0) return [];
+
+  return game.objects.filter(obj =>
+    obj.owner !== unit.owner && distance(unit.cells, obj.cells) <= type.range
+  );
+}
+
+// Ile obrażeń zada atakujący celowi (z bonusem przeciw kawalerii)
+function getDamage(attacker, target) {
+  const type = UNIT_TYPES[attacker.type];
+  let damage = type.attack;
+  const targetIsCavalry = target.kind === "unit" && UNIT_TYPES[target.type].cavalry;
+  if (targetIsCavalry && type.bonusVsCavalry) damage += type.bonusVsCavalry;
+  return damage;
+}
+
+// Czy jednostka może zaatakować ten cel? Zwraca { ok, reason }
+function canAttack(game, attacker, target) {
+  const type = UNIT_TYPES[attacker.type];
+  if (attacker.owner !== game.current) return { ok: false, reason: "To nie twoja jednostka." };
+  if (target.owner === attacker.owner) return { ok: false, reason: "Nie można atakować swoich." };
+  if (type.attack <= 0) return { ok: false, reason: type.name + " nie umie walczyć." };
+  if (attacker.isNew) return { ok: false, reason: "Nowa jednostka zaatakuje w następnej turze." };
+  if (attacker.hasAttacked) return { ok: false, reason: "Ta jednostka już atakowała w tej turze." };
+  if (distance(attacker.cells, target.cells) > type.range) return { ok: false, reason: "Cel jest za daleko." };
+  return { ok: true, reason: "" };
+}
+
+// Atak! Zwraca { ok, reason, damage, destroyed }
+function attack(game, attacker, target) {
+  const check = canAttack(game, attacker, target);
+  if (!check.ok) return check;
+
+  const damage = getDamage(attacker, target);
+  target.hp -= damage;
+  attacker.hasAttacked = true;
+
+  // Życie spadło do zera - obiekt znika z planszy
+  const destroyed = target.hp <= 0;
+  if (destroyed) {
+    game.objects = game.objects.filter(obj => obj.id !== target.id);
+  }
+
+  updateEliminations(game);
+  return { ok: true, reason: "", damage: damage, destroyed: destroyed };
+}
+
+// Sprawdza, kto odpadł (nie ma już żadnej jednostki) i czy ktoś wygrał.
+// Budynki gracza, który odpadł, zostają na planszy - można je dalej niszczyć.
+function updateEliminations(game) {
+  for (const player of game.players) {
+    if (!player.alive) continue;
+    const hasUnits = game.objects.some(obj => obj.kind === "unit" && obj.owner === player.id);
+    if (!hasUnits) player.alive = false;
+  }
+
+  // Został tylko jeden gracz? To on wygrywa!
+  const alivePlayers = game.players.filter(p => p.alive);
+  if (alivePlayers.length === 1) game.winner = alivePlayers[0].id;
+}

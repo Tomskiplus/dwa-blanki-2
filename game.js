@@ -27,7 +27,7 @@ const mouse = { x: -1, y: -1 };  // gdzie jest myszka
 let message = "";                // napis pokazywany po kliknięciu
 let time = 0;                    // licznik czasu do animacji
 
-// Na którym ekranie jesteśmy: "title", "singleMenu", "editorSetup" albo "game"
+// Na którym ekranie jesteśmy: "title", "singleMenu", "editorSetup", "game" albo "victory"
 let currentScreen = "title";
 
 // Ustawienia wybrane w edytorze
@@ -46,6 +46,8 @@ let selectedBuildingId = null;  // numer klikniętego budynku (żeby zrobić w n
 let selectedUnitId = null;      // numer klikniętej jednostki (żeby nią ruszyć)
 let selectedAnchor = null;      // kratka jednostki, którą kliknęliśmy - "uchwyt" do przesuwania
 let reachableMoves = new Map(); // dokąd może dojść oddział: "dx,dy" -> koszt
+let attackTargets = [];         // wrogowie, których wybrana jednostka może teraz zaatakować
+let attackInfo = "";            // napis po ataku, np. "Trafienie! -2 życia"
 let showTurnBanner = false;     // czy pokazać duży napis "Tura gracza X"
 
 // Zmienia ekran i czyści stary komunikat
@@ -330,12 +332,22 @@ function getGameButtons() {
   return buttons;
 }
 
+function getVictoryButtons() {
+  return [
+    { label: "NOWA GRA", x: 260, y: 400, w: 280, h: 60,
+      onClick: () => goToScreen("editorSetup") },
+    { label: "MENU", x: 260, y: 480, w: 280, h: 60,
+      onClick: () => goToScreen("title") },
+  ];
+}
+
 // Zwraca przyciski ekranu, na którym teraz jesteśmy
 function getButtons() {
   if (currentScreen === "title") return getTitleButtons();
   if (currentScreen === "singleMenu") return getSingleMenuButtons();
   if (currentScreen === "editorSetup") return getEditorSetupButtons();
   if (currentScreen === "game") return getGameButtons();
+  if (currentScreen === "victory") return getVictoryButtons();
   return [];
 }
 
@@ -435,6 +447,8 @@ function clearSelection() {
   selectedUnitId = null;
   selectedAnchor = null;
   reachableMoves = new Map();
+  attackTargets = [];
+  attackInfo = "";
 }
 
 // Wybiera jednostkę i liczy, dokąd może dojść jej oddział
@@ -446,12 +460,29 @@ function selectUnit(unit, cell) {
   if (unit.isNew) message = "Nowa jednostka - ruszy się w następnej turze.";
 }
 
-// Liczy od nowa pola, na które może dojść oddział wybranej jednostki.
-// Robimy to tylko po kliknięciu i po ruchu, a nie co klatkę (bo to sporo liczenia).
+// Liczy od nowa pola, na które może dojść oddział wybranej jednostki, i cele do ataku.
+// Robimy to tylko po kliknięciu, ruchu i ataku, a nie co klatkę (bo to sporo liczenia).
 function refreshReachable() {
   const unit = getSelectedUnit();
   const squad = unit ? getSquadOfUnit(game, unit) : null;
   reachableMoves = squad ? getReachableMoves(game, squad) : new Map();
+  attackTargets = unit ? getAttackTargets(game, unit) : [];
+}
+
+// Wybrana jednostka atakuje cel. Jeśli ktoś wygrał - przechodzimy na ekran zwycięstwa.
+function attackTarget(unit, target) {
+  const result = attack(game, unit, target);
+  if (!result.ok) {
+    message = result.reason;
+    return;
+  }
+
+  const targetName = target.kind === "unit" ? UNIT_TYPES[target.type].name : BUILDING_TYPES[target.type].name;
+  attackInfo = "Trafienie! " + targetName + ": -" + result.damage + " życia.";
+  if (result.destroyed) attackInfo = "Trafienie! Zniszczono: " + targetName + "!";
+
+  refreshReachable();  // zniszczony wróg mógł zwolnić drogę
+  if (game.winner !== null) goToScreen("victory");
 }
 
 // Zaczyna stawianie budynku albo jednostki - za myszką pojawi się "duch" kształtu
@@ -534,9 +565,17 @@ function clickBoard(pos) {
   }
 
   message = "";
-
-  // 2. Jeśli wybraliśmy jednostkę i kliknęliśmy pole, na które oddział dojdzie - ruszamy!
+  attackInfo = "";
   const unit = getSelectedUnit();
+  const clicked = getObjectAt(game, cell.x, cell.y);
+
+  // 2. Jeśli wybraliśmy jednostkę i kliknęliśmy wroga w zasięgu - atak!
+  if (unit && clicked && attackTargets.includes(clicked)) {
+    attackTarget(unit, clicked);
+    return;
+  }
+
+  // 3. Jeśli wybraliśmy jednostkę i kliknęliśmy pole, na które oddział dojdzie - ruszamy!
   const dx = selectedAnchor ? cell.x - selectedAnchor.x : 0;
   const dy = selectedAnchor ? cell.y - selectedAnchor.y : 0;
   if (unit && reachableMoves.has(dx + "," + dy)) {
@@ -551,8 +590,8 @@ function clickBoard(pos) {
     return;
   }
 
-  // 3. Kliknięcie własnego budynku albo jednostki je wybiera
-  const obj = getObjectAt(game, cell.x, cell.y);
+  // 4. Kliknięcie własnego budynku albo jednostki je wybiera
+  const obj = clicked;
   if (obj && obj.owner === game.current && obj.kind === "unit") {
     selectUnit(obj, cell);
   } else if (obj && obj.owner === game.current && obj.kind === "building") {
@@ -717,6 +756,26 @@ function drawUnit(unit) {
   drawText(type.symbol, center.x, center.y + 1, Math.floor(board.cell * 0.45), "#000000");
 }
 
+// Pasek życia nad obiektem - rysujemy go tylko, gdy obiekt jest ranny
+function drawHpBar(obj) {
+  if (obj.hp >= obj.maxHp) return;
+
+  const minX = Math.min(...obj.cells.map(c => c.x));
+  const maxX = Math.max(...obj.cells.map(c => c.x));
+  const minY = Math.min(...obj.cells.map(c => c.y));
+  const topLeft = cellToPixel(minX, minY);
+  const width = (maxX - minX + 1) * board.cell - 4;
+  const height = Math.max(4, Math.floor(board.cell * 0.18));
+
+  ctx.fillStyle = "#7b241c";   // ciemnoczerwone tło = stracone życie
+  ctx.fillRect(topLeft.x + 2, topLeft.y + 2, width, height);
+  ctx.fillStyle = "#2ecc71";   // zielone = życie, które zostało
+  ctx.fillRect(topLeft.x + 2, topLeft.y + 2, width * (obj.hp / obj.maxHp), height);
+  ctx.strokeStyle = "#000000";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(topLeft.x + 2, topLeft.y + 2, width, height);
+}
+
 // Rysuje wszystkie obiekty: najpierw budynki, potem jednostki (żeby były "na wierzchu")
 function drawObjects() {
   for (const obj of game.objects) {
@@ -724,6 +783,9 @@ function drawObjects() {
   }
   for (const obj of game.objects) {
     if (obj.kind === "unit") drawUnit(obj);
+  }
+  for (const obj of game.objects) {
+    drawHpBar(obj);
   }
 
   // Wybrany budynek dostaje grubą żółtą ramkę
@@ -745,6 +807,11 @@ function drawUnitSelection() {
     drawShapeOutline(member.cells, 4, HOVER_COLOR);
   }
   drawShapeOutline(unit.cells, 4, "#e67e22");  // kliknięta jednostka - pomarańczowa ramka
+
+  // Wrogowie w zasięgu ataku - czerwone ramki
+  for (const target of attackTargets) {
+    drawShapeOutline(target.cells, 4, "#e74c3c");
+  }
 
   // Kropki na polach, na które może trafić "uchwyt" (kliknięta kratka jednostki)
   ctx.fillStyle = "rgba(41, 128, 185, 0.45)";
@@ -882,11 +949,16 @@ function drawUnitInfo(unit, left) {
 
   drawText(type.name, left, 172, 17, "#000000", "left");
   drawText("Życie: " + unit.hp + "/" + unit.maxHp + "   Atak: " + type.attack, left, 195, 13, "#333333", "left");
-  drawText("Zasięg: " + type.range, left, 213, 13, "#333333", "left");
+  // Czy jednostka może jeszcze zaatakować w tej turze
+  let attackState = "atak gotowy";
+  if (type.attack <= 0) attackState = "nie walczy";
+  else if (unit.isNew) attackState = "nowa - czeka";
+  else if (unit.hasAttacked) attackState = "atak użyty";
+  drawText("Zasięg: " + type.range + "   (" + attackState + ")", left, 213, 13, "#333333", "left");
 
   if (squad) {
     const size = squad.unitIds.length;
-    const squadText = size === 1 ? "Sama (bez oddziału)" : "Oddział: " + size + " jedn.";
+    const squadText = size === 1 ? "Bez oddziału" : "Oddział: " + size + " jedn.";
     drawText(squadText + "   Ruch: " + squad.points, left, 236, 13, "#000000", "left");
   }
 }
@@ -905,11 +977,28 @@ function drawPanelInfo(left) {
       text = "Uwaga: pierwszy ruch kończy budowanie w tej turze!";
       color = "#b9770e";
     }
+    if (attackTargets.length > 0) {
+      text = "Czerwona ramka = wróg w zasięgu. Kliknij go, żeby zaatakować!";
+      color = "#c0392b";
+    }
     const move = getHoveredMove();
     if (move) {
       text = "Ten ruch kosztuje " + move.cost + " pkt.";
       color = "#1e8449";
     }
+    // Myszka nad wrogiem w zasięgu - pokazujemy, ile obrażeń zadamy
+    const cell = mouseToCell(mouse);
+    const hovered = cell ? getObjectAt(game, cell.x, cell.y) : null;
+    if (hovered && attackTargets.includes(hovered)) {
+      text = "Obrażenia: " + getDamage(unit, hovered) + " (wróg ma " + hovered.hp + " życia).";
+      color = "#c0392b";
+    }
+  }
+
+  // Wynik ostatniego ataku
+  if (attackInfo !== "") {
+    text = attackInfo;
+    color = "#1a5276";
   }
 
   if (action) {
@@ -964,6 +1053,26 @@ function drawTurnBanner() {
   drawText("TURA " + game.turn, 400, 245, 26, "#ffffff");
   drawText("Gracz " + player.colorName, 400, 295, 40, "#ffffff");
   drawText("Kliknij, aby zacząć", 400, 355, 20, "#ffffff");
+}
+
+// Ekran zwycięstwa: duży napis i okienko w kolorze zwycięzcy
+function drawVictoryScreen() {
+  const winner = game.players[game.winner];
+
+  drawPaper();
+  drawBigTitle("ZWYCIĘSTWO!", 100, 64);
+
+  ctx.fillStyle = winner.color;
+  ctx.fillRect(200, 180, 400, 170);
+  ctx.strokeStyle = "#000000";
+  ctx.lineWidth = LINE_WIDTH;
+  ctx.strokeRect(200, 180, 400, 170);
+
+  drawText("Wygrywa gracz", 400, 220, 22, "#ffffff");
+  drawText(winner.colorName, 400, 270, 46, "#ffffff");
+  drawText("w turze " + game.turn, 400, 318, 20, "#ffffff");
+
+  getButtons().forEach(drawButton);
 }
 
 function drawGameScreen() {
@@ -1050,6 +1159,7 @@ function gameLoop() {
   else if (currentScreen === "singleMenu") drawSingleMenuScreen();
   else if (currentScreen === "editorSetup") drawEditorSetupScreen();
   else if (currentScreen === "game") drawGameScreen();
+  else if (currentScreen === "victory") drawVictoryScreen();
 
   requestAnimationFrame(gameLoop); // poproś przeglądarkę o następną klatkę
 }

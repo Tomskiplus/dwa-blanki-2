@@ -336,18 +336,18 @@ BFS ruchu na planszy 36×27 to < 1000 pozycji – liczymy tylko po kliknięciu j
 
 #### Automated
 
-- [x] 3.1 Testy przechodzą: `node tests/run-tests.js`
+- [x] 3.1 Testy przechodzą: `node tests/run-tests.js` — 5b11d0b
 
 #### Manual
 
-- [x] 3.2 Oddział 2 chłopów rusza się razem, liczba punktów w panelu maleje
-- [x] 3.3 Po zostawieniu 2 punktów budowy oddział ma 7 ruchu
+- [x] 3.2 Oddział 2 chłopów rusza się razem, liczba punktów w panelu maleje — 5b11d0b
+- [x] 3.3 Po zostawieniu 2 punktów budowy oddział ma 7 ruchu — 5b11d0b
 
 ### Phase 4: Walka i wygrana
 
 #### Automated
 
-- [ ] 4.1 Testy przechodzą: `node tests/run-tests.js`
+- [x] 4.1 Testy przechodzą: `node tests/run-tests.js`
 
 #### Manual
 

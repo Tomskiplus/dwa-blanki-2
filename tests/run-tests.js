@@ -262,6 +262,75 @@ function firstUnit(game, type) {
 }
 
 // =====================================================
+//  ETAP 4: Walka i wygrana
+// =====================================================
+
+{
+  const game = createGame(2, "mala");
+  const archer = addUnit(game, "lucznik", 0, [{ x: 8, y: 2 }]);
+  const near = addUnit(game, "piechur", 1, [{ x: 12, y: 6 }, { x: 12, y: 7 }]);  // 4 w prawo i 4 w dół
+  const far = addUnit(game, "piechur", 1, [{ x: 13, y: 2 }, { x: 13, y: 3 }]);   // 5 w prawo
+  const targets = getAttackTargets(game, archer);
+  check("Łucznik (zasięg 4) trafia wroga 4 pola po skosie", targets.includes(near));
+  check("Łucznik nie trafia wroga 5 pól dalej", !targets.includes(far));
+
+  const result = attack(game, archer, near);
+  check("Atak łucznika zadaje 1 obrażenie", result.ok && near.hp === 2);
+  check("Drugi atak w tej samej turze - nie wolno", !attack(game, archer, near).ok);
+  check("Atak nie kończy budowania", game.phase === "build");
+}
+
+{
+  const game = createGame(2, "mala");
+  const spear = addUnit(game, "wlocznik", 0, [{ x: 8, y: 2 }, { x: 8, y: 3 }]);
+  const horse = addUnit(game, "kawaleria1", 1, shapeCells(UNIT_TYPES.kawaleria1.shape, 9, 3, 0));
+  attack(game, spear, horse);
+  check("Włócznik zadaje kawalerii 1 + 3 = 4 obrażenia", horse.hp === 1);
+
+  const peasant = objectsOf(game, 0, "chlop")[0];
+  check("Chłop (atak 0) nie ma celów", getAttackTargets(game, peasant).length === 0);
+
+  const fresh = addUnit(game, "piechur", 0, [{ x: 10, y: 2 }, { x: 10, y: 3 }]);
+  fresh.isNew = true;
+  check("Nowa jednostka nie może atakować", !attack(game, fresh, horse).ok);
+}
+
+{
+  // Atak na budynek
+  const game = createGame(2, "mala");
+  addBuilding(game, "koszary", 1, buildingCells("koszary", 10, 2));
+  const barracks = objectsOf(game, 1, "koszary")[0];
+  const soldier = addUnit(game, "piechur", 0, [{ x: 9, y: 2 }, { x: 9, y: 3 }]);
+  attack(game, soldier, barracks);
+  check("Piechur zabiera koszarom 1 z 18 życia", barracks.hp === 17);
+}
+
+{
+  // Zniszczenie ostatniej jednostki wroga = wygrana
+  const game = createGame(2, "mala");
+  game.objects = game.objects.filter(obj => !(obj.owner === 1 && obj.kind === "unit"));  // wróg traci chłopów
+  const lastEnemy = addUnit(game, "chlop", 1, [{ x: 10, y: 5 }]);
+  const soldier = addUnit(game, "piechur", 0, [{ x: 9, y: 5 }, { x: 9, y: 6 }]);
+  const result = attack(game, soldier, lastEnemy);
+  check("Chłop z 1 życiem ginie od jednego ciosu", result.destroyed && !game.objects.includes(lastEnemy));
+  check("Gracz bez jednostek odpada", game.players[1].alive === false);
+  check("Ostatni gracz w grze wygrywa", game.winner === 0);
+  check("Ratusz gracza, który odpadł, zostaje na planszy", objectsOf(game, 1, "ratusz").length === 1);
+}
+
+{
+  // 3 graczy: gracz 1 odpada, gra toczy się dalej i pomija go w turach
+  const game = createGame(3, "mala");
+  game.objects = game.objects.filter(obj => !(obj.owner === 1 && obj.kind === "unit"));
+  const lastEnemy = addUnit(game, "chlop", 1, [{ x: 10, y: 5 }]);
+  const soldier = addUnit(game, "piechur", 0, [{ x: 9, y: 5 }, { x: 9, y: 6 }]);
+  attack(game, soldier, lastEnemy);
+  check("Przy 3 graczach jeden odpada, ale nikt jeszcze nie wygrał", game.players[1].alive === false && game.winner === null);
+  endTurn(game);
+  check("Po turze gracza 0 gra gracz 2 (gracz 1 pominięty)", game.current === 2);
+}
+
+// =====================================================
 //  WYNIK
 // =====================================================
 console.log("");
