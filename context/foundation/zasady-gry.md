@@ -6,8 +6,8 @@ Gdy zasada się zmieni, poprawiamy ją tutaj (nie robimy kopii pliku).
 
 ## Tryby gry
 - **Singleplayer** – menu z opcjami:
-  - **1 vs bot**
-  - **Edytor** (później)
+  - **1 vs bot** (później)
+  - **Edytor** – tu można grać na jednym komputerze (gracze siadają po kolei)
 - **Multiplayer** – poczekalnia dla **2–8 graczy**.
 - Rozmiar planszy ustawia się w poczekalni (multiplayer) albo w menu (singleplayer).
 
@@ -23,9 +23,14 @@ Gdy zasada się zmieni, poprawiamy ją tutaj (nie robimy kopii pliku).
 ## Tura
 - Gracze grają **po kolei (w turach)**.
 - Co turę gracz dostaje:
-  - **8 punktów budowy** (+1 za każde posiadane koszary),
+  - **8 punktów budowy** + **1 bonusowy punkt, który można wydać tylko na koszary**
+    (koszary mają 9 kratek, więc 8 + 1 = 9),
   - **5 punktów ruchu**.
 - Postawienie budynku lub jednostki kosztuje tyle punktów budowy, ile ma **kratek**.
+- **Budynek** można postawić tylko tak, żeby **dotykał chłopa** (bokiem lub rogiem).
+- **Jednostka** pojawia się obok budynku, który ją zrobił.
+- Najpierw budujesz, potem chodzisz – po pierwszym ruchu w turze nie można już budować.
+- Nowa jednostka nie rusza się i nie atakuje w turze, w której powstała.
 - **Niewydane punkty budowy przechodzą na ruch.**
   Przykład: zostały 2 punkty budowy → ruch = 5 + 2 = 7.
 - **Zamek** buduje się przez **2 tury**.
@@ -37,16 +42,20 @@ Gdy zasada się zmieni, poprawiamy ją tutaj (nie robimy kopii pliku).
 - Jednostki, które się **stykają** (bokiem albo rogiem), tworzą **oddział**.
 - Oddział rusza się **razem**, jak jeden klocek.
 - Każdy oddział i każda samotna jednostka ma **własną** pulę punktów ruchu.
+- Krok **po skosie kosztuje 1 punkt**, tak samo jak krok prosto.
+- Oddziały ustalają się na początku ruchu – jeśli dwa się zetkną, łączą się od następnej tury.
 
 ## Atak
 - Każda jednostka atakuje **najwyżej 1 raz na turę**.
 - **Zasięg** liczymy w każdą stronę, **także po skosie**
   (zasięg 1 = 8 pól dookoła, jak kwadrat 3×3 z jednostką w środku).
 - Można atakować jednostki i budynki przeciwnika.
+- **Budynki mają 2 życia za każdą kratkę** (np. koszary 9 kratek = 18 życia).
 - Nowa jednostka pojawia się **obok budynku**, który ją stworzył.
 
 ## Wygrana
 - Wygrywa gracz, który **zniszczy wszystkie jednostki przeciwnika**.
+- Gracz bez jednostek **odpada** (nawet jeśli ma budynki). Ostatni gracz w grze wygrywa.
 
 ## Ery
 - 4 ery. W każdej erze dostępne są inne budowle (mury, wieże, bramy, zamki…).
@@ -60,14 +69,14 @@ Gdy zasada się zmieni, poprawiamy ją tutaj (nie robimy kopii pliku).
 | Koszary | kwadrat 3×3 (❓ sprawdzić) |
 | Strzelnica | kształt litery L |
 | Stajnia | prostokąt 2×3 |
-| Ratusz | ❓ |
+| Ratusz | kwadrat 2×2 (tymczasowo), tylko na starcie – drugiego nie da się zbudować |
 
 ## Jednostki
 Oznaczenia z zeszytu: **D** = życie ❤️, **K** = atak ⚔️, **Z** = zasięg.
 
 | Budynek | Jednostka | Życie | Atak | Zasięg |
 |---|---|---|---|---|
-| Ratusz | Chłop | ❓ | ❓ | ❓ |
+| Ratusz | Chłop | 1 | 0 | 0 (ulepszony: 3 / 1 / 1) |
 | Koszary | Piechur | 3 | 1 | 1 |
 | Koszary | Piechur ulepszony | 4 | 1.5 | 1 |
 | Koszary | Włócznik | 2 | 1 (+3 vs kawaleria) | 1 |
@@ -96,7 +105,8 @@ Kształty jednostek (z zeszytu, przybliżone):
 
 ## Pytania otwarte (do zeszytu / kolegi)
 - Co gracze mają na starcie (na razie: ratusz + 2 chłopów)?
-- Statystyki i kształt chłopa i ratusza.
+- Kształt ratusza (na razie 2×2).
+- Które jednostki są w której erze (np. włócznik – era 1, pikinier – era 2; reszta zgadnięta w `data.js`).
 - Wymagania do kolejnych er.
 - Dokładne kształty jednostek i budynków (ile kratek kosztują).
 - Kolorowe strony zeszytu – czy to różne cywilizacje/drużyny?
