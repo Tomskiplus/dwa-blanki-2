@@ -172,3 +172,132 @@ function createGame(playerCount, sizeKey) {
 
   return game;
 }
+
+// =====================================================
+//  BUDOWANIE I REKRUTACJA
+//  Funkcje "canXxx" zwracają { ok: true/false, reason: "dlaczego nie" }
+// =====================================================
+
+// Sprawdza, czy wszystkie kratki są na planszy i są wolne
+function checkCellsFree(game, cells) {
+  for (const cell of cells) {
+    if (!isInsideBoard(game, cell.x, cell.y)) return { ok: false, reason: "Wychodzi poza planszę." };
+    if (getObjectAt(game, cell.x, cell.y)) return { ok: false, reason: "To miejsce jest zajęte." };
+  }
+  return { ok: true, reason: "" };
+}
+
+// Ile punktów budowy gracz może wydać na dany budynek
+// (bonusowy punkt działa tylko przy koszarach)
+function availablePointsFor(game, buildingKey) {
+  if (buildingKey === "koszary") return game.buildPoints + game.barracksBonus;
+  return game.buildPoints;
+}
+
+// Czy aktualny gracz może postawić budynek typu buildingKey na tych kratkach?
+function canPlaceBuilding(game, buildingKey, cells) {
+  const type = BUILDING_TYPES[buildingKey];
+  if (!type.canBuild) return { ok: false, reason: type.name + " nie da się zbudować." };
+  if (game.phase !== "build") return { ok: false, reason: "Już ruszałeś wojskiem - w tej turze nie można budować." };
+
+  const free = checkCellsFree(game, cells);
+  if (!free.ok) return free;
+
+  // Budynek musi dotykać (bokiem albo rogiem) chłopa aktualnego gracza
+  const touchesPeasant = game.objects.some(obj =>
+    obj.owner === game.current && obj.type === "chlop" && distance(obj.cells, cells) === 1
+  );
+  if (!touchesPeasant) return { ok: false, reason: "Budynek musi dotykać twojego chłopa." };
+
+  const cost = cells.length;
+  const available = availablePointsFor(game, buildingKey);
+  if (cost > available) return { ok: false, reason: "Za mało punktów: potrzeba " + cost + ", masz " + available + "." };
+
+  return { ok: true, reason: "" };
+}
+
+// Stawia budynek (najpierw sprawdza, czy wolno). Zwraca { ok, reason }.
+function placeBuilding(game, buildingKey, cells) {
+  const check = canPlaceBuilding(game, buildingKey, cells);
+  if (!check.ok) return check;
+
+  let cost = cells.length;
+  // Przy koszarach najpierw zużywamy bonusowy punkt
+  if (buildingKey === "koszary") {
+    const fromBonus = Math.min(game.barracksBonus, cost);
+    game.barracksBonus -= fromBonus;
+    cost -= fromBonus;
+  }
+  game.buildPoints -= cost;
+
+  addBuilding(game, buildingKey, game.current, cells);
+  return check;
+}
+
+// Jakie jednostki może teraz zrobić ten budynek (tylko z ery gracza albo wcześniejszej)
+function getRecruitOptions(game, building) {
+  const era = game.players[building.owner].era;
+  return Object.keys(UNIT_TYPES).filter(key =>
+    UNIT_TYPES[key].building === building.type && UNIT_TYPES[key].era <= era
+  );
+}
+
+// Czy aktualny gracz może zrobić jednostkę unitKey w budynku building na tych kratkach?
+function canPlaceUnit(game, unitKey, building, cells) {
+  const type = UNIT_TYPES[unitKey];
+  if (game.phase !== "build") return { ok: false, reason: "Już ruszałeś wojskiem - w tej turze nie można budować." };
+  if (building.owner !== game.current) return { ok: false, reason: "To nie twój budynek." };
+  if (type.building !== building.type) return { ok: false, reason: BUILDING_TYPES[building.type].name + " nie robi tej jednostki." };
+  if (type.era > game.players[game.current].era) return { ok: false, reason: type.name + " będzie dostępny w erze " + type.era + "." };
+
+  const free = checkCellsFree(game, cells);
+  if (!free.ok) return free;
+
+  // Nowa jednostka pojawia się obok budynku, który ją zrobił
+  if (distance(building.cells, cells) !== 1) return { ok: false, reason: "Jednostka musi stać obok budynku, który ją robi." };
+
+  const cost = cells.length;
+  if (cost > game.buildPoints) return { ok: false, reason: "Za mało punktów: potrzeba " + cost + ", masz " + game.buildPoints + "." };
+
+  return { ok: true, reason: "" };
+}
+
+// Robi jednostkę (najpierw sprawdza, czy wolno). Zwraca { ok, reason }.
+function placeUnit(game, unitKey, building, cells) {
+  const check = canPlaceUnit(game, unitKey, building, cells);
+  if (!check.ok) return check;
+
+  game.buildPoints -= cells.length;
+  const unit = addUnit(game, unitKey, game.current, cells);
+  unit.isNew = true; // w tej turze jeszcze się nie rusza i nie atakuje
+  return check;
+}
+
+// =====================================================
+//  TURY
+// =====================================================
+
+// Kończy turę: następny gracz, który jeszcze jest w grze, dostaje świeże punkty
+function endTurn(game) {
+  let next = game.current;
+  // Szukamy następnego żywego gracza (pętla "w kółko" po liście graczy)
+  for (let i = 0; i < game.players.length; i++) {
+    next = (next + 1) % game.players.length;
+    if (next === 0) game.turn++;   // wszyscy już zagrali - zaczyna się nowa tura
+    if (game.players[next].alive) break;
+  }
+  game.current = next;
+
+  game.buildPoints = BUILD_POINTS;
+  game.barracksBonus = BARRACKS_BONUS;
+  game.phase = "build";
+  game.squads = [];
+
+  // Jednostki gracza, który zaczyna turę, są już gotowe do działania
+  for (const obj of game.objects) {
+    if (obj.kind === "unit" && obj.owner === next) {
+      obj.isNew = false;
+      obj.hasAttacked = false;
+    }
+  }
+}

@@ -39,6 +39,12 @@ const setup = {
 let game = null;   // stan gry (tworzy go createGame z rules.js)
 let board = null;  // gdzie i jak duża jest plansza na ekranie
 
+// Co gracz teraz robi na planszy:
+// null = nic, albo { kind: "building" lub "unit", key: typ, rotation: 0-3 }
+let action = null;
+let selectedBuildingId = null;  // numer klikniętego budynku (żeby zrobić w nim jednostki)
+let showTurnBanner = false;     // czy pokazać duży napis "Tura gracza X"
+
 // Zmienia ekran i czyści stary komunikat
 function goToScreen(screenName) {
   currentScreen = screenName;
@@ -271,10 +277,48 @@ function getEditorSetupButtons() {
 }
 
 function getGameButtons() {
-  return [
-    { label: "MENU", x: PANEL_X + 20, y: 530, w: PANEL_WIDTH - 40, h: 50, fontSize: 22,
-      onClick: () => goToScreen("title") },
-  ];
+  // Gdy widać baner zmiany tury, przyciski są "zasłonięte"
+  if (showTurnBanner) return [];
+
+  const buttons = [];
+  const x = PANEL_X + 15;
+  const w = PANEL_WIDTH - 30;
+  const selected = getSelectedBuilding();
+
+  if (selected) {
+    // Kliknięty budynek: przyciski jednostek, które może zrobić
+    getRecruitOptions(game, selected).forEach((key, index) => {
+      const type = UNIT_TYPES[key];
+      buttons.push({
+        label: type.name + " (" + type.shape.length + ")",
+        x: x, y: 185 + index * 46, w: w, h: 40, fontSize: 16,
+        selected: action !== null && action.key === key,
+        onClick: () => startPlacing("unit", key),
+      });
+    });
+    const closeY = 185 + getRecruitOptions(game, selected).length * 46;
+    buttons.push({ label: "ZAMKNIJ", x: x, y: closeY, w: w, h: 34, fontSize: 15,
+      onClick: () => { selectedBuildingId = null; action = null; } });
+  } else {
+    // Nic nie kliknięte: przyciski budynków, które można postawić
+    const buildable = Object.keys(BUILDING_TYPES).filter(key => BUILDING_TYPES[key].canBuild);
+    buildable.forEach((key, index) => {
+      const type = BUILDING_TYPES[key];
+      buttons.push({
+        label: type.name + " (" + type.shape.length + ")",
+        x: x, y: 185 + index * 46, w: w, h: 40, fontSize: 18,
+        selected: action !== null && action.key === key,
+        onClick: () => startPlacing("building", key),
+      });
+    });
+  }
+
+  buttons.push({ label: "KONIEC TURY", x: x, y: 470, w: w, h: 50, fontSize: 20,
+    onClick: finishTurn });
+  buttons.push({ label: "MENU", x: x, y: 535, w: w, h: 45, fontSize: 18,
+    onClick: () => goToScreen("title") });
+
+  return buttons;
 }
 
 // Zwraca przyciski ekranu, na którym teraz jesteśmy
@@ -350,7 +394,98 @@ function startGame() {
     offsetY: Math.floor((BOARD_AREA - cell * game.rows) / 2),
   };
 
+  action = null;
+  selectedBuildingId = null;
+  showTurnBanner = true;   // na start pokazujemy, kto zaczyna
   goToScreen("game");
+}
+
+// =====================================================
+//  GRA - akcje gracza
+// =====================================================
+
+// Zwraca kliknięty budynek, jeśli należy do gracza, który ma turę (albo null)
+function getSelectedBuilding() {
+  if (selectedBuildingId === null) return null;
+  const building = game.objects.find(obj => obj.id === selectedBuildingId);
+  if (!building || building.owner !== game.current) return null;
+  return building;
+}
+
+// Zaczyna stawianie budynku albo jednostki - za myszką pojawi się "duch" kształtu
+function startPlacing(kind, key) {
+  action = { kind: kind, key: key, rotation: 0 };
+  message = "";
+}
+
+// Kończy turę i pokazuje baner następnego gracza
+function finishTurn() {
+  endTurn(game);
+  action = null;
+  selectedBuildingId = null;
+  message = "";
+  showTurnBanner = true;
+}
+
+// Zamienia pozycję myszki na kratkę planszy ({x, y}) albo null, gdy myszka jest poza planszą
+function mouseToCell(pos) {
+  if (!board || pos.x >= PANEL_X) return null;
+  const x = Math.floor((pos.x - board.offsetX) / board.cell);
+  const y = Math.floor((pos.y - board.offsetY) / board.cell);
+  if (!isInsideBoard(game, x, y)) return null;
+  return { x: x, y: y };
+}
+
+// Kratki "ducha" - kształtu, który stawiamy, ze środkiem pod myszką
+function getGhostCells(cell) {
+  if (!action || !cell) return null;
+  const types = action.kind === "building" ? BUILDING_TYPES : UNIT_TYPES;
+  const shape = types[action.key].shape;
+
+  // Najpierw sprawdzamy, jak duży jest kształt po obrocie...
+  const sample = shapeCells(shape, 0, 0, action.rotation);
+  const width = Math.max(...sample.map(c => c.x)) + 1;
+  const height = Math.max(...sample.map(c => c.y)) + 1;
+
+  // ...a potem przesuwamy go tak, żeby myszka była w jego środku
+  return shapeCells(shape, cell.x - Math.floor((width - 1) / 2), cell.y - Math.floor((height - 1) / 2), action.rotation);
+}
+
+// Sprawdza, czy duch może stanąć w tym miejscu (zwraca { ok, reason })
+function checkGhost(cells) {
+  if (action.kind === "building") return canPlaceBuilding(game, action.key, cells);
+  return canPlaceUnit(game, action.key, getSelectedBuilding(), cells);
+}
+
+// Kliknięcie na planszy
+function clickBoard(pos) {
+  const cell = mouseToCell(pos);
+  if (!cell) return;
+
+  // 1. Jeśli coś stawiamy - próbujemy to postawić
+  if (action) {
+    const cells = getGhostCells(cell);
+    let result;
+    if (action.kind === "building") result = placeBuilding(game, action.key, cells);
+    else result = placeUnit(game, action.key, getSelectedBuilding(), cells);
+
+    if (result.ok) {
+      action = null;
+      message = "";
+    } else {
+      message = result.reason;
+    }
+    return;
+  }
+
+  // 2. Jeśli nic nie stawiamy - kliknięcie własnego budynku go wybiera
+  const obj = getObjectAt(game, cell.x, cell.y);
+  if (obj && obj.kind === "building" && obj.owner === game.current) {
+    selectedBuildingId = obj.id;
+  } else {
+    selectedBuildingId = null;
+  }
+  message = "";
 }
 
 // Zamienia kratkę planszy (kolumna, rząd) na piksele na canvasie (lewy górny róg kratki)
@@ -394,11 +529,11 @@ function drawBoardGrid() {
 
 // Rysuje grubą ramkę tylko po ZEWNĘTRZNYCH krawędziach kształtu.
 // Dla każdej kratki sprawdzamy 4 boki: jeśli obok nie ma kratki tego kształtu, rysujemy bok.
-function drawShapeOutline(cells, lineWidth) {
+function drawShapeOutline(cells, lineWidth, color) {
   const taken = new Set(cells.map(c => c.x + "," + c.y));
   const size = board.cell;
 
-  ctx.strokeStyle = "#000000";
+  ctx.strokeStyle = color || "#000000";
   ctx.lineWidth = lineWidth;
   ctx.lineCap = "round";
   ctx.beginPath();
@@ -514,6 +649,29 @@ function drawObjects() {
   for (const obj of game.objects) {
     if (obj.kind === "unit") drawUnit(obj);
   }
+
+  // Wybrany budynek dostaje grubą żółtą ramkę
+  const selected = getSelectedBuilding();
+  if (selected) drawShapeOutline(selected.cells, 5, HOVER_COLOR);
+}
+
+// Rysuje "ducha": półprzezroczysty kształt pod myszką.
+// Zielony = można tu postawić, czerwony = nie można.
+function drawGhost() {
+  const cells = getGhostCells(mouseToCell(mouse));
+  if (!cells) return;
+
+  const color = checkGhost(cells).ok ? "#2ecc71" : "#e74c3c";
+  ctx.globalAlpha = 0.55;
+  ctx.fillStyle = color;
+  for (const c of cells) {
+    // Kratki poza planszą pomijamy (ale duch i tak będzie czerwony)
+    if (!isInsideBoard(game, c.x, c.y)) continue;
+    const p = cellToPixel(c.x, c.y);
+    ctx.fillRect(p.x, p.y, board.cell, board.cell);
+  }
+  ctx.globalAlpha = 1;
+  drawShapeOutline(cells.filter(c => isInsideBoard(game, c.x, c.y)), 2, color);
 }
 
 // =====================================================
@@ -531,42 +689,131 @@ function drawPanel() {
   ctx.lineTo(PANEL_X, canvas.height);
   ctx.stroke();
 
+  const left = PANEL_X + 15;
   const centerX = PANEL_X + PANEL_WIDTH / 2;
   const player = game.players[game.current];
 
-  drawText("TURA " + game.turn, centerX, 35, 26, "#000000");
+  drawText("TURA " + game.turn, centerX, 28, 24, "#000000");
 
-  // Kto teraz gra
-  drawText("Teraz gra:", centerX, 80, 16, "#555555");
+  // Kto teraz gra - prostokąt w kolorze gracza
   ctx.fillStyle = player.color;
-  ctx.fillRect(PANEL_X + 20, 98, 160, 36);
+  ctx.fillRect(left, 48, PANEL_WIDTH - 30, 32);
   ctx.strokeStyle = "#000000";
   ctx.lineWidth = 2;
-  ctx.strokeRect(PANEL_X + 20, 98, 160, 36);
-  drawText(player.colorName, centerX, 117, 20, "#ffffff");
+  ctx.strokeRect(left, 48, PANEL_WIDTH - 30, 32);
+  drawText(player.colorName, centerX, 65, 19, "#ffffff");
 
-  // Lista wszystkich graczy
-  drawText("Gracze:", PANEL_X + 20, 165, 16, "#555555", "left");
-  game.players.forEach((p, index) => {
-    const y = 190 + index * 28;
-    ctx.fillStyle = p.color;
-    ctx.fillRect(PANEL_X + 20, y - 10, 20, 20);
-    ctx.strokeStyle = "#000000";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(PANEL_X + 20, y - 10, 20, 20);
-    // Strzałka przy graczu, który ma turę
-    const arrow = index === game.current ? " ◀" : "";
-    drawText(p.colorName + arrow, PANEL_X + 50, y, 15, "#000000", "left");
-  });
+  drawPlayerSquares(centerX, 95);
+
+  // Punkty
+  drawText("Punkty budowy: " + game.buildPoints, left, 125, 17, "#000000", "left");
+  if (game.barracksBonus > 0) {
+    drawText("+" + game.barracksBonus + " bonus na koszary", left, 146, 13, "#555555", "left");
+  }
+
+  // Nagłówek nad przyciskami
+  const selected = getSelectedBuilding();
+  const header = selected ? BUILDING_TYPES[selected.type].name + " - jednostki:" : "Zbuduj obok chłopa:";
+  drawText(header, left, 170, 14, "#555555", "left");
+
+  drawPanelInfo(left);
 
   getButtons().forEach(drawButton);
+}
+
+// Rząd małych kwadracików - po jednym dla każdego gracza.
+// Gracz, który ma turę, ma grubą ramkę; gracz, który odpadł, ma krzyżyk.
+function drawPlayerSquares(centerX, y) {
+  const size = 16;
+  const gap = 5;
+  const count = game.players.length;
+  let x = centerX - (count * size + (count - 1) * gap) / 2;
+
+  game.players.forEach((p, index) => {
+    ctx.fillStyle = p.color;
+    ctx.fillRect(x, y - size / 2, size, size);
+    ctx.strokeStyle = "#000000";
+    ctx.lineWidth = index === game.current ? 3 : 1;
+    ctx.strokeRect(x, y - size / 2, size, size);
+    if (!p.alive) {
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, y - size / 2);
+      ctx.lineTo(x + size, y + size / 2);
+      ctx.moveTo(x + size, y - size / 2);
+      ctx.lineTo(x, y + size / 2);
+      ctx.stroke();
+    }
+    x += size + gap;
+  });
+}
+
+// Podpowiedź albo powód, dla którego czegoś nie wolno (nad przyciskiem KONIEC TURY)
+function drawPanelInfo(left) {
+  let text = "Kliknij swój budynek, żeby robić w nim jednostki.";
+  let color = "#555555";
+
+  if (action) {
+    text = "Kliknij na planszy, żeby postawić. R = obróć, Esc = anuluj.";
+    // Jeśli duch stoi w złym miejscu - pokazujemy dlaczego
+    const ghost = getGhostCells(mouseToCell(mouse));
+    if (ghost) {
+      const check = checkGhost(ghost);
+      if (!check.ok) { text = check.reason; color = "#c0392b"; }
+    }
+  }
+  if (message !== "") { text = message; color = "#c0392b"; }
+
+  drawWrappedText(text, left, 385, PANEL_WIDTH - 30, 18, 14, color);
+}
+
+// Pisze tekst w kilku linijkach, żeby zmieścił się w szerokości maxWidth
+function drawWrappedText(text, x, y, maxWidth, lineHeight, size, color) {
+  ctx.font = "bold " + size + "px Arial, sans-serif";
+  const words = text.split(" ");
+  let line = "";
+
+  for (const word of words) {
+    const testLine = line === "" ? word : line + " " + word;
+    // Jeśli linijka zrobiła się za długa - piszemy to, co było, i zaczynamy nową
+    if (ctx.measureText(testLine).width > maxWidth && line !== "") {
+      drawText(line, x, y, size, color, "left");
+      line = word;
+      y += lineHeight;
+    } else {
+      line = testLine;
+    }
+  }
+  drawText(line, x, y, size, color, "left");
+}
+
+// Duży napis na środku ekranu: "Tura gracza X - kliknij, aby zacząć"
+function drawTurnBanner() {
+  const player = game.players[game.current];
+
+  // Przyciemnienie całego ekranu
+  ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Okienko w kolorze gracza
+  ctx.fillStyle = player.color;
+  ctx.fillRect(150, 200, 500, 200);
+  ctx.strokeStyle = "#000000";
+  ctx.lineWidth = LINE_WIDTH;
+  ctx.strokeRect(150, 200, 500, 200);
+
+  drawText("TURA " + game.turn, 400, 245, 26, "#ffffff");
+  drawText("Gracz " + player.colorName, 400, 295, 40, "#ffffff");
+  drawText("Kliknij, aby zacząć", 400, 355, 20, "#ffffff");
 }
 
 function drawGameScreen() {
   drawPaper();
   drawBoardGrid();
   drawObjects();
+  drawGhost();
   drawPanel();
+  if (showTurnBanner) drawTurnBanner();
 }
 
 // =====================================================
@@ -596,11 +843,39 @@ canvas.addEventListener("mousemove", function (event) {
 // Kliknięcie: sprawdzamy, który przycisk na TYM ekranie został kliknięty
 canvas.addEventListener("click", function (event) {
   const pos = getMousePos(event);
+
+  // Baner zmiany tury znika po kliknięciu w dowolnym miejscu
+  if (currentScreen === "game" && showTurnBanner) {
+    showTurnBanner = false;
+    return;
+  }
+
   for (const btn of getButtons()) {
     if (isInside(pos.x, pos.y, btn)) {
       btn.onClick();
       return; // klikamy tylko jeden przycisk naraz
     }
+  }
+
+  // Nie trafiliśmy w przycisk - może w planszę?
+  if (currentScreen === "game") clickBoard(pos);
+});
+
+// Prawy przycisk myszy anuluje stawianie (zamiast pokazywać menu przeglądarki)
+canvas.addEventListener("contextmenu", function (event) {
+  event.preventDefault();
+  action = null;
+});
+
+// Klawiatura: R = obróć kształt, Esc = anuluj
+document.addEventListener("keydown", function (event) {
+  if (currentScreen !== "game" || !action) return;
+
+  if (event.key === "r" || event.key === "R") {
+    action.rotation = (action.rotation + 1) % 4;  // 0, 1, 2, 3, i znowu 0
+  }
+  if (event.key === "Escape") {
+    action = null;
   }
 });
 

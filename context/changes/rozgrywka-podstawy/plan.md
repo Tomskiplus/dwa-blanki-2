@@ -311,26 +311,26 @@ BFS ruchu na planszy 36×27 to < 1000 pozycji – liczymy tylko po kliknięciu j
 
 #### Automated
 
-- [x] 1.1 Testy przechodzą: `node tests/run-tests.js`
-- [x] 1.2 Zrzut ekranu (Edge headless) pokazuje planszę bez błędów
+- [x] 1.1 Testy przechodzą: `node tests/run-tests.js` — e36884f
+- [x] 1.2 Zrzut ekranu (Edge headless) pokazuje planszę bez błędów — e36884f
 
 #### Manual
 
-- [x] 1.3 Tytuł → Singleplayer → Edytor → ustawienia → START pokazuje planszę z ratuszami i chłopami w kolorach
-- [x] 1.4 WSTECZ działa na każdym ekranie, Multiplayer i 1 vs BOT pokazują „wkrótce”
-- [x] 1.5 8 graczy na małej planszy wygląda czytelnie
+- [x] 1.3 Tytuł → Singleplayer → Edytor → ustawienia → START pokazuje planszę z ratuszami i chłopami w kolorach — e36884f
+- [x] 1.4 WSTECZ działa na każdym ekranie, Multiplayer i 1 vs BOT pokazują „wkrótce” — e36884f
+- [x] 1.5 8 graczy na małej planszy wygląda czytelnie — e36884f
 
 ### Phase 2: Tury, budowanie i rekrutacja
 
 #### Automated
 
-- [ ] 2.1 Testy przechodzą: `node tests/run-tests.js`
+- [x] 2.1 Testy przechodzą: `node tests/run-tests.js`
 
 #### Manual
 
-- [ ] 2.2 Postawienie koszar obok chłopa, potem piechura obok koszar; punkty maleją poprawnie
-- [ ] 2.3 Obrót R zmienia kształt strzelnicy, duch jest czerwony w złym miejscu i pokazuje powód
-- [ ] 2.4 Koniec tury przechodzi do następnego gracza i odnawia punkty
+- [x] 2.2 Postawienie koszar obok chłopa, potem piechura obok koszar; punkty maleją poprawnie
+- [x] 2.3 Obrót R zmienia kształt strzelnicy, duch jest czerwony w złym miejscu i pokazuje powód
+- [x] 2.4 Koniec tury przechodzi do następnego gracza i odnawia punkty
 
 ### Phase 3: Ruch oddziałów
 

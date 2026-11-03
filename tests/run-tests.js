@@ -97,6 +97,91 @@ for (const sizeKey of Object.keys(BOARD_SIZES)) {
 }
 
 // =====================================================
+//  ETAP 2: Budowanie, rekrutacja i tury
+//  Gracz 0 na małej planszy: ratusz (2,2)-(3,4), chłopi na (2,5) i (3,5)
+// =====================================================
+
+// Pomocnicze: kratki budynku typu "key" postawionego na (x, y)
+function buildingCells(key, x, y, rotation) {
+  return shapeCells(BUILDING_TYPES[key].shape, x, y, rotation || 0);
+}
+
+{
+  const game = createGame(2, "mala");
+  const result = placeBuilding(game, "koszary", buildingCells("koszary", 2, 6));
+  check("Koszary (9 kratek) da się postawić za 8 punktów + bonus", result.ok);
+  check("Po koszarach zostaje 0 punktów i 0 bonusu", game.buildPoints === 0 && game.barracksBonus === 0);
+  check("Koszary mają 18 życia", objectsOf(game, 0, "koszary")[0].hp === 18);
+}
+
+{
+  const game = createGame(2, "mala");
+  const stable = placeBuilding(game, "stajnia", buildingCells("stajnia", 4, 5));
+  check("Stajnię (6 kratek) da się postawić obok chłopa", stable.ok && game.buildPoints === 2);
+  const barracks = placeBuilding(game, "koszary", buildingCells("koszary", 2, 9));
+  check("Po stajni nie starczy punktów na koszary", !barracks.ok);
+}
+
+{
+  // Strzelnica ma 5 kratek. Przy 4 punktach + bonusie NIE wolno (bonus jest tylko na koszary)
+  const game = createGame(2, "mala");
+  game.buildPoints = 4;
+  check("Bonus koszar nie działa na inne budynki", !canPlaceBuilding(game, "strzelnica", buildingCells("strzelnica", 2, 6, 1)).ok);
+  game.buildPoints = 5;
+  check("Przy 5 punktach strzelnica już wchodzi", canPlaceBuilding(game, "strzelnica", buildingCells("strzelnica", 2, 6, 1)).ok);
+}
+
+{
+  const game = createGame(2, "mala");
+  check("Budynek daleko od chłopa - nie wolno", !canPlaceBuilding(game, "stajnia", buildingCells("stajnia", 10, 7)).ok);
+  check("Budynek na chłopie - nie wolno", !canPlaceBuilding(game, "koszary", buildingCells("koszary", 2, 5)).ok);
+  check("Budynek poza planszą - nie wolno", !canPlaceBuilding(game, "stajnia", buildingCells("stajnia", -1, 5)).ok);
+  check("Drugiego ratusza nie da się zbudować", !canPlaceBuilding(game, "ratusz", buildingCells("ratusz", 4, 5)).ok);
+  check("Budynek obok chłopa WROGA - nie wolno", !canPlaceBuilding(game, "stajnia", buildingCells("stajnia", 14, 7)).ok);
+
+  // Obrócona strzelnica (litera L) też pasuje obok chłopa
+  check("Obrócona strzelnica obok chłopa - wolno", canPlaceBuilding(game, "strzelnica", buildingCells("strzelnica", 2, 6, 1)).ok);
+}
+
+{
+  const game = createGame(2, "mala");
+  placeBuilding(game, "koszary", buildingCells("koszary", 2, 6));
+  const barracks = objectsOf(game, 0, "koszary")[0];
+  game.buildPoints = 20; // w teście dajemy sobie dużo punktów
+
+  const options = getRecruitOptions(game, barracks);
+  check("Koszary w erze 1 robią: piechur i włócznik", options.length === 2 && options.includes("piechur") && options.includes("wlocznik"));
+
+  const soldier = placeUnit(game, "piechur", barracks, shapeCells(UNIT_TYPES.piechur.shape, 5, 6, 0));
+  check("Piechur obok koszar - wolno", soldier.ok && game.buildPoints === 18);
+  const newSoldier = objectsOf(game, 0, "piechur")[0];
+  check("Nowy piechur jest oznaczony jako nowy", newSoldier.isNew === true);
+
+  check("Piechur daleko od koszar - nie wolno", !canPlaceUnit(game, "piechur", barracks, shapeCells(UNIT_TYPES.piechur.shape, 10, 10, 0)).ok);
+  check("Pikinier (era 2) w erze 1 - nie wolno", !canPlaceUnit(game, "pikinier", barracks, shapeCells(UNIT_TYPES.pikinier.shape, 6, 6, 0)).ok);
+  check("Koszary nie robią łuczników", !canPlaceUnit(game, "lucznik", barracks, [{ x: 6, y: 6 }]).ok);
+
+  const townHall = objectsOf(game, 0, "ratusz")[0];
+  check("Ratusz robi chłopów", placeUnit(game, "chlop", townHall, [{ x: 4, y: 2 }]).ok);
+
+  // Tury
+  endTurn(game);
+  check("Po końcu tury gra gracz 1", game.current === 1 && game.turn === 1);
+  check("Nowy gracz ma 8 punktów i bonus", game.buildPoints === 8 && game.barracksBonus === 1);
+  endTurn(game);
+  check("Po turze gracza 1 znowu gracz 0 i tura 2", game.current === 0 && game.turn === 2);
+  check("Na początku swojej tury piechur nie jest już nowy", newSoldier.isNew === false);
+}
+
+{
+  // Gracz, który odpadł, jest pomijany
+  const game = createGame(3, "mala");
+  game.players[1].alive = false;
+  endTurn(game);
+  check("Gracz, który odpadł, jest pomijany w turach", game.current === 2);
+}
+
+// =====================================================
 //  WYNIK
 // =====================================================
 console.log("");
