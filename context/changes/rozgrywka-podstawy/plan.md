@@ -52,7 +52,7 @@ Zasady gry: `context/foundation/zasady-gry.md` (źródło prawdy).
 Trzy warstwy w osobnych plikach (jak osobne skrzynie w Minecrafcie):
 
 - `data.js` – **dane**: typy budynków i jednostek (kształt, życie, atak, zasięg, era, kto produkuje),
-  kolory graczy, rozmiary planszy. Tomek może tu sam zmieniać liczby.
+  kolory graczy, rozmiary planszy. Tu można łatwo zmieniać liczby.
 - `rules.js` – **zasady**: czyste funkcje bez rysowania (sprawdzanie miejsca, oddziały, ruch, atak, tury).
   Dzięki temu da się je testować w Node.
 - `game.js` – **ekrany, rysowanie i myszka**: zamienia kliknięcia na wywołania funkcji z `rules.js`.
@@ -106,7 +106,7 @@ MULTIPLAYER na tytule nadal pokazuje „wkrótce”.
   `koszary` (3×3), `strzelnica` (L, 5 kratek), `stajnia` (2×3). HP budynku = 2 × liczba kratek.
 - `UNIT_TYPES[key] = { name, shape, hp, attack, range, era, building, cavalry, bonusVsCavalry, symbol }`
   dla chłopa (1/0/0, ratusz, era 1) i wszystkich 19 jednostek z `zasady-gry.md`.
-  Ery (zgadnięte, do poprawy przez Tomka): era 1 – chłop, piechur, włócznik, łucznik, oszczepnik, kawaleria (1);
+  Ery (zgadnięte, do poprawy przez autora gry): era 1 – chłop, piechur, włócznik, łucznik, oszczepnik, kawaleria (1);
   era 2 – piechur ulepszony, pikinier, wojownik orłów, wyszkolony łucznik, elitarny oszczepnik, ciężka kawaleria;
   era 3 – halabardnik, elitarny wojownik orłów, słoń bojowy, kawaleria (2), paladyn;
   era 4 – elitarny wojownik orłów (ulepszony), ułan.
@@ -146,7 +146,7 @@ poza planszę dla 2–8 graczy na każdym rozmiarze.
 - WSTECZ działa na każdym ekranie, Multiplayer i 1 vs BOT pokazują „wkrótce”
 - 8 graczy na małej planszy wygląda czytelnie
 
-**Implementation Note**: Po etapie pauza na sprawdzenie przez Tomka w Live Preview.
+**Implementation Note**: Po etapie pauza na sprawdzenie przez autora gry w Live Preview.
 
 ---
 
@@ -195,7 +195,7 @@ tylko jednostki z ery 1; `endTurn` przywraca punkty i przechodzi do następnego 
 - Obrót R zmienia kształt strzelnicy, duch jest czerwony w złym miejscu i pokazuje powód
 - Koniec tury przechodzi do następnego gracza i odnawia punkty
 
-**Implementation Note**: Po etapie pauza na sprawdzenie przez Tomka.
+**Implementation Note**: Po etapie pauza na sprawdzenie przez autora gry.
 
 ---
 
@@ -235,7 +235,7 @@ nowa jednostka się nie rusza.
 - Oddział 2 chłopów rusza się razem, liczba punktów w panelu maleje
 - Po zostawieniu 2 punktów budowy oddział ma 7 ruchu
 
-**Implementation Note**: Po etapie pauza na sprawdzenie przez Tomka.
+**Implementation Note**: Po etapie pauza na sprawdzenie przez autora gry.
 
 ---
 
@@ -275,7 +275,7 @@ zabicie ostatniej jednostki wroga → wygrana; przy 3 graczach odpadnięty gracz
 - Pełna gra 2 graczy do zwycięstwa na małej planszy
 - Gra 3 graczy: odpadnięty gracz nie dostaje tury
 
-**Implementation Note**: Po etapie pauza na sprawdzenie przez Tomka.
+**Implementation Note**: Po etapie pauza na sprawdzenie przez autora gry.
 
 ---
 

@@ -21,12 +21,12 @@ Zasady siedzą w osobnym pliku `rules.js` i są sprawdzane testami (`node tests/
 
 | Decyzja | Wybór | Dlaczego |
 |---|---|---|
-| Gdzie gra na 1 komputerze | Singleplayer → Edytor | decyzja Tomka |
+| Gdzie gra na 1 komputerze | Singleplayer → Edytor | decyzja autora gry |
 | Koszary 9 kratek vs 8 punktów | +1 bonus tylko na koszary | tak działa „+1 na koszary” z zeszytu |
 | Gdzie budować | budynek musi dotykać chłopa | chłop = budowniczy |
 | Krok po skosie | 1 punkt | spójne z zasięgiem ataku |
 | Życie budynków | 2 za kratkę | większy = twardszy |
-| Chłop | 1/0/0 (ulepszenie 3/1/1 później) | decyzja Tomka |
+| Chłop | 1/0/0 (ulepszenie 3/1/1 później) | decyzja autora gry |
 | Jednostki | wszystkie w danych, każda z erą; teraz dostępna era 1 | ery dojdą później |
 | Kolejność w turze | najpierw budowa, potem ruch | dopiero wtedy wiadomo, ile zostało na ruch |
 | Oddziały | ustalane na początku ruchu, łączą się od następnej tury | prosto i uczciwie |
