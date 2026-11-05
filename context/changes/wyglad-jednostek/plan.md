@@ -190,10 +190,10 @@ liniami zamiast liter. Wspólna funkcja ustawia obrót canvasu (patrz Critical I
 
 #### Automated
 
-- [x] 2.1 Testy przechodzą: `node tests/run-tests.js`
-- [x] 2.2 Zrzut ekranu (Edge headless) ze wszystkimi 20 jednostkami w 4 obrotach – rysunki są czytelne, bez błędów w konsoli
+- [x] 2.1 Testy przechodzą: `node tests/run-tests.js` — 02d7682
+- [x] 2.2 Zrzut ekranu (Edge headless) ze wszystkimi 20 jednostkami w 4 obrotach – rysunki są czytelne, bez błędów w konsoli — 02d7682
 
 #### Manual
 
-- [x] 2.3 Jednostki wyglądają jak w zeszycie (autor gry porównuje z rysunkiem)
-- [x] 2.4 Obrót R przy stawianiu obraca też rysunek
+- [x] 2.3 Jednostki wyglądają jak w zeszycie (autor gry porównuje z rysunkiem) — 02d7682
+- [x] 2.4 Obrót R przy stawianiu obraca też rysunek — 02d7682
