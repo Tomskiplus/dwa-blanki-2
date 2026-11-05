@@ -180,20 +180,20 @@ liniami zamiast liter. Wspólna funkcja ustawia obrót canvasu (patrz Critical I
 
 #### Automated
 
-- [x] 1.1 Testy przechodzą: `node tests/run-tests.js`
+- [x] 1.1 Testy przechodzą: `node tests/run-tests.js` — b1b9be0
 
 #### Manual
 
-- [ ] 1.2 W koszarach, strzelnicy i stajni widać nowe jednostki (wojownik orłów, słoń, ułan) i da się je postawić
+- [x] 1.2 W koszarach, strzelnicy i stajni widać nowe jednostki (wojownik orłów, słoń, ułan) i da się je postawić — b1b9be0
 
 ### Phase 2: Rysunki jednostek
 
 #### Automated
 
-- [ ] 2.1 Testy przechodzą: `node tests/run-tests.js`
-- [ ] 2.2 Zrzut ekranu (Edge headless) ze wszystkimi 20 jednostkami w 4 obrotach – rysunki są czytelne, bez błędów w konsoli
+- [x] 2.1 Testy przechodzą: `node tests/run-tests.js`
+- [x] 2.2 Zrzut ekranu (Edge headless) ze wszystkimi 20 jednostkami w 4 obrotach – rysunki są czytelne, bez błędów w konsoli
 
 #### Manual
 
-- [ ] 2.3 Jednostki wyglądają jak w zeszycie (autor gry porównuje z rysunkiem)
-- [ ] 2.4 Obrót R przy stawianiu obraca też rysunek
+- [x] 2.3 Jednostki wyglądają jak w zeszycie (autor gry porównuje z rysunkiem)
+- [x] 2.4 Obrót R przy stawianiu obraca też rysunek

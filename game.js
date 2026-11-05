@@ -663,8 +663,8 @@ function drawShapeOutline(cells, lineWidth, color) {
   ctx.lineCap = "butt";
 }
 
-// Wypełnia kratki kolorem i rysuje cienkie linie między nimi
-function fillCells(cells, color, alpha) {
+// Wypełnia kratki kolorem i (jeśli showGrid nie jest false) rysuje cienkie linie między nimi
+function fillCells(cells, color, alpha, showGrid) {
   const size = board.cell;
   for (const c of cells) {
     const p = cellToPixel(c.x, c.y);
@@ -674,6 +674,7 @@ function fillCells(cells, color, alpha) {
     ctx.fillStyle = color;
     ctx.fillRect(p.x, p.y, size, size);
     ctx.globalAlpha = 1;
+    if (showGrid === false) continue;
     ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
     ctx.lineWidth = 1;
     ctx.strokeRect(p.x, p.y, size, size);
@@ -744,16 +745,48 @@ function drawBuilding(building) {
   drawText(type.short, center.x, center.y, Math.floor(board.cell * 0.6), "#ffffff");
 }
 
-// Rysuje jedną jednostkę: jaśniejszy kolor właściciela + symbol (np. "Ch" = chłop)
+// Rysuje jedną jednostkę: jasne tło w kolorze właściciela + rysunek jak w zeszycie
 function drawUnit(unit) {
-  const type = UNIT_TYPES[unit.type];
   const color = game.players[unit.owner].color;
 
-  fillCells(unit.cells, color, 0.45);
-  drawShapeOutline(unit.cells, 2);
+  fillCells(unit.cells, color, 0.45, false);              // bez kratek w środku - nie psują rysunku
+  drawShapeOutline(unit.cells, 1.5, "rgba(0, 0, 0, 0.3)"); // delikatny brzeg kształtu
+  drawUnitPicture(unit.type, unit.cells, unit.rotation || 0);
+}
 
-  const center = shapeCenter(unit.cells);
-  drawText(type.symbol, center.x, center.y + 1, Math.floor(board.cell * 0.45), "#000000");
+// Rysuje obrazek jednostki z drawings.js, obrócony tak jak jednostka.
+// Obrazki są narysowane dla kształtu PRZED obrotem, więc obracamy cały canvas:
+// najpierw przesuwamy "pędzel" w odpowiedni róg, potem obracamy o 90° tyle razy, ile trzeba.
+function drawUnitPicture(unitKey, cells, rotation) {
+  const draw = UNIT_DRAWINGS[unitKey];
+  if (!draw) return; // brak rysunku - zostaje samo kolorowe tło
+
+  // Wymiary kształtu przed obrotem (w kratkach)
+  const shape = UNIT_TYPES[unitKey].shape;
+  const width = Math.max(...shape.map(([x]) => x)) + 1;
+  const height = Math.max(...shape.map(([, y]) => y)) + 1;
+
+  // Lewy górny róg jednostki na planszy
+  const minX = Math.min(...cells.map(c => c.x));
+  const minY = Math.min(...cells.map(c => c.y));
+  const corner = cellToPixel(minX, minY);
+  const s = board.cell;
+
+  // Po obrocie rysunek "ucieka" w lewo/w górę - przesuwamy go z powrotem.
+  // (tak samo, jak shapeCells w rules.js przesuwa kratki do (0, 0))
+  const shifts = [[0, 0], [height, 0], [width, height], [0, width]];
+  const [shiftX, shiftY] = shifts[rotation];
+
+  ctx.save();  // zapamiętujemy ustawienia pędzla, żeby potem je przywrócić
+  ctx.translate(corner.x + shiftX * s, corner.y + shiftY * s);
+  ctx.rotate(rotation * Math.PI / 2);
+  ctx.strokeStyle = "#1a1a1a";
+  ctx.fillStyle = "#1a1a1a";
+  ctx.lineWidth = Math.max(1.5, s * 0.08);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  draw(ctx, s);
+  ctx.restore(); // przywracamy pędzel (bez przesunięcia i obrotu)
 }
 
 // Pasek życia nad obiektem - rysujemy go tylko, gdy obiekt jest ranny
@@ -856,6 +889,9 @@ function drawGhost() {
   }
   ctx.globalAlpha = 1;
   drawShapeOutline(cells.filter(c => isInsideBoard(game, c.x, c.y)), 2, color);
+
+  // Jednostka: na duchu widać też jej rysunek (w aktualnym obrocie)
+  if (action.kind === "unit") drawUnitPicture(action.key, cells, action.rotation);
 }
 
 // =====================================================
