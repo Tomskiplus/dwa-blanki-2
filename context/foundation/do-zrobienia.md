@@ -18,13 +18,18 @@ i może ruszać się sama.
 - ❓ Do ustalenia: ile punktów ruchu dostaje odłączona jednostka (tyle, ile zostało oddziałowi?).
 
 ## 3. Wygląd jednostek jak w zeszycie
+🚧 W trakcie: zmiana `context/changes/wyglad-jednostek/`.
 - Jednostki mają wyglądać jak na rysunkach z zeszytu (np. łucznik = kółko, włócznik z grotem,
   wojownik orłów = „ołówek”), a nie tylko kolorowe kratki z literami.
 - Sprawdzić kształty (ile kratek) wszystkich jednostek.
 - Niektórych jednostek nie da się jeszcze zrobić (np. **słonia**), bo są z dalszych er – patrz punkt 4.
 
 ## 4. Ulepszenia i przechodzenie do następnych er
+- Nazwy er: **mroku → feudalna → zamków → imperiów**.
 - Przejście do następnej ery: gdy gracz ma wymagane budynki; w tej turze nic więcej nie robi.
+- Nowe budynki: **zamek** (budowany w 2 turach) i **uniwersytet** (4 kratki w rzędzie:
+  niektóre ulepszenia + badanie **prochu** → nowa jednostka **bombarda**).
+- Usunąć tymczasowy znacznik `availableNow` z wojownika orłów, słonia i ułana.
 - Ulepszenia kosztują 4 pola (np. chłop 1/0/0 → 3/1/1, piechur → piechur ulepszony).
 - Budowle z er 1–4 z zeszytu (mury, wieże, bramy, zamek budowany w 2 turach, budowle specjalne).
 - ❓ Do ustalenia z kolegą: wymagania do każdej ery i które jednostki są w której erze

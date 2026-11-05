@@ -553,7 +553,7 @@ function clickBoard(pos) {
     const cells = getGhostCells(cell);
     let result;
     if (action.kind === "building") result = placeBuilding(game, action.key, cells);
-    else result = placeUnit(game, action.key, getSelectedBuilding(), cells);
+    else result = placeUnit(game, action.key, getSelectedBuilding(), cells, action.rotation);
 
     if (result.ok) {
       action = null;

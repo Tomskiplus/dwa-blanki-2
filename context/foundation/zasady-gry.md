@@ -59,7 +59,11 @@ Gdy zasada się zmieni, poprawiamy ją tutaj (nie robimy kopii pliku).
 - Gracz bez jednostek **odpada** (nawet jeśli ma budynki). Ostatni gracz w grze wygrywa.
 
 ## Ery
-- 4 ery. W każdej erze dostępne są inne budowle (mury, wieże, bramy, zamki…).
+- 4 ery: **1 – era mroku, 2 – era feudalna, 3 – era zamków, 4 – era imperiów**.
+- W każdej erze dostępne są inne budowle (mury, wieże, bramy, zamki…).
+- **Zamek** – budowany w 2 turach.
+- **Uniwersytet** (4 kratki w rzędzie) – robi się w nim niektóre ulepszenia; po zbadaniu **prochu**
+  można w nim robić **bombardy**.
 - Część budowli jest tylko „na planszy z wodą”.
 - Są też **budowle specjalne**.
 - ❓ Wymagania do przejścia do następnej ery – do odczytania z zeszytu.
@@ -97,7 +101,13 @@ Oznaczenia z zeszytu: **D** = życie ❤️, **K** = atak ⚔️, **Z** = zasię
 | Stajnia | Paladyn | 9 | 4 | 1 |
 | Stajnia | Ułan | 6 | 4 | 1 |
 
-Kształty jednostek (z zeszytu, przybliżone):
+Kształty ustalone 2026-11-05 (rysunek z teksturami):
+- włócznik – kwadrat z grotem (2 kratki), łucznik – kółko (1), oszczepnik – kwadrat z kropką (1),
+- wojownik orłów – „ołówek” (4 w rzędzie), kawaleria (1) – litera Γ (3),
+- ułan – kwadrat 2×2 ze skośną strzałką (4), słoń bojowy – kratka na górze + podstawa 3×2 (7).
+- Wojownik orłów, słoń i ułan są **tymczasowo** dostępne od początku gry (do czasu er).
+
+Kształty pozostałych jednostek (ze starych zdjęć, przybliżone):
 - piechur – prostokąt 1×2, piechur ulepszony – 1×3,
 - łucznik – kółko (1 kratka), oszczepnik – kwadrat z kropką,
 - słoń – duży kształt w kształcie odwróconej litery T,

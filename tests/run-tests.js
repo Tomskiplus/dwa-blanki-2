@@ -150,7 +150,8 @@ function buildingCells(key, x, y, rotation) {
   game.buildPoints = 20; // w teście dajemy sobie dużo punktów
 
   const options = getRecruitOptions(game, barracks);
-  check("Koszary w erze 1 robią: piechur i włócznik", options.length === 2 && options.includes("piechur") && options.includes("wlocznik"));
+  check("Koszary w erze 1 robią: piechur, włócznik i (tymczasowo) wojownik orłów",
+    options.length === 3 && options.includes("piechur") && options.includes("wlocznik") && options.includes("wojownikOrlow"));
 
   const soldier = placeUnit(game, "piechur", barracks, shapeCells(UNIT_TYPES.piechur.shape, 5, 6, 0));
   check("Piechur obok koszar - wolno", soldier.ok && game.buildPoints === 18);
@@ -328,6 +329,36 @@ function firstUnit(game, type) {
   check("Przy 3 graczach jeden odpada, ale nikt jeszcze nie wygrał", game.players[1].alive === false && game.winner === null);
   endTurn(game);
   check("Po turze gracza 0 gra gracz 2 (gracz 1 pominięty)", game.current === 2);
+}
+
+// =====================================================
+//  ZMIANA "wygląd jednostek": kształty, dostępność, obrót
+// =====================================================
+
+{
+  check("Słoń ma 7 kratek", UNIT_TYPES.slon.shape.length === 7);
+  check("Ułan ma 4 kratki (2×2)", UNIT_TYPES.ulan.shape.length === 4);
+  const gamma = UNIT_TYPES.kawaleria1.shape.map(([x, y]) => x + "," + y).sort().join(" ");
+  check("Kawaleria (1) to litera Γ", gamma === "0,0 0,1 1,0");
+
+  const game = createGame(2, "mala");
+  addBuilding(game, "strzelnica", 0, buildingCells("strzelnica", 10, 2));
+  addBuilding(game, "stajnia", 0, buildingCells("stajnia", 14, 2));
+  const range = objectsOf(game, 0, "strzelnica")[0];
+  const stable = objectsOf(game, 0, "stajnia")[0];
+  const rangeOptions = getRecruitOptions(game, range).sort().join(",");
+  const stableOptions = getRecruitOptions(game, stable).sort().join(",");
+  check("Strzelnica robi: łucznika, oszczepnika i słonia", rangeOptions === "lucznik,oszczepnik,slon");
+  check("Stajnia robi: kawalerię (1) i ułana", stableOptions === "kawaleria1,ulan");
+  check("Ciężka kawaleria (era 2, bez znacznika) jest jeszcze niedostępna", !isUnitAvailable(game, "ciezkaKawaleria", 0));
+
+  // Ułan postawiony z obrotem 1 pamięta ten obrót
+  game.buildPoints = 20;
+  const cells = shapeCells(UNIT_TYPES.ulan.shape, 16, 2, 1);
+  const result = placeUnit(game, "ulan", stable, cells, 1);
+  check("Ułan obok stajni - wolno", result.ok);
+  check("Postawiona jednostka pamięta obrót", objectsOf(game, 0, "ulan")[0].rotation === 1);
+  check("Jednostka bez podanego obrotu ma obrót 0", objectsOf(game, 0, "chlop")[0].rotation === 0);
 }
 
 // =====================================================

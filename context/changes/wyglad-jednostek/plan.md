@@ -180,7 +180,7 @@ liniami zamiast liter. Wspólna funkcja ustawia obrót canvasu (patrz Critical I
 
 #### Automated
 
-- [ ] 1.1 Testy przechodzą: `node tests/run-tests.js`
+- [x] 1.1 Testy przechodzą: `node tests/run-tests.js`
 
 #### Manual
 

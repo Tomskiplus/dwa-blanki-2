@@ -55,8 +55,10 @@ const SHAPE_1x2 = [[0, 0], [0, 1]];                  // 2 kratki w pionie
 const SHAPE_1x3 = [[0, 0], [0, 1], [0, 2]];          // 3 kratki w pionie
 const SHAPE_LONG4 = [[0, 0], [1, 0], [2, 0], [3, 0]]; // 4 kratki w poziomie ("ołówek")
 const SHAPE_L3 = [[1, 0], [0, 1], [1, 1]];           // małe L z 3 kratek
+const SHAPE_GAMMA3 = [[0, 0], [1, 0], [0, 1]];       // litera Γ z 3 kratek (kawaleria)
 const SHAPE_SQUARE4 = [[0, 0], [1, 0], [0, 1], [1, 1]]; // kwadrat 2×2
-const SHAPE_T4 = [[1, 0], [0, 1], [1, 1], [2, 1]];   // litera T do góry nogami
+// Słoń: 1 kratka na górze + podstawa 3×2
+const SHAPE_ELEPHANT = [[1, 0], [0, 1], [1, 1], [2, 1], [0, 2], [1, 2], [2, 2]];
 
 // --- Jednostki ---
 // hp = życie ❤️, attack = atak ⚔️, range = zasięg
@@ -65,7 +67,9 @@ const SHAPE_T4 = [[1, 0], [0, 1], [1, 1], [2, 1]];   // litera T do góry nogami
 // cavalry: true = to jest kawaleria (włócznicy zadają jej więcej obrażeń)
 // bonusVsCavalry = ile DODATKOWYCH obrażeń zadaje kawalerii
 // symbol = krótki napis rysowany na jednostce
-// ⚠️ Ery i kształty są odczytane z zeszytu "na oko" - popraw, jeśli są inne!
+// availableNow: true = TYMCZASOWO można ją robić od początku gry, mimo dalszej ery
+//                      (do czasu, aż zrobimy przechodzenie er - wtedy usuniemy ten znacznik)
+// ⚠️ Ery są odczytane z zeszytu "na oko" - popraw, jeśli są inne!
 const UNIT_TYPES = {
   // ----- Ratusz -----
   chlop:             { name: "Chłop",                 symbol: "Ch", shape: SHAPE_1x1, hp: 1,  attack: 0,   range: 0, era: 1, building: "ratusz" },
@@ -76,7 +80,7 @@ const UNIT_TYPES = {
   wlocznik:          { name: "Włócznik",              symbol: "W",  shape: SHAPE_1x2, hp: 2,  attack: 1,   range: 1, era: 1, building: "koszary", bonusVsCavalry: 3 },
   pikinier:          { name: "Pikinier",              symbol: "Pk", shape: SHAPE_1x2, hp: 4,  attack: 2,   range: 1, era: 2, building: "koszary", bonusVsCavalry: 2 },
   halabardnik:       { name: "Halabardnik",           symbol: "H",  shape: SHAPE_1x2, hp: 6,  attack: 3,   range: 1, era: 3, building: "koszary", bonusVsCavalry: 3 },
-  wojownikOrlow:     { name: "Wojownik orłów",        symbol: "WO", shape: SHAPE_LONG4, hp: 3, attack: 2,  range: 2, era: 2, building: "koszary" },
+  wojownikOrlow:     { name: "Wojownik orłów",        symbol: "WO", shape: SHAPE_LONG4, hp: 3, attack: 2,  range: 2, era: 2, building: "koszary", availableNow: true },
   eWojownikOrlow:    { name: "Elit. wojownik orłów",  symbol: "EW", shape: SHAPE_LONG4, hp: 4, attack: 4,  range: 2, era: 3, building: "koszary" },
   eWojownikOrlowUl:  { name: "Elit. wojownik orłów+", symbol: "E+", shape: SHAPE_LONG4, hp: 6, attack: 5,  range: 2, era: 4, building: "koszary" },
 
@@ -85,14 +89,14 @@ const UNIT_TYPES = {
   wyszkolonyLucznik: { name: "Wyszkolony łucznik",    symbol: "Ł+", shape: SHAPE_1x1, hp: 2,  attack: 1.5, range: 6, era: 2, building: "strzelnica" },
   oszczepnik:        { name: "Oszczepnik",            symbol: "O",  shape: SHAPE_1x1, hp: 2,  attack: 1,   range: 4, era: 1, building: "strzelnica" },
   eOszczepnik:       { name: "Elit. oszczepnik",      symbol: "O+", shape: SHAPE_1x1, hp: 3,  attack: 2,   range: 5, era: 2, building: "strzelnica" },
-  slon:              { name: "Słoń bojowy",           symbol: "S",  shape: SHAPE_T4,  hp: 10, attack: 4,   range: 6, era: 3, building: "strzelnica" },
+  slon:              { name: "Słoń bojowy",           symbol: "S",  shape: SHAPE_ELEPHANT, hp: 10, attack: 4, range: 6, era: 3, building: "strzelnica", availableNow: true },
 
   // ----- Stajnia -----
-  kawaleria1:        { name: "Kawaleria (1)",         symbol: "K1", shape: SHAPE_L3,      hp: 5, attack: 2, range: 1, era: 1, building: "stajnia", cavalry: true },
+  kawaleria1:        { name: "Kawaleria (1)",         symbol: "K1", shape: SHAPE_GAMMA3,  hp: 5, attack: 2, range: 1, era: 1, building: "stajnia", cavalry: true },
   ciezkaKawaleria:   { name: "Ciężka kawaleria",      symbol: "CK", shape: SHAPE_SQUARE4, hp: 6, attack: 3, range: 1, era: 2, building: "stajnia", cavalry: true },
   kawaleria2:        { name: "Kawaleria (2)",         symbol: "K2", shape: SHAPE_L3,      hp: 5, attack: 2, range: 1, era: 3, building: "stajnia", cavalry: true },
   paladyn:           { name: "Paladyn",               symbol: "Pd", shape: SHAPE_L3,      hp: 9, attack: 4, range: 1, era: 3, building: "stajnia", cavalry: true },
-  ulan:              { name: "Ułan",                  symbol: "U",  shape: SHAPE_L3,      hp: 6, attack: 4, range: 1, era: 4, building: "stajnia", cavalry: true },
+  ulan:              { name: "Ułan",                  symbol: "U",  shape: SHAPE_SQUARE4, hp: 6, attack: 4, range: 1, era: 4, building: "stajnia", cavalry: true, availableNow: true },
 };
 
 // --- Kolory graczy (maksymalnie 8 graczy) ---

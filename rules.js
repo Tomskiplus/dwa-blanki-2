@@ -75,14 +75,16 @@ function addBuilding(game, typeKey, owner, cells) {
   return building;
 }
 
-// Dodaje jednostkę na planszę i zwraca ją
-function addUnit(game, typeKey, owner, cells) {
+// Dodaje jednostkę na planszę i zwraca ją.
+// rotation = jak obrócona jest jednostka (0-3) - potrzebne, żeby dobrze ją narysować
+function addUnit(game, typeKey, owner, cells, rotation) {
   const unit = {
     id: game.nextId++,
     kind: "unit",
     type: typeKey,
     owner: owner,
     cells: cells,
+    rotation: rotation || 0,
     hp: UNIT_TYPES[typeKey].hp,
     maxHp: UNIT_TYPES[typeKey].hp,
     hasAttacked: false,  // czy już atakowała w tej turze
@@ -234,11 +236,17 @@ function placeBuilding(game, buildingKey, cells) {
   return check;
 }
 
-// Jakie jednostki może teraz zrobić ten budynek (tylko z ery gracza albo wcześniejszej)
+// Czy gracz, który ma turę, może już robić tę jednostkę?
+// Tak, jeśli jest z jego ery (albo wcześniejszej) ALBO ma znacznik availableNow (tymczasowo, do czasu er).
+function isUnitAvailable(game, unitKey, owner) {
+  const type = UNIT_TYPES[unitKey];
+  return type.era <= game.players[owner].era || type.availableNow === true;
+}
+
+// Jakie jednostki może teraz zrobić ten budynek
 function getRecruitOptions(game, building) {
-  const era = game.players[building.owner].era;
   return Object.keys(UNIT_TYPES).filter(key =>
-    UNIT_TYPES[key].building === building.type && UNIT_TYPES[key].era <= era
+    UNIT_TYPES[key].building === building.type && isUnitAvailable(game, key, building.owner)
   );
 }
 
@@ -248,7 +256,7 @@ function canPlaceUnit(game, unitKey, building, cells) {
   if (game.phase !== "build") return { ok: false, reason: "Już ruszałeś wojskiem - w tej turze nie można budować." };
   if (building.owner !== game.current) return { ok: false, reason: "To nie twój budynek." };
   if (type.building !== building.type) return { ok: false, reason: BUILDING_TYPES[building.type].name + " nie robi tej jednostki." };
-  if (type.era > game.players[game.current].era) return { ok: false, reason: type.name + " będzie dostępny w erze " + type.era + "." };
+  if (!isUnitAvailable(game, unitKey, game.current)) return { ok: false, reason: type.name + " będzie dostępny w erze " + type.era + "." };
 
   const free = checkCellsFree(game, cells);
   if (!free.ok) return free;
@@ -263,12 +271,13 @@ function canPlaceUnit(game, unitKey, building, cells) {
 }
 
 // Robi jednostkę (najpierw sprawdza, czy wolno). Zwraca { ok, reason }.
-function placeUnit(game, unitKey, building, cells) {
+// rotation = obrót, z jakim gracz postawił jednostkę (zapamiętujemy go do rysowania)
+function placeUnit(game, unitKey, building, cells, rotation) {
   const check = canPlaceUnit(game, unitKey, building, cells);
   if (!check.ok) return check;
 
   game.buildPoints -= cells.length;
-  const unit = addUnit(game, unitKey, game.current, cells);
+  const unit = addUnit(game, unitKey, game.current, cells, rotation);
   unit.isNew = true; // w tej turze jeszcze się nie rusza i nie atakuje
   return check;
 }
