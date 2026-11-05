@@ -1,10 +1,10 @@
 ---
 change_id: rozgrywka-podstawy
 title: Podstawy rozgrywki - plansza, tury, budowanie, ruch oddziałów i walka
-status: implemented
+status: archived
 created: 2026-11-03
 updated: 2026-11-05
-archived_at: null
+archived_at: 2026-11-05T15:12:51Z
 ---
 
 ## Notes
