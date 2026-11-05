@@ -18,7 +18,7 @@ i może ruszać się sama.
 - ❓ Do ustalenia: ile punktów ruchu dostaje odłączona jednostka (tyle, ile zostało oddziałowi?).
 
 ## 3. Wygląd jednostek jak w zeszycie
-🚧 W trakcie: zmiana `context/changes/wyglad-jednostek/`.
+✅ Zrobione 2026-11-05 (zmiana `wyglad-jednostek`, rysunki w `drawings.js`).
 - Jednostki mają wyglądać jak na rysunkach z zeszytu (np. łucznik = kółko, włócznik z grotem,
   wojownik orłów = „ołówek”), a nie tylko kolorowe kratki z literami.
 - Sprawdzić kształty (ile kratek) wszystkich jednostek.
