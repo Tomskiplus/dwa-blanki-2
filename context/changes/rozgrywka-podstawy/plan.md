@@ -351,5 +351,5 @@ BFS ruchu na planszy 36×27 to < 1000 pozycji – liczymy tylko po kliknięciu j
 
 #### Manual
 
-- [ ] 4.2 Pełna gra 2 graczy do zwycięstwa na małej planszy
-- [ ] 4.3 Gra 3 graczy: odpadnięty gracz nie dostaje tury
+- [x] 4.2 Pełna gra 2 graczy do zwycięstwa na małej planszy
+- [x] 4.3 Gra 3 graczy: odpadnięty gracz nie dostaje tury
