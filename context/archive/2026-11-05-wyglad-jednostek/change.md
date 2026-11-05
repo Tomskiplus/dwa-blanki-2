@@ -1,10 +1,10 @@
 ---
 change_id: wyglad-jednostek
 title: Jednostki narysowane jak w zeszycie
-status: implemented
+status: archived
 created: 2026-11-05
 updated: 2026-11-05
-archived_at: null
+archived_at: 2026-11-05T16:26:01Z
 ---
 
 ## Notes
