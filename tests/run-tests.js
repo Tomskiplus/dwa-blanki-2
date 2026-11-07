@@ -339,7 +339,7 @@ function firstUnit(game, type) {
 
 {
   check("Słoń ma 7 kratek", UNIT_TYPES.slon.shape.length === 7);
-  check("Ułan ma 4 kratki (2×2)", UNIT_TYPES.ulan.shape.length === 4);
+  check("Ułan zajmuje 3 kratki (litera L)", UNIT_TYPES.ulan.shape.length === 3);
   const gamma = UNIT_TYPES.kawaleria1.shape.map(([x, y]) => x + "," + y).sort().join(" ");
   check("Kawaleria (1) to litera Γ", gamma === "0,0 0,1 1,0");
 
@@ -398,6 +398,28 @@ function firstUnit(game, type) {
   game.players[0].era = MAX_ERA;
   const last = canAdvanceEra(game);
   check("Z ery 4 (imperiów) nie można dalej", !last.ok && last.reason === "To już ostatnia era.");
+}
+
+// =====================================================
+//  ZMIANA "tekstury-poprawki": małe części są darmowe
+// =====================================================
+
+{
+  check("Włócznik zajmuje 2 kratki, ale kosztuje 1 (daszek darmowy)", UNIT_TYPES.wlocznik.shape.length === 2 && unitCost("wlocznik") === 1);
+  check("Wojownik orłów zajmuje 4 kratki, ale kosztuje 3 (grot darmowy)", UNIT_TYPES.wojownikOrlow.shape.length === 4 && unitCost("wojownikOrlow") === 3);
+  check("Ułan kosztuje 3", unitCost("ulan") === 3);
+  check("Piechur kosztuje 2 (bez darmowych części)", unitCost("piechur") === 2);
+
+  const game = createGame(2, "mala");
+  placeBuilding(game, "koszary", buildingCells("koszary", 2, 6));
+  const barracks = objectsOf(game, 0, "koszary")[0];
+  game.buildPoints = 5;
+  const result = placeUnit(game, "wlocznik", barracks, shapeCells(UNIT_TYPES.wlocznik.shape, 5, 6, 0), 0);
+  check("Postawienie włócznika zabiera 1 punkt", result.ok && game.buildPoints === 4);
+  check("Daszek włócznika zajmuje pole (nikt tam nie stanie)", getObjectAt(game, 5, 6) !== null);
+
+  game.buildPoints = 0;
+  check("Przy 0 punktach włócznika nie da się postawić", !canPlaceUnit(game, "wlocznik", barracks, shapeCells(UNIT_TYPES.wlocznik.shape, 5, 8, 0)).ok);
 }
 
 // =====================================================

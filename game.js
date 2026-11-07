@@ -306,7 +306,7 @@ function getGameButtons() {
     getRecruitOptions(game, selected).forEach((key, index) => {
       const type = UNIT_TYPES[key];
       buttons.push({
-        label: type.name + " (" + type.shape.length + ")",
+        label: type.name + " (" + unitCost(key) + ")",
         x: x, y: RECRUIT_TOP + index * RECRUIT_STEP, w: w, h: RECRUIT_STEP - 3, fontSize: 13,
         selected: action !== null && action.key === key,
         onClick: () => startPlacing("unit", key),
@@ -781,19 +781,25 @@ function drawBuilding(building) {
   drawText(type.short, center.x, center.y, Math.floor(board.cell * 0.6), "#ffffff");
 }
 
-// Rysuje jedną jednostkę: jasne tło w kolorze właściciela + rysunek jak w zeszycie
+// Rysuje jedną jednostkę: rysunek jak w zeszycie, w środku pokolorowany jasnym kolorem gracza
 function drawUnit(unit) {
-  const color = game.players[unit.owner].color;
+  const color = lightColor(game.players[unit.owner].color);
+  drawUnitPicture(unit.type, unit.cells, unit.rotation || 0, color);
+}
 
-  fillCells(unit.cells, color, 0.45, false);              // bez kratek w środku - nie psują rysunku
-  drawShapeOutline(unit.cells, 1.5, "rgba(0, 0, 0, 0.3)"); // delikatny brzeg kształtu
-  drawUnitPicture(unit.type, unit.cells, unit.rotation || 0);
+// Rozjaśnia kolor (np. "#d63031") - miesza go z białym, żeby czarne linie były dobrze widać.
+// amount = ile zostaje koloru (0.45 = 45% koloru, 55% białego)
+function lightColor(hex, amount) {
+  const keep = amount || 0.45;
+  const parts = [1, 3, 5].map(i => parseInt(hex.substr(i, 2), 16));  // czerwony, zielony, niebieski
+  const mixed = parts.map(value => Math.round(255 - (255 - value) * keep));
+  return "rgb(" + mixed.join(", ") + ")";
 }
 
 // Rysuje obrazek jednostki z drawings.js, obrócony tak jak jednostka.
 // Obrazki są narysowane dla kształtu PRZED obrotem, więc obracamy cały canvas:
 // najpierw przesuwamy "pędzel" w odpowiedni róg, potem obracamy o 90° tyle razy, ile trzeba.
-function drawUnitPicture(unitKey, cells, rotation) {
+function drawUnitPicture(unitKey, cells, rotation, fillColor) {
   const draw = UNIT_DRAWINGS[unitKey];
   if (!draw) return; // brak rysunku - zostaje samo kolorowe tło
 
@@ -816,8 +822,8 @@ function drawUnitPicture(unitKey, cells, rotation) {
   ctx.save();  // zapamiętujemy ustawienia pędzla, żeby potem je przywrócić
   ctx.translate(corner.x + shiftX * s, corner.y + shiftY * s);
   ctx.rotate(rotation * Math.PI / 2);
-  ctx.strokeStyle = "#1a1a1a";
-  ctx.fillStyle = "#1a1a1a";
+  ctx.strokeStyle = "#1a1a1a";                       // czarny "długopis"
+  ctx.fillStyle = fillColor || "rgba(0, 0, 0, 0)";  // kolor środka rysunku (albo przezroczysty)
   ctx.lineWidth = Math.max(1.5, s * 0.08);
   ctx.lineCap = "round";
   ctx.lineJoin = "round";

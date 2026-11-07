@@ -70,6 +70,7 @@ const SHAPE_LONG4 = [[0, 0], [1, 0], [2, 0], [3, 0]]; // 4 kratki w poziomie ("o
 const SHAPE_L3 = [[1, 0], [0, 1], [1, 1]];           // małe L z 3 kratek
 const SHAPE_GAMMA3 = [[0, 0], [1, 0], [0, 1]];       // litera Γ z 3 kratek (kawaleria)
 const SHAPE_SQUARE4 = [[0, 0], [1, 0], [0, 1], [1, 1]]; // kwadrat 2×2
+const SHAPE_LANCER = [[0, 0], [0, 1], [1, 1]];       // litera L z 3 kratek (ułan) - włócznia wystaje w pusty róg
 // Słoń: 1 kratka na górze + podstawa 3×2
 const SHAPE_ELEPHANT = [[1, 0], [0, 1], [1, 1], [2, 1], [0, 2], [1, 2], [2, 2]];
 
@@ -79,6 +80,8 @@ const SHAPE_ELEPHANT = [[1, 0], [0, 1], [1, 1], [2, 1], [0, 2], [1, 2], [2, 2]];
 // building = który budynek ją produkuje
 // cavalry: true = to jest kawaleria (włócznicy zadają jej więcej obrażeń)
 // bonusVsCavalry = ile DODATKOWYCH obrażeń zadaje kawalerii
+// free = "małe części" (nie większe niż pół pola, np. daszek albo grot):
+//        zajmują pole (nikt tam nie stanie), ale NIE kosztują punktów budowy
 // Ery ustalone 2026-11-07: lepsze wersje jednostek są zawsze o erę później.
 const UNIT_TYPES = {
   // ----- Ratusz -----
@@ -86,13 +89,13 @@ const UNIT_TYPES = {
 
   // ----- Koszary -----
   piechur:           { name: "Piechur",               shape: SHAPE_1x2, hp: 3,  attack: 1,   range: 1, era: 1, building: "koszary" },
-  wlocznik:          { name: "Włócznik",              shape: SHAPE_1x2, hp: 2,  attack: 1,   range: 1, era: 1, building: "koszary", bonusVsCavalry: 3 },
+  wlocznik:          { name: "Włócznik",              shape: SHAPE_1x2, hp: 2,  attack: 1,   range: 1, era: 1, building: "koszary", free: [[0, 0]], bonusVsCavalry: 3 },
   piechurUlepszony:  { name: "Piechur ulepszony",     shape: SHAPE_1x3, hp: 4,  attack: 1.5, range: 1, era: 2, building: "koszary" },
-  pikinier:          { name: "Pikinier",              shape: SHAPE_1x2, hp: 4,  attack: 2,   range: 1, era: 2, building: "koszary", bonusVsCavalry: 2 },
-  wojownikOrlow:     { name: "Wojownik orłów",        shape: SHAPE_LONG4, hp: 3, attack: 2,  range: 2, era: 2, building: "koszary" },
-  halabardnik:       { name: "Halabardnik",           shape: SHAPE_1x2, hp: 6,  attack: 3,   range: 1, era: 3, building: "koszary", bonusVsCavalry: 3 },
-  eWojownikOrlow:    { name: "Elit. wojownik orłów",  shape: SHAPE_LONG4, hp: 4, attack: 4,  range: 2, era: 3, building: "koszary" },
-  eWojownikOrlowUl:  { name: "Elit. wojownik orłów+", shape: SHAPE_LONG4, hp: 6, attack: 5,  range: 2, era: 4, building: "koszary" },
+  pikinier:          { name: "Pikinier",              shape: SHAPE_1x2, hp: 4,  attack: 2,   range: 1, era: 2, building: "koszary", free: [[0, 0]], bonusVsCavalry: 2 },
+  wojownikOrlow:     { name: "Wojownik orłów",        shape: SHAPE_LONG4, hp: 3, attack: 2,  range: 2, era: 2, building: "koszary", free: [[3, 0]] },
+  halabardnik:       { name: "Halabardnik",           shape: SHAPE_1x2, hp: 6,  attack: 3,   range: 1, era: 3, building: "koszary", free: [[0, 0]], bonusVsCavalry: 3 },
+  eWojownikOrlow:    { name: "Elit. wojownik orłów",  shape: SHAPE_LONG4, hp: 4, attack: 4,  range: 2, era: 3, building: "koszary", free: [[3, 0]] },
+  eWojownikOrlowUl:  { name: "Elit. wojownik orłów+", shape: SHAPE_LONG4, hp: 6, attack: 5,  range: 2, era: 4, building: "koszary", free: [[3, 0]] },
 
   // ----- Strzelnica (od ery 2) -----
   lucznik:           { name: "Łucznik",               shape: SHAPE_1x1, hp: 2,  attack: 1,   range: 4, era: 2, building: "strzelnica" },
@@ -106,7 +109,7 @@ const UNIT_TYPES = {
   kawaleria2:        { name: "Kawaleria (2)",         shape: SHAPE_L3,      hp: 5, attack: 2, range: 1, era: 3, building: "stajnia", cavalry: true },
   ciezkaKawaleria:   { name: "Ciężka kawaleria",      shape: SHAPE_SQUARE4, hp: 6, attack: 3, range: 1, era: 4, building: "stajnia", cavalry: true },
   paladyn:           { name: "Paladyn",               shape: SHAPE_L3,      hp: 9, attack: 4, range: 1, era: 4, building: "stajnia", cavalry: true },
-  ulan:              { name: "Ułan",                  shape: SHAPE_SQUARE4, hp: 6, attack: 4, range: 1, era: 4, building: "stajnia", cavalry: true },
+  ulan:              { name: "Ułan",                  shape: SHAPE_LANCER,  hp: 6, attack: 4, range: 1, era: 4, building: "stajnia", cavalry: true },
 };
 
 // --- Kolory graczy (maksymalnie 8 graczy) ---

@@ -239,6 +239,14 @@ function placeBuilding(game, buildingKey, cells) {
   return check;
 }
 
+// Ile punktów budowy kosztuje jednostka: liczba jej kratek MINUS "małe części"
+// (np. włócznik zajmuje 2 kratki, ale daszek jest darmowy, więc kosztuje 1)
+function unitCost(unitKey) {
+  const type = UNIT_TYPES[unitKey];
+  const freeParts = type.free ? type.free.length : 0;
+  return type.shape.length - freeParts;
+}
+
 // Czy gracz może już robić tę jednostkę? Tak, jeśli jest z jego ery albo wcześniejszej.
 function isUnitAvailable(game, unitKey, owner) {
   return UNIT_TYPES[unitKey].era <= game.players[owner].era;
@@ -265,7 +273,7 @@ function canPlaceUnit(game, unitKey, building, cells) {
   // Nowa jednostka pojawia się obok budynku, który ją zrobił
   if (distance(building.cells, cells) !== 1) return { ok: false, reason: "Jednostka musi stać obok budynku, który ją robi." };
 
-  const cost = cells.length;
+  const cost = unitCost(unitKey);
   if (cost > game.buildPoints) return { ok: false, reason: "Za mało punktów: potrzeba " + cost + ", masz " + game.buildPoints + "." };
 
   return { ok: true, reason: "" };
@@ -277,7 +285,7 @@ function placeUnit(game, unitKey, building, cells, rotation) {
   const check = canPlaceUnit(game, unitKey, building, cells);
   if (!check.ok) return check;
 
-  game.buildPoints -= cells.length;
+  game.buildPoints -= unitCost(unitKey);
   const unit = addUnit(game, unitKey, game.current, cells, rotation);
   unit.isNew = true; // w tej turze jeszcze się nie rusza i nie atakuje
   return check;

@@ -131,6 +131,6 @@ podpowiedź pod listą.
 
 #### Manual
 
-- [ ] 2.3 Na start można budować tylko koszary; po zbudowaniu koszar NASTĘPNA ERA przenosi do ery feudalnej i kończy turę
-- [ ] 2.4 W erze feudalnej da się zbudować strzelnicę i zrobić łucznika
-- [ ] 2.5 Bez wymaganych budynków NASTĘPNA ERA pisze, czego brakuje
+- [x] 2.3 Na start można budować tylko koszary; po zbudowaniu koszar NASTĘPNA ERA przenosi do ery feudalnej i kończy turę
+- [x] 2.4 W erze feudalnej da się zbudować strzelnicę i zrobić łucznika
+- [x] 2.5 Bez wymaganych budynków NASTĘPNA ERA pisze, czego brakuje
