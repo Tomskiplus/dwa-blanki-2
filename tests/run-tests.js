@@ -354,8 +354,8 @@ function firstUnit(game, type) {
   game.players[0].era = 2;
   check("Strzelnica w erze 2 robi: łucznika i oszczepnika", getRecruitOptions(game, range).sort().join(",") === "lucznik,oszczepnik");
   game.players[0].era = 3;
-  check("Strzelnica w erze 3 robi też: wyszkolonego łucznika, elit. oszczepnika i słonia",
-    getRecruitOptions(game, range).sort().join(",") === "eOszczepnik,lucznik,oszczepnik,slon,wyszkolonyLucznik");
+  check("Strzelnica w erze 3 (bez ulepszeń) robi: łucznika, oszczepnika i słonia",
+    getRecruitOptions(game, range).sort().join(",") === "lucznik,oszczepnik,slon");
   check("Stajnia w erze 3 robi: kawalerię (1) i (2)", getRecruitOptions(game, stable).sort().join(",") === "kawaleria1,kawaleria2");
   check("Ułan (era 4) w erze 3 jest jeszcze niedostępny", !isUnitAvailable(game, "ulan", 0));
 
@@ -519,6 +519,155 @@ function firstUnit(game, type) {
   check("Dokończenie zamku zabrało 2 punkty z nowej tury", game.buildPoints === 6);
   check("Gotowy zamek liczy się do następnej ery", canAdvanceEra(game).ok);
   check("Zamek ma 40 życia (10 × 4)", castle.hp === 40);
+}
+
+// =====================================================
+//  ZMIANA "ulepszenia-uniwersytet"
+//  Gracz 0 na małej planszy: ratusz (2,2)-(3,4), chłopi na (2,5) i (3,5)
+// =====================================================
+
+// Pomocnicze: jednostka gracza 0 postawiona "na skróty" (bez sprawdzania zasad)
+function unitAt(game, type, x, y, rotation, owner) {
+  return addUnit(game, type, owner || 0, shapeCells(UNIT_TYPES[type].shape, x, y, rotation || 0), rotation || 0);
+}
+function hasCell(obj, x, y) {
+  return obj.cells.some(c => c.x === x && c.y === y);
+}
+
+{
+  // Ulepszenie włócznik -> pikinier
+  const game = createGame(2, "mala");
+  game.players[0].era = 2;
+  const barracks = addBuilding(game, "koszary", 0, buildingCells("koszary", 2, 6));
+  const spear1 = unitAt(game, "wlocznik", 5, 6);
+  const spear2 = unitAt(game, "wlocznik", 6, 10);
+  spear2.hp = 1;  // ranny
+
+  const options = getUpgradeOptions(game, barracks).map(up => up.from).sort().join(",");
+  check("Koszary w erze 2 mają ulepszenia: piechur i włócznik (wojownik orłów dopiero w erze 3)", options === "piechur,wlocznik");
+
+  check("Kupno ulepszenia włócznik -> pikinier", buyUpgrade(game, barracks, "wlocznik").ok);
+  check("Ulepszenie kosztuje 4 punkty", game.buildPoints === 4);
+  check("WSZYSCY włócznicy stali się pikinierami", spear1.type === "pikinier" && spear2.type === "pikinier");
+  check("Ranny włócznik wyleczył się do pełna (pikinier 4/4)", spear2.hp === 4 && spear2.maxHp === 4);
+  check("Koszary robią teraz pikiniera zamiast włócznika",
+    getRecruitOptions(game, barracks).sort().join(",") === "piechur,pikinier,wojownikOrlow");
+  check("Drugi raz tego samego ulepszenia nie da się kupić", !canBuyUpgrade(game, barracks, "wlocznik").ok);
+  check("Pikinier -> halabardnik dopiero w erze 3", !getUpgradeOptions(game, barracks).some(up => up.from === "pikinier"));
+  game.players[0].era = 3;
+  check("W erze 3 można ulepszyć pikiniera w halabardnika", getUpgradeOptions(game, barracks).some(up => up.from === "pikinier"));
+}
+
+{
+  // Piechur rośnie z przodu (1×2 -> 1×3)
+  const game = createGame(2, "mala");
+  game.players[0].era = 2;
+  const barracks = addBuilding(game, "koszary", 0, buildingCells("koszary", 2, 6));
+  const upright = unitAt(game, "piechur", 8, 6, 0);        // stoi pionowo: (8,6),(8,7)
+  const upsideDown = unitAt(game, "piechur", 12, 6, 2);    // obrócony o 180°: przód jest na dole
+  const blocked = unitAt(game, "piechur", 10, 6, 0);       // przed nim przeszkoda
+  const wall = addBuilding(game, "palisada", 1, [{ x: 10, y: 5 }]);
+
+  buyUpgrade(game, barracks, "piechur");
+  check("Piechur urósł z przodu (do góry)", upright.cells.length === 3 && hasCell(upright, 8, 5));
+  check("Obrócony piechur urósł w stronę, w którą patrzy (w dół)", upsideDown.cells.length === 3 && hasCell(upsideDown, 12, 8));
+  check("Piechur z przeszkodą przed sobą czeka (dalej 2 pola)", blocked.cells.length === 2 && blocked.type === "piechurUlepszony");
+
+  game.objects = game.objects.filter(obj => obj !== wall);  // przeszkoda znika
+  tryGrowAll(game, 0);
+  check("Gdy przeszkoda zniknie, piechur dorasta", blocked.cells.length === 3 && hasCell(blocked, 10, 5));
+}
+
+{
+  // Kawaleria (1) Γ dopełnia róg do 2×2, chłop -> chłop ulepszony
+  const game = createGame(2, "mala");
+  game.players[0].era = 4;
+  const stable = addBuilding(game, "stajnia", 0, buildingCells("stajnia", 14, 0));
+  const horse = unitAt(game, "kawaleria1", 14, 6, 0);       // (14,6),(15,6),(14,7)
+  buyUpgrade(game, stable, "kawaleria1");
+  check("Kawaleria (1) stała się ciężką kawalerią 2×2 (dopełniony róg)", horse.type === "ciezkaKawaleria" && horse.cells.length === 4 && hasCell(horse, 15, 7));
+
+  const townHall = objectsOf(game, 0, "ratusz")[0];
+  game.players[0].era = 1;
+  check("W erze 1 chłopa nie da się ulepszyć", getUpgradeOptions(game, townHall).length === 0);
+  game.players[0].era = 2;
+  game.buildPoints = 8;
+  check("W erze 2 ratusz ulepsza chłopa", buyUpgrade(game, townHall, "chlop").ok);
+  const peasant = objectsOf(game, 0, "chlopUlepszony")[0];
+  check("Chłop ulepszony ma 3/1/1", peasant && peasant.hp === 3 && UNIT_TYPES.chlopUlepszony.attack === 1 && UNIT_TYPES.chlopUlepszony.range === 1);
+  check("Ratusz robi teraz chłopa ulepszonego", getRecruitOptions(game, townHall).join(",") === "chlopUlepszony");
+  game.players[0].era = 4;
+  check("Ulepszony chłop dalej może budować (dom obok niego)", canPlaceBuilding(game, "dom", buildingCells("dom", 4, 5)).ok);
+}
+
+{
+  // Uniwersytet: badania i bombarda
+  const game = createGame(2, "mala");
+  game.players[0].era = 4;
+  const uni = addBuilding(game, "uniwersytet", 0, buildingCells("uniwersytet", 10, 0));
+  check("Uniwersytet ma 7 badań do zrobienia", getResearchOptions(game, uni).length === 7);
+  check("Bez Prochu uniwersytet nie robi bombard", getRecruitOptions(game, uni).length === 0);
+  check("Zbadanie Prochu kosztuje 4", buyResearch(game, uni, "proch").ok && game.buildPoints === 4);
+  check("Po Prochu uniwersytet robi bombardy", getRecruitOptions(game, uni).join(",") === "bombarda");
+  check("Bombarda ma 5 pól i kosztuje 5", UNIT_TYPES.bombarda.shape.length === 5 && unitCost("bombarda") === 5);
+
+  const cannon = unitAt(game, "bombarda", 4, 10);
+  const enemyHut = addBuilding(game, "dom", 1, buildingCells("dom", 9, 10));
+  const enemyUnit = unitAt(game, "piechur", 8, 12, 0, 1);
+  check("Bombarda zadaje budynkom 5 + 4 = 9", getDamage(game, cannon, enemyHut) === 9);
+  check("Bombarda zadaje jednostkom 5", getDamage(game, cannon, enemyUnit) === 5);
+
+  game.buildPoints = 8;
+  check("Pancerz łuskowy: przed badaniem 5 ruchu", movePointsFor(game, 0) === 5);
+  buyResearch(game, uni, "pancerzLuskowy");
+  check("Pancerz łuskowy: po badaniu 7 ruchu", movePointsFor(game, 0) === 7);
+}
+
+{
+  // Szarża, Mordownia, Płonący grot
+  const game = createGame(2, "mala");
+  game.players[0].era = 4;
+  const uni = addBuilding(game, "uniwersytet", 0, buildingCells("uniwersytet", 10, 0));
+  const horse = unitAt(game, "kawaleria1", 6, 8);
+  const victim = unitAt(game, "halabardnik", 8, 8, 0, 1);  // 6 życia
+  check("Bez Szarży kawaleria atakuje raz", attack(game, horse, victim).ok && !attack(game, horse, victim).ok);
+
+  endTurn(game); endTurn(game);
+  game.buildPoints = 20;
+  buyResearch(game, uni, "szarza");
+  check("Z Szarżą kawaleria atakuje 2 razy", attack(game, horse, victim).ok && attack(game, horse, victim).ok);
+  check("...ale nie 3 razy", !attack(game, horse, victim).ok);
+
+  const tower = addBuilding(game, "wiezaDrewniana", 0, buildingCells("wiezaDrewniana", 14, 6));  // (14,6)-(14,8)
+  const close = unitAt(game, "piechur", 15, 7, 0, 1);       // tuż obok wieży
+  check("Bez Mordowni wieża nie strzela do wroga tuż obok", !getAttackTargets(game, tower).includes(close));
+  buyResearch(game, uni, "mordownia");
+  check("Z Mordownią wieża strzela do wroga tuż obok", getAttackTargets(game, tower).includes(close));
+
+  const archer = unitAt(game, "lucznik", 4, 12);
+  check("Łucznik bez Płonącego grotu zadaje 1", getDamage(game, archer, close) === 1);
+  buyResearch(game, uni, "plonacyGrot");
+  check("Z Płonącym grotem łucznik zadaje 3", getDamage(game, archer, close) === 3);
+  const elephant = unitAt(game, "slon", 0, 9);
+  check("Słoń (ze strzelnicy) też dostaje +2: 4 + 2 = 6", getDamage(game, elephant, close) === 6);
+}
+
+{
+  // Sparing i Wypalanie leczą do pełna
+  const game = createGame(2, "mala");
+  game.players[0].era = 4;
+  game.buildPoints = 20;
+  const uni = addBuilding(game, "uniwersytet", 0, buildingCells("uniwersytet", 10, 0));
+  const barracks = addBuilding(game, "koszary", 0, buildingCells("koszary", 2, 6));
+  barracks.hp = 5;
+  const soldier = unitAt(game, "piechur", 8, 6);
+  soldier.hp = 1;
+  buyResearch(game, uni, "sparing");
+  check("Sparing: piechur 3 + 3 = 6 życia i wyleczony", soldier.maxHp === 6 && soldier.hp === 6);
+  check("Sparing: nowy piechur też ma 6 życia", unitAt(game, "piechur", 9, 10).hp === 6);
+  check("Sparing nie dotyczy łuczników", unitAt(game, "lucznik", 12, 10).hp === 2);
+  buyResearch(game, uni, "wypalanie");
+  check("Wypalanie: koszary 9 pól × (2 + 1) = 27 życia i wyleczone", barracks.maxHp === 27 && barracks.hp === 27);
 }
 
 // =====================================================

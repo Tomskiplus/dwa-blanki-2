@@ -80,7 +80,7 @@ function addBuilding(game, typeKey, owner, cells, rotation) {
     cells: cells,
     rotation: rotation || 0,
     // życie: kratki × życie za kratkę (np. mur ma 4 za kratkę, palisada tylko 1)
-    hp: cells.length * (BUILDING_TYPES[typeKey].hpPerCell || BUILDING_HP_PER_CELL),
+    hp: buildingMaxHp(game, owner, typeKey, cells.length),
     hasAttacked: false,       // wieże i zamek strzelają raz na turę
     underConstruction: false, // zamek w budowie (jeszcze nie strzela)
     debt: 0,                  // ile punktów budowy zamek zabierze na początku następnej tury
@@ -100,8 +100,9 @@ function addUnit(game, typeKey, owner, cells, rotation) {
     owner: owner,
     cells: cells,
     rotation: rotation || 0,
-    hp: UNIT_TYPES[typeKey].hp,
-    maxHp: UNIT_TYPES[typeKey].hp,
+    hp: unitMaxHp(game, owner, typeKey),
+    maxHp: unitMaxHp(game, owner, typeKey),
+    attacksUsed: 0,      // ile razy już atakowała w tej turze (kawaleria z Szarżą może 2 razy)
     hasAttacked: false,  // czy już atakowała w tej turze
     isNew: false,        // czy dopiero powstała (wtedy nie rusza się i nie atakuje)
   };
@@ -175,6 +176,8 @@ function createGame(playerCount, sizeKey) {
       color: PLAYER_COLORS[i].color,
       era: 1,
       alive: true,
+      upgraded: {},   // kupione ulepszenia, np. { wlocznik: true } = włócznicy są już pikinierami
+      research: {},   // zbadane w uniwersytecie, np. { proch: true }
     });
 
     // Ratusz w miejscu startowym
@@ -225,7 +228,7 @@ function canPlaceBuilding(game, buildingKey, cells) {
 
   // Budynek musi dotykać (bokiem albo rogiem) chłopa aktualnego gracza...
   const touchesPeasant = game.objects.some(obj =>
-    obj.owner === game.current && obj.type === "chlop" && distance(obj.cells, cells) === 1
+    obj.owner === game.current && obj.kind === "unit" && UNIT_TYPES[obj.type].builder && distance(obj.cells, cells) === 1
   );
   // ...ALBO, jeśli to palisada/mur, może dotykać twojej palisady/muru - bokiem albo po skosie (przedłużanie)
   const extendsWall = type.wall === true && game.objects.some(obj =>
@@ -284,7 +287,11 @@ function unitCost(unitKey) {
 
 // Czy gracz może już robić tę jednostkę? Tak, jeśli jest z jego ery albo wcześniejszej.
 function isUnitAvailable(game, unitKey, owner) {
-  return UNIT_TYPES[unitKey].era <= game.players[owner].era;
+  const type = UNIT_TYPES[unitKey];
+  const player = game.players[owner];
+  if (type.era > player.era) return false;
+  if (type.needsResearch && !player.research[type.needsResearch]) return false;  // np. bombarda po Prochu
+  return isCurrentTier(game, owner, unitKey);
 }
 
 // Jakie jednostki może teraz zrobić ten budynek
@@ -300,7 +307,8 @@ function canPlaceUnit(game, unitKey, building, cells) {
   if (game.phase !== "build") return { ok: false, reason: "Już ruszałeś wojskiem - w tej turze nie można budować." };
   if (building.owner !== game.current) return { ok: false, reason: "To nie twój budynek." };
   if (type.building !== building.type) return { ok: false, reason: BUILDING_TYPES[building.type].name + " nie robi tej jednostki." };
-  if (!isUnitAvailable(game, unitKey, game.current)) return { ok: false, reason: type.name + " będzie dostępny w erze " + type.era + "." };
+  if (type.era > game.players[game.current].era) return { ok: false, reason: type.name + " będzie dostępny w erze " + type.era + "." };
+  if (!isUnitAvailable(game, unitKey, game.current)) return { ok: false, reason: "Tej jednostki nie możesz teraz robić (ulepszenie albo badanie)." };
 
   const free = checkCellsFree(game, cells);
   if (!free.ok) return free;
@@ -351,6 +359,7 @@ function endTurn(game) {
     if (obj.kind === "unit" && obj.owner === next) {
       obj.isNew = false;
       obj.hasAttacked = false;
+      obj.attacksUsed = 0;
     }
   }
 
@@ -359,6 +368,7 @@ function endTurn(game) {
   for (const obj of game.objects) {
     if (obj.kind !== "building" || obj.owner !== next) continue;
     obj.hasAttacked = false;
+    obj.attacksUsed = 0;
     if (obj.underConstruction) {
       const pay = Math.min(obj.debt, game.buildPoints);
       game.buildPoints -= pay;
@@ -366,6 +376,8 @@ function endTurn(game) {
       if (obj.debt === 0) obj.underConstruction = false;
     }
   }
+  // Ulepszone jednostki, które czekały na miejsce, próbują urosnąć
+  tryGrowAll(game, next);
 }
 
 // =====================================================
@@ -408,7 +420,7 @@ function findSquads(game, owner) {
 // Każdy oddział dostaje pulę: 5 punktów ruchu + niewydane punkty budowy.
 function startMovePhase(game) {
   if (game.phase === "move") return;
-  const points = MOVE_POINTS + game.buildPoints;
+  const points = movePointsFor(game, game.current) + game.buildPoints;
   game.squads = findSquads(game, game.current).map(ids => ({ unitIds: ids, points: points }));
   game.phase = "move";
   game.buildPoints = 0;
@@ -425,7 +437,7 @@ function getSquadOfUnit(game, unit) {
     return game.squads.find(squad => squad.unitIds.includes(unit.id)) || null;
   }
   const ids = findSquads(game, game.current).find(squad => squad.includes(unit.id));
-  return { unitIds: ids, points: MOVE_POINTS + game.buildPoints };
+  return { unitIds: ids, points: movePointsFor(game, game.current) + game.buildPoints };
 }
 
 // Wszystkie kratki wszystkich jednostek oddziału
@@ -530,6 +542,7 @@ function moveSquad(game, unit, dx, dy) {
     }
   }
   squad.points -= cost;
+  tryGrowAll(game, game.current);  // może teraz jest miejsce, żeby ulepszona jednostka urosła
   return { ok: true, reason: "" };
 }
 
@@ -560,16 +573,36 @@ function getAttackTargets(game, attacker) {
 
   const range = typeOf(attacker).range;
   return game.objects.filter(obj =>
-    obj.owner !== attacker.owner && distance(attacker.cells, obj.cells) <= range
+    obj.owner !== attacker.owner && distance(attacker.cells, obj.cells) <= range &&
+    !tooCloseForBuilding(game, attacker, obj)
   );
 }
 
-// Ile obrażeń zada atakujący celowi (z bonusem przeciw kawalerii)
-function getDamage(attacker, target) {
+// Wieże i zamek NIE strzelają do wroga tuż obok (odległość 1) - chyba że gracz zbadał Mordownię
+function tooCloseForBuilding(game, attacker, target) {
+  if (attacker.kind !== "building") return false;
+  if (game.players[attacker.owner].research.mordownia) return false;
+  return distance(attacker.cells, target.cells) === 1;
+}
+
+// Ile razy w turze może atakować ten obiekt: kawaleria z Szarżą - 2 razy, reszta - raz
+function maxAttacks(game, obj) {
+  if (obj.kind === "unit" && UNIT_TYPES[obj.type].cavalry && game.players[obj.owner].research.szarza) return 2;
+  return 1;
+}
+
+// Ile obrażeń zada atakujący celowi (z bonusami)
+function getDamage(game, attacker, target) {
   const type = typeOf(attacker);
   let damage = type.attack;
+  // bonus przeciw kawalerii (włócznicy)
   const targetIsCavalry = target.kind === "unit" && UNIT_TYPES[target.type].cavalry;
   if (targetIsCavalry && type.bonusVsCavalry) damage += type.bonusVsCavalry;
+  // bonus przeciw budynkom (bombarda)
+  if (target.kind === "building" && type.bonusVsBuildings) damage += type.bonusVsBuildings;
+  // Płonący grot: jednostki ze strzelnicy +2
+  const fromRange = attacker.kind === "unit" && type.building === "strzelnica";
+  if (fromRange && game.players[attacker.owner].research.plonacyGrot) damage += 2;
   return damage;
 }
 
@@ -583,6 +616,7 @@ function canAttack(game, attacker, target) {
   if (attacker.isNew) return { ok: false, reason: "Nowa jednostka zaatakuje w następnej turze." };
   if (attacker.hasAttacked) return { ok: false, reason: "Ta jednostka już atakowała w tej turze." };
   if (distance(attacker.cells, target.cells) > type.range) return { ok: false, reason: "Cel jest za daleko." };
+  if (tooCloseForBuilding(game, attacker, target)) return { ok: false, reason: "Wróg jest za blisko - potrzebna Mordownia." };
   return { ok: true, reason: "" };
 }
 
@@ -591,9 +625,10 @@ function attack(game, attacker, target) {
   const check = canAttack(game, attacker, target);
   if (!check.ok) return check;
 
-  const damage = getDamage(attacker, target);
+  const damage = getDamage(game, attacker, target);
   target.hp -= damage;
-  attacker.hasAttacked = true;
+  attacker.attacksUsed = (attacker.attacksUsed || 0) + 1;
+  attacker.hasAttacked = attacker.attacksUsed >= maxAttacks(game, attacker);
 
   // Życie spadło do zera - obiekt znika z planszy
   const destroyed = target.hp <= 0;
@@ -661,4 +696,178 @@ function advanceEra(game) {
   player.era++;
   endTurn(game);
   return { ok: true, reason: "", era: player.era };
+}
+
+// =====================================================
+//  ŻYCIE I RUCH Z BADANIAMI
+// =====================================================
+
+// Maksymalne życie jednostki (Sparing: jednostki z koszar +3)
+function unitMaxHp(game, owner, typeKey) {
+  const type = UNIT_TYPES[typeKey];
+  let hp = type.hp;
+  if (type.building === "koszary" && game.players[owner].research.sparing) hp += 3;
+  return hp;
+}
+
+// Maksymalne życie budowli (Wypalanie: +1 za każde pole)
+function buildingMaxHp(game, owner, typeKey, cellCount) {
+  let perCell = BUILDING_TYPES[typeKey].hpPerCell || BUILDING_HP_PER_CELL;
+  if (game.players[owner].research.wypalanie) perCell += 1;
+  return cellCount * perCell;
+}
+
+// Punkty ruchu każdego oddziału (Pancerz łuskowy: +2)
+function movePointsFor(game, owner) {
+  return MOVE_POINTS + (game.players[owner].research.pancerzLuskowy ? 2 : 0);
+}
+
+// =====================================================
+//  ULEPSZENIA JEDNOSTEK
+//  np. "włócznik -> pikinier": wszyscy włócznicy gracza stają się pikinierami
+// =====================================================
+
+// Ulepszenie, które zaczyna się od tej jednostki (albo undefined)
+function upgradeFrom(unitKey) {
+  return UPGRADES.find(up => up.from === unitKey);
+}
+
+// Ulepszenie, które kończy się na tej jednostce (albo undefined)
+function upgradeTo(unitKey) {
+  return UPGRADES.find(up => up.to === unitKey);
+}
+
+// Czy to jest "aktualny stopień" jednostki u gracza?
+// Np. pikinier jest aktualny dopiero po ulepszeniu włóczników i dopóki nie ulepszy się go w halabardnika.
+function isCurrentTier(game, owner, unitKey) {
+  const upgraded = game.players[owner].upgraded;
+  const before = upgradeTo(unitKey);
+  if (before && !upgraded[before.from]) return false;  // poprzedni stopień jeszcze nie ulepszony
+  if (upgraded[unitKey]) return false;                  // ta jednostka jest już ulepszona dalej
+  return true;
+}
+
+// Jakie ulepszenia można teraz kupić w tym budynku
+function getUpgradeOptions(game, building) {
+  const player = game.players[building.owner];
+  return UPGRADES.filter(up =>
+    UNIT_TYPES[up.from].building === building.type &&
+    isCurrentTier(game, building.owner, up.from) &&
+    UNIT_TYPES[up.to].era <= player.era
+  );
+}
+
+// Czy gracz, który ma turę, może kupić ulepszenie "fromKey" w tym budynku?
+function canBuyUpgrade(game, building, fromKey) {
+  if (building.owner !== game.current) return { ok: false, reason: "To nie twój budynek." };
+  if (game.phase !== "build") return { ok: false, reason: "Już ruszałeś wojskiem - w tej turze nie można budować." };
+  if (!getUpgradeOptions(game, building).some(up => up.from === fromKey)) return { ok: false, reason: "Tego ulepszenia nie można tu kupić." };
+  if (game.buildPoints < UPGRADE_COST) return { ok: false, reason: "Za mało punktów: potrzeba " + UPGRADE_COST + ", masz " + game.buildPoints + "." };
+  return { ok: true, reason: "" };
+}
+
+// Kupuje ulepszenie: wszystkie jednostki "from" stają się "to", leczą się do pełna i (jeśli trzeba) rosną
+function buyUpgrade(game, building, fromKey) {
+  const check = canBuyUpgrade(game, building, fromKey);
+  if (!check.ok) return check;
+
+  const up = upgradeFrom(fromKey);
+  game.buildPoints -= UPGRADE_COST;
+  game.players[game.current].upgraded[fromKey] = true;
+
+  for (const unit of game.objects) {
+    if (unit.kind !== "unit" || unit.owner !== game.current || unit.type !== fromKey) continue;
+    unit.type = up.to;
+    unit.maxHp = unitMaxHp(game, unit.owner, up.to);
+    unit.hp = unit.maxHp;  // ulepszenie leczy do pełna
+    // Większy kształt? Zapamiętujemy stary kształt, dopóki jednostka nie urośnie
+    if (UNIT_TYPES[up.to].shape.length !== UNIT_TYPES[fromKey].shape.length) {
+      unit.shapeType = fromKey;
+    }
+  }
+  tryGrowAll(game, game.current);
+  return check;
+}
+
+// Obraca kształt BEZ przesuwania do (0, 0) - potrzebne, żeby porównać stary i nowy kształt
+function rotateRaw(shape, rotation) {
+  let cells = shape.map(([x, y]) => ({ x: x, y: y }));
+  for (let i = 0; i < rotation; i++) cells = cells.map(c => ({ x: -c.y, y: c.x }));
+  return cells;
+}
+
+// Próbuje "dorosnąć" jednostkę po ulepszeniu (np. piechur 1×2 -> piechur ulepszony 1×3).
+// Nowe kratki muszą być wolne - jeśli nie są, jednostka czeka i spróbuje później.
+function tryGrow(game, unit) {
+  if (!unit.shapeType) return false;
+  const up = upgradeFrom(unit.shapeType);
+  const [shiftX, shiftY] = up.grow || [0, 0];
+  const rotation = unit.rotation || 0;
+
+  // Stary kształt przesunięty tak, jak leży w nowym kształcie - oba obracamy tak samo
+  const oldShifted = UNIT_TYPES[unit.shapeType].shape.map(([x, y]) => [x + shiftX, y + shiftY]);
+  const rawOld = rotateRaw(oldShifted, rotation);
+  const rawNew = rotateRaw(UNIT_TYPES[unit.type].shape, rotation);
+
+  // O ile przesunąć, żeby stary kształt trafił w kratki, na których jednostka naprawdę stoi
+  const moveX = Math.min(...unit.cells.map(c => c.x)) - Math.min(...rawOld.map(c => c.x));
+  const moveY = Math.min(...unit.cells.map(c => c.y)) - Math.min(...rawOld.map(c => c.y));
+  const newCells = rawNew.map(c => ({ x: c.x + moveX, y: c.y + moveY }));
+
+  // Nowe kratki (których jednostka jeszcze nie zajmuje) muszą być wolne
+  const extra = newCells.filter(c => !unit.cells.some(o => o.x === c.x && o.y === c.y));
+  for (const c of extra) {
+    if (!isInsideBoard(game, c.x, c.y) || getObjectAt(game, c.x, c.y)) return false;
+  }
+  unit.cells = newCells;
+  delete unit.shapeType;
+  return true;
+}
+
+// Wszystkie czekające jednostki gracza próbują urosnąć
+function tryGrowAll(game, owner) {
+  for (const obj of game.objects) {
+    if (obj.kind === "unit" && obj.owner === owner && obj.shapeType) tryGrow(game, obj);
+  }
+}
+
+// =====================================================
+//  BADANIA W UNIWERSYTECIE ("Zbadaj...")
+// =====================================================
+
+// Jakie badania można jeszcze zrobić w tym budynku (tylko uniwersytet)
+function getResearchOptions(game, building) {
+  if (building.type !== "uniwersytet") return [];
+  const done = game.players[building.owner].research;
+  return Object.keys(RESEARCH).filter(key => !done[key]);
+}
+
+function canBuyResearch(game, building, key) {
+  if (building.owner !== game.current) return { ok: false, reason: "To nie twój budynek." };
+  if (game.phase !== "build") return { ok: false, reason: "Już ruszałeś wojskiem - w tej turze nie można budować." };
+  if (!getResearchOptions(game, building).includes(key)) return { ok: false, reason: "Tego nie można tu zbadać." };
+  if (game.buildPoints < RESEARCH_COST) return { ok: false, reason: "Za mało punktów: potrzeba " + RESEARCH_COST + ", masz " + game.buildPoints + "." };
+  return { ok: true, reason: "" };
+}
+
+// Bada coś w uniwersytecie. Badania, które dodają życie, od razu leczą do pełna.
+function buyResearch(game, building, key) {
+  const check = canBuyResearch(game, building, key);
+  if (!check.ok) return check;
+
+  game.buildPoints -= RESEARCH_COST;
+  game.players[game.current].research[key] = true;
+
+  for (const obj of game.objects) {
+    if (obj.owner !== game.current) continue;
+    if (key === "sparing" && obj.kind === "unit" && UNIT_TYPES[obj.type].building === "koszary") {
+      obj.maxHp = unitMaxHp(game, obj.owner, obj.type);
+      obj.hp = obj.maxHp;
+    }
+    if (key === "wypalanie" && obj.kind === "building") {
+      obj.maxHp = buildingMaxHp(game, obj.owner, obj.type, obj.cells.length);
+      obj.hp = obj.maxHp;
+    }
+  }
+  return check;
 }

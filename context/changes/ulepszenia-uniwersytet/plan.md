@@ -62,13 +62,13 @@ Ten plan opisuje tylko, JAK to zbudować w kodzie.
 
 #### Automated
 
-- [ ] 1.1 Testy przechodzą: `node tests/run-tests.js`
+- [x] 1.1 Testy przechodzą: `node tests/run-tests.js`
 
 ### Phase 2: Uniwersytet, badania i bombarda
 
 #### Automated
 
-- [ ] 2.1 Testy przechodzą: `node tests/run-tests.js`
+- [x] 2.1 Testy przechodzą: `node tests/run-tests.js`
 
 ### Phase 3: Interfejs i rysunki
 

@@ -1218,7 +1218,7 @@ function drawPanelInfo(left, y) {
     const cell = mouseToCell(mouse);
     const hovered = cell ? getObjectAt(game, cell.x, cell.y) : null;
     if (hovered && attackTargets.includes(hovered)) {
-      text = "Obrażenia: " + getDamage(attacker, hovered) + " (wróg ma " + hovered.hp + " życia).";
+      text = "Obrażenia: " + getDamage(game, attacker, hovered) + " (wróg ma " + hovered.hp + " życia).";
       color = "#c0392b";
     }
   }
@@ -1243,7 +1243,7 @@ function drawPanelInfo(left, y) {
     const cell = mouseToCell(mouse);
     const hovered = cell ? getObjectAt(game, cell.x, cell.y) : null;
     if (hovered && attackTargets.includes(hovered)) {
-      text = "Obrażenia: " + getDamage(unit, hovered) + " (wróg ma " + hovered.hp + " życia).";
+      text = "Obrażenia: " + getDamage(game, unit, hovered) + " (wróg ma " + hovered.hp + " życia).";
       color = "#c0392b";
     }
   }

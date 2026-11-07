@@ -43,6 +43,14 @@ const BUILDING_TYPES = {
     era: 4,
     group: "budynki",
   },
+  uniwersytet: {
+    name: "Uniwersytet",
+    short: "U",
+    shape: [[0, 0], [1, 0], [2, 0], [3, 0]],   // 4 pola w rzędzie
+    canBuild: true,
+    era: 4,
+    group: "budynki",
+  },
   dom: {
     name: "Dom",
     short: "D",
@@ -166,6 +174,8 @@ const SHAPE_SQUARE4 = [[0, 0], [1, 0], [0, 1], [1, 1]]; // kwadrat 2×2
 const SHAPE_LANCER = [[0, 0], [0, 1], [1, 1]];       // litera L z 3 kratek (ułan) - włócznia wystaje w pusty róg
 // Słoń: 1 kratka na górze + podstawa 3×2
 const SHAPE_ELEPHANT = [[1, 0], [0, 1], [1, 1], [2, 1], [0, 2], [1, 2], [2, 2]];
+// Bombarda: 4 kratki w rzędzie + 1 pod trzecią
+const SHAPE_BOMBARD = [[0, 0], [1, 0], [2, 0], [3, 0], [2, 1]];
 
 // --- Jednostki ---
 // hp = życie ❤️, attack = atak ⚔️, range = zasięg
@@ -178,7 +188,12 @@ const SHAPE_ELEPHANT = [[1, 0], [0, 1], [1, 1], [2, 1], [0, 2], [1, 2], [2, 2]];
 // Ery ustalone 2026-11-07: lepsze wersje jednostek są zawsze o erę później.
 const UNIT_TYPES = {
   // ----- Ratusz -----
-  chlop:             { name: "Chłop",                 shape: SHAPE_1x1, hp: 1,  attack: 0,   range: 0, era: 1, building: "ratusz" },
+  chlop:             { name: "Chłop",                 shape: SHAPE_1x1, hp: 1,  attack: 0,   range: 0, era: 1, building: "ratusz", builder: true },
+  chlopUlepszony:    { name: "Chłop ulepszony",       shape: SHAPE_1x1, hp: 3,  attack: 1,   range: 1, era: 2, building: "ratusz", builder: true },
+
+  // ----- Uniwersytet (era 4, dopiero po zbadaniu Prochu) -----
+  // needsResearch = jakie badanie trzeba mieć; bonusVsBuildings = dodatkowe obrażenia budynkom
+  bombarda:          { name: "Bombarda",              shape: SHAPE_BOMBARD, hp: 5, attack: 5, range: 5, era: 4, building: "uniwersytet", needsResearch: "proch", bonusVsBuildings: 4 },
 
   // ----- Koszary -----
   piechur:           { name: "Piechur",               shape: SHAPE_1x2, hp: 3,  attack: 1,   range: 1, era: 1, building: "koszary" },
@@ -203,6 +218,41 @@ const UNIT_TYPES = {
   ciezkaKawaleria:   { name: "Ciężka kawaleria",      shape: SHAPE_SQUARE4, hp: 6, attack: 3, range: 1, era: 4, building: "stajnia", cavalry: true },
   paladyn:           { name: "Paladyn",               shape: SHAPE_L3,      hp: 9, attack: 4, range: 1, era: 4, building: "stajnia", cavalry: true },
   ulan:              { name: "Ułan",                  shape: SHAPE_LANCER,  hp: 6, attack: 4, range: 1, era: 4, building: "stajnia", cavalry: true },
+};
+
+// --- Ulepszenia jednostek ---
+// Każde ulepszenie zmienia WSZYSTKIE jednostki gracza z "from" na "to" (też przyszłe).
+// Kupuje się je w budynku, który robi jednostkę "from", od ery jednostki "to".
+// grow = gdy nowy kształt jest większy: o ile przesuwa się stary kształt w nowym
+//        (piechur [0, 1] = nowa kratka dochodzi z przodu, czyli u góry przed obrotem)
+const UPGRADE_COST = 4;
+const UPGRADES = [
+  // ----- Koszary -----
+  { from: "piechur",        to: "piechurUlepszony", grow: [0, 1] },
+  { from: "wlocznik",       to: "pikinier" },
+  { from: "pikinier",       to: "halabardnik" },
+  { from: "wojownikOrlow",  to: "eWojownikOrlow" },
+  { from: "eWojownikOrlow", to: "eWojownikOrlowUl" },
+  // ----- Strzelnica -----
+  { from: "lucznik",        to: "wyszkolonyLucznik" },
+  { from: "oszczepnik",     to: "eOszczepnik" },
+  // ----- Stajnia -----
+  { from: "kawaleria1",     to: "ciezkaKawaleria", grow: [0, 0] },  // Γ dopełnia pusty róg do 2×2
+  { from: "kawaleria2",     to: "paladyn" },
+  // ----- Ratusz -----
+  { from: "chlop",          to: "chlopUlepszony" },
+];
+
+// --- Badania w uniwersytecie ("Zbadaj...") ---
+const RESEARCH_COST = 4;
+const RESEARCH = {
+  wypalanie:      { name: "Wypalanie",       info: "Budynki: +1 życia za każde pole." },
+  plonacyGrot:    { name: "Płonący grot",    info: "Jednostki ze strzelnicy: +2 ataku." },
+  mordownia:      { name: "Mordownia",       info: "Wieże i zamek strzelają też do wroga tuż obok." },
+  pancerzLuskowy: { name: "Pancerz łuskowy", info: "Każdy oddział: +2 punkty ruchu." },
+  szarza:         { name: "Szarża",          info: "Kawaleria atakuje 2 razy na turę." },
+  sparing:        { name: "Sparing",         info: "Jednostki z koszar: +3 życia." },
+  proch:          { name: "Proch",           info: "Uniwersytet może robić bombardy." },
 };
 
 // --- Kolory graczy (maksymalnie 8 graczy) ---
