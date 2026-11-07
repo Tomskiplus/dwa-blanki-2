@@ -224,7 +224,14 @@ function drawButton(btn) {
   ctx.lineWidth = LINE_WIDTH;
   ctx.strokeRect(btn.x, btn.y, btn.w, btn.h);
 
-  drawText(btn.label, btn.x + btn.w / 2, btn.y + btn.h / 2 + 2, btn.fontSize || 28, "#000000");
+  // Za długi napis? Zmniejszamy czcionkę, aż się zmieści w przycisku (ale nie mniej niż 9)
+  let size = btn.fontSize || 28;
+  ctx.font = "bold " + size + "px Arial, sans-serif";
+  while (size > 9 && ctx.measureText(btn.label).width > btn.w - 8) {
+    size--;
+    ctx.font = "bold " + size + "px Arial, sans-serif";
+  }
+  drawText(btn.label, btn.x + btn.w / 2, btn.y + btn.h / 2 + 2, size, "#000000");
 }
 
 // Napis, który pojawia się po kliknięciu (np. "wkrótce!")
@@ -302,19 +309,12 @@ function getGameButtons() {
     buttons.push({ label: "ZAMKNIJ", x: x, y: 255, w: w, h: 34, fontSize: 15,
       onClick: clearSelection });
   } else if (selected) {
-    // Kliknięty budynek: w fazie budowy przyciski jednostek, które może zrobić.
-    // Niskie przyciski, bo w późnych erach koszary robią aż 8 jednostek.
-    if (game.phase === "build") {
-      getRecruitOptions(game, selected).forEach((key, index) => {
-        const type = UNIT_TYPES[key];
-        buttons.push({
-          label: type.name + " (" + unitCost(key) + ")",
-          x: x, y: RECRUIT_TOP + index * RECRUIT_STEP, w: w, h: RECRUIT_STEP - 3, fontSize: 13,
-          selected: action !== null && action.key === key,
-          onClick: () => startPlacing("unit", key),
-        });
-      });
-    }
+    // Kliknięty budynek: w fazie budowy lista - jednostki, ulepszenia i badania (niskie przyciski)
+    getBuildingMenu(selected).forEach((item, index) => {
+      buttons.push(Object.assign({
+        x: x, y: RECRUIT_TOP + index * RECRUIT_STEP, w: w, h: RECRUIT_STEP - 3, fontSize: 13,
+      }, item));
+    });
     // Mały przycisk "X" obok nagłówka zamyka budynek
     buttons.push({ label: "X", x: PANEL_X + PANEL_WIDTH - 38, y: 162, w: 24, h: 24, fontSize: 14,
       onClick: clearSelection });
@@ -350,6 +350,52 @@ function getGameButtons() {
     onClick: () => goToScreen("title") });
 
   return buttons;
+}
+
+// Lista przycisków w panelu wybranego budynku (tylko w fazie budowy):
+//  - jednostki do zrobienia, np. "Pikinier (1)"
+//  - ulepszenia, np. "↑ Halabardnik (4)"
+//  - badania w uniwersytecie, np. "Zbadaj: Proch (4)"
+// hint = podpowiedź pokazywana w panelu, gdy myszka jest nad przyciskiem
+function getBuildingMenu(building) {
+  if (game.phase !== "build") return [];
+  const items = [];
+
+  for (const key of getRecruitOptions(game, building)) {
+    items.push({
+      label: UNIT_TYPES[key].name + " (" + unitCost(key) + ")",
+      selected: action !== null && action.key === key,
+      onClick: () => startPlacing("unit", key),
+    });
+  }
+  for (const up of getUpgradeOptions(game, building)) {
+    const fromName = UNIT_TYPES[up.from].name;
+    const toName = UNIT_TYPES[up.to].name;
+    items.push({
+      label: "↑ " + toName + " (" + UPGRADE_COST + ")",
+      hint: "Ulepszenie: wszyscy " + fromName + " staną się: " + toName + ".",
+      onClick: () => buyFromMenu(buyUpgrade(game, building, up.from), "Ulepszono: " + fromName + " → " + toName + "!"),
+    });
+  }
+  for (const key of getResearchOptions(game, building)) {
+    items.push({
+      label: "Zbadaj: " + RESEARCH[key].name + " (" + RESEARCH_COST + ")",
+      hint: RESEARCH[key].info,
+      onClick: () => buyFromMenu(buyResearch(game, building, key), "Zbadano: " + RESEARCH[key].name + "!"),
+    });
+  }
+  return items;
+}
+
+// Po kliknięciu ulepszenia/badania: pokazujemy wynik w panelu
+function buyFromMenu(result, successText) {
+  if (!result.ok) {
+    message = result.reason;
+    return;
+  }
+  message = "";
+  attackInfo = successText;   // niebieski napis w panelu
+  refreshReachable();
 }
 
 // Budowle z wybranej zakładki, które gracz może już stawiać (wg ery)
@@ -867,7 +913,8 @@ function drawDiagonalWall(building, direction, color) {
 // Rysuje jedną jednostkę: rysunek jak w zeszycie, w środku pokolorowany jasnym kolorem gracza
 function drawUnit(unit) {
   const color = lightColor(game.players[unit.owner].color);
-  drawUnitPicture(unit.type, unit.cells, unit.rotation || 0, color);
+  // shapeType = ulepszona jednostka, która jeszcze nie urosła - rysujemy ją po staremu
+  drawUnitPicture(unit.shapeType || unit.type, unit.cells, unit.rotation || 0, color);
 }
 
 // Rozjaśnia kolor (np. "#d63031") - miesza go z białym, żeby czarne linie były dobrze widać.
@@ -1090,7 +1137,7 @@ function drawPanel() {
   } else if (selected) {
     // Wybrany budynek: nazwa, a pod nią jednostki do zrobienia albo informacje o budowli
     drawText(BUILDING_TYPES[selected.type].name, left, 176, 15, "#000000", "left");
-    const recruits = game.phase === "build" ? getRecruitOptions(game, selected).length : 0;
+    const recruits = getBuildingMenu(selected).length;
     if (recruits > 0) {
       infoY = RECRUIT_TOP + recruits * RECRUIT_STEP + 12;
     } else {
@@ -1201,7 +1248,8 @@ function drawPanelInfo(left, y) {
   const selectedBuilding = getSelectedBuilding();
   if (selectedBuilding) {
     const hasRecruits = game.phase === "build" && getRecruitOptions(game, selectedBuilding).length > 0;
-    text = hasRecruits ? "Wybierz jednostkę, potem kliknij obok budynku." : "";
+    const hasMenu = getBuildingMenu(selectedBuilding).length > 0;
+    text = hasRecruits ? "Wybierz jednostkę, potem kliknij obok budynku." : (hasMenu ? "Wybierz z listy." : "");
     color = "#555555";
     if (canFight(selectedBuilding) && attackTargets.length === 0 && !selectedBuilding.hasAttacked) {
       text = "Brak wrogów w zasięgu.";
@@ -1263,6 +1311,10 @@ function drawPanelInfo(left, y) {
       if (!check.ok) { text = check.reason; color = "#c0392b"; }
     }
   }
+  // Myszka nad przyciskiem ulepszenia/badania - pokazujemy, co ono daje
+  const hoveredButton = getButtons().find(btn => btn.hint && isInside(mouse.x, mouse.y, btn));
+  if (hoveredButton) { text = hoveredButton.hint; color = "#1a5276"; }
+
   if (message !== "") { text = message; color = "#c0392b"; }
 
   drawWrappedText(text, left, y, PANEL_WIDTH - 30, 18, 14, color);

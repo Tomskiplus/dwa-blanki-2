@@ -140,6 +140,27 @@ const UNIT_DRAWINGS = {
   chlop: (ctx, s) => {
     colorRect(ctx, s, 0, 0, 1, 1);
   },
+  // Chłop ulepszony - kwadrat z kosą: długi skośny trzonek i zakrzywione ostrze u góry
+  chlopUlepszony: (ctx, s) => {
+    colorRect(ctx, s, 0, 0, 1, 1);
+    penLine(ctx, s, 0.2, 0.88, 0.62, 0.18);              // trzonek
+    ctx.beginPath();                                      // ostrze: łuk od góry trzonka w lewo
+    ctx.moveTo(0.62 * s, 0.18 * s);
+    ctx.quadraticCurveTo(0.35 * s, 0.05 * s, 0.12 * s, 0.32 * s);
+    ctx.stroke();
+  },
+
+  // ----- Uniwersytet -----
+  // Bombarda: szara, 4 pola w rzędzie + 1 pod trzecim; trzecie pole w kolorze gracza
+  bombarda: (ctx, s) => {
+    const playerColor = ctx.fillStyle;
+    ctx.fillStyle = "#a3a3a3";
+    colorPolygon(ctx, s, [[0, 0], [4, 0], [4, 1], [3, 1], [3, 2], [2, 2], [2, 1], [0, 1]]);
+    penLine(ctx, s, 1, 0, 1, 1);                         // kreski między polami
+    penLine(ctx, s, 3, 0, 3, 1);
+    ctx.fillStyle = playerColor;
+    colorRect(ctx, s, 2, 0, 1, 1);                       // pole w kolorze gracza
+  },
 
   // ----- Koszary -----
   piechur: (ctx, s) => {

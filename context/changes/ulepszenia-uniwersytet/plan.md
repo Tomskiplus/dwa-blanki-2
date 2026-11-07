@@ -62,20 +62,20 @@ Ten plan opisuje tylko, JAK to zbudować w kodzie.
 
 #### Automated
 
-- [x] 1.1 Testy przechodzą: `node tests/run-tests.js`
+- [x] 1.1 Testy przechodzą: `node tests/run-tests.js` — 80f07eb
 
 ### Phase 2: Uniwersytet, badania i bombarda
 
 #### Automated
 
-- [x] 2.1 Testy przechodzą: `node tests/run-tests.js`
+- [x] 2.1 Testy przechodzą: `node tests/run-tests.js` — 80f07eb
 
 ### Phase 3: Interfejs i rysunki
 
 #### Automated
 
-- [ ] 3.1 Testy przechodzą: `node tests/run-tests.js`
-- [ ] 3.2 Zrzuty ekranu: koszary z ulepszeniami, uniwersytet z badaniami, bombarda, chłop z kosą
+- [x] 3.1 Testy przechodzą: `node tests/run-tests.js`
+- [x] 3.2 Zrzuty ekranu: koszary z ulepszeniami, uniwersytet z badaniami, bombarda, chłop z kosą
 
 #### Manual
 
