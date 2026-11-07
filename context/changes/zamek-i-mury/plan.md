@@ -86,11 +86,11 @@ Mury blokują drogę, bramy przepuszczają swoich, wieże i zamek strzelają, za
 
 #### Automated
 
-- [x] 2.1 Testy przechodzą: `node tests/run-tests.js`
+- [x] 2.1 Testy przechodzą: `node tests/run-tests.js` — 0ac1018
 - [x] 2.2 Zrzuty ekranu: zakładki, wszystkie budowle, strzał wieży, zamek w budowie
 
 #### Manual
 
-- [x] 2.3 Postawienie długiego muru jednym chłopem (klik, klik, klik)
+- [x] 2.3 Postawienie długiego muru jednym chłopem (klik, klik, klik) — 0ac1018
 - [x] 2.4 Brama przepuszcza moje jednostki, a wroga nie
 - [x] 2.5 Wieża strzela raz na turę; zamek buduje się 2 tury i potem strzela
