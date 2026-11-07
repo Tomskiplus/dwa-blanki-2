@@ -126,8 +126,8 @@ podpowiedź pod listą.
 
 #### Automated
 
-- [x] 2.1 Testy przechodzą: `node tests/run-tests.js`
-- [x] 2.2 Zrzuty ekranu (Edge headless): panel w erze 1 i 3, koszary w erze 4 (8 jednostek), baner po zmianie ery
+- [x] 2.1 Testy przechodzą: `node tests/run-tests.js` — 5b7074c
+- [x] 2.2 Zrzuty ekranu (Edge headless): panel w erze 1 i 3, koszary w erze 4 (8 jednostek), baner po zmianie ery — 5b7074c
 
 #### Manual
 
