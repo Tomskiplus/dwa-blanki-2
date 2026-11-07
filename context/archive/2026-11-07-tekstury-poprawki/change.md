@@ -1,10 +1,10 @@
 ---
 change_id: tekstury-poprawki
 title: Poprawki tekstur - kolor tylko w rysunku, pełne pola, darmowe małe części
-status: implementing
+status: archived
 created: 2026-11-07
 updated: 2026-11-07
-archived_at: null
+archived_at: 2026-11-07T13:53:09Z
 ---
 
 ## Notes
