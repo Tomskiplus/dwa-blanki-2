@@ -121,3 +121,34 @@ Kształty pozostałych jednostek (ze starych zdjęć, przybliżone):
 - Dokładne kształty jednostek i budynków (ile kratek kosztują).
 - Kolorowe strony zeszytu – czy to różne cywilizacje/drużyny?
 - Czy jednostki mogą przechodzić przez siebie/budynki?
+
+## Ulepszenia i badania (ustalone 2026-11-07)
+
+### Ulepszenia jednostek
+- Każde ulepszenie kosztuje **4 punkty budowy**; można je kupić od ery lepszej jednostki.
+- Ulepszenie zmienia **wszystkie** jednostki danego rodzaju (te, które gracz ma, i nowe).
+  Potem budynek robi już tylko lepszą wersję.
+- Ulepsza się w budynku, który robi jednostkę:
+  - koszary: piechur → piechur ulepszony; włócznik → pikinier → halabardnik;
+    wojownik orłów → elit. wojownik orłów → elit. wojownik orłów+
+  - strzelnica: łucznik → wyszkolony łucznik; oszczepnik → elit. oszczepnik (słoń – bez ulepszenia)
+  - stajnia: kawaleria (1) → ciężka kawaleria; kawaleria (2) → paladyn (ułan – bez ulepszenia)
+  - ratusz (od ery 2): chłop 1/0/0 → chłop 3/1/1 (1 pole, kwadrat z kosą)
+- Gdy lepsza wersja jest większa: piechur (1×2 → 1×3) rośnie zawsze **z przodu**,
+  kawaleria (1) dopełnia pusty róg; jeśli nie ma miejsca – rośnie później, gdy będzie miejsce.
+- Gdy ulepszenie/badanie dodaje życie – ranni **leczą się do pełna**.
+
+### Uniwersytet (era 4, 4 pola w rzędzie) – badania „Zbadaj…”, każde 4 punkty
+| Badanie | Efekt |
+|---|---|
+| Wypalanie | budynki: +1 życia za pole |
+| Płonący grot | jednostki ze strzelnicy (też słoń): +2 ataku |
+| Mordownia | wieże i zamek mogą strzelać do wroga tuż obok (bez niej NIE mogą) |
+| Pancerz łuskowy | każdy oddział: +2 punkty ruchu |
+| Szarża | kawaleria atakuje 2 razy na turę |
+| Sparing | jednostki z koszar: +3 życia |
+| Proch | uniwersytet robi bombardy |
+
+### Bombarda (uniwersytet, era 4, po Prochu)
+- 5 pól: 4 w rzędzie + 1 pod trzecim; szara, trzecie pole w kolorze gracza.
+- Życie 5, atak 5, zasięg 5, **+4 obrażeń budynkom**; koszt 5; chodzi i atakuje jak zwykła jednostka.
