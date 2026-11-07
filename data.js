@@ -10,6 +10,11 @@ const BARRACKS_BONUS = 1;        // dodatkowy punkt, który można wydać TYLKO 
 const MOVE_POINTS = 5;           // punkty ruchu dla każdego oddziału
 const BUILDING_HP_PER_CELL = 2;  // budynek ma 2 życia za każdą swoją kratkę
 
+// --- Ery ---
+// ERA_NAMES[1] to nazwa ery 1 itd. (pozycja 0 jest pusta, żeby numery się zgadzały)
+const ERA_NAMES = ["", "era mroku", "era feudalna", "era zamków", "era imperiów"];
+const MAX_ERA = 4;
+
 // --- Kształty ---
 // Kształt to lista kratek [x, y]. [0, 0] to lewy górny róg.
 // x rośnie w prawo, y rośnie w dół (tak jak na canvasie).
@@ -17,6 +22,8 @@ const BUILDING_HP_PER_CELL = 2;  // budynek ma 2 życia za każdą swoją kratk�
 
 // --- Budynki ---
 // canBuild: false = tego budynku nie da się postawić w trakcie gry
+// era = od której ery można go budować (w zeszycie: napis E.1, E.2...)
+// Żeby przejść do następnej ery, trzeba mieć WSZYSTKIE budynki z obecnej ery.
 const BUILDING_TYPES = {
   ratusz: {
     name: "Ratusz",
@@ -25,6 +32,7 @@ const BUILDING_TYPES = {
     shape: [[0, 0], [1, 0], [0, 1], [1, 1], [0, 2], [1, 2]],
     hasRoof: true,
     canBuild: false,
+    era: 1,
   },
   koszary: {
     name: "Koszary",
@@ -32,6 +40,7 @@ const BUILDING_TYPES = {
     // kwadrat 3×3
     shape: [[0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [2, 1], [0, 2], [1, 2], [2, 2]],
     canBuild: true,
+    era: 1,
   },
   strzelnica: {
     name: "Strzelnica",
@@ -39,6 +48,7 @@ const BUILDING_TYPES = {
     // litera L: słupek z lewej i podstawa na dole
     shape: [[0, 0], [0, 1], [0, 2], [1, 2], [2, 2]],
     canBuild: true,
+    era: 2,
   },
   stajnia: {
     name: "Stajnia",
@@ -46,6 +56,7 @@ const BUILDING_TYPES = {
     // prostokąt 2×3
     shape: [[0, 0], [1, 0], [0, 1], [1, 1], [0, 2], [1, 2]],
     canBuild: true,
+    era: 3,
   },
 };
 
@@ -66,36 +77,34 @@ const SHAPE_ELEPHANT = [[1, 0], [0, 1], [1, 1], [2, 1], [0, 2], [1, 2], [2, 2]];
 // building = który budynek ją produkuje
 // cavalry: true = to jest kawaleria (włócznicy zadają jej więcej obrażeń)
 // bonusVsCavalry = ile DODATKOWYCH obrażeń zadaje kawalerii
-// availableNow: true = TYMCZASOWO można ją robić od początku gry, mimo dalszej ery
-//                      (do czasu, aż zrobimy przechodzenie er - wtedy usuniemy ten znacznik)
-// ⚠️ Ery są odczytane z zeszytu "na oko" - popraw, jeśli są inne!
+// Ery ustalone 2026-11-07: lepsze wersje jednostek są zawsze o erę później.
 const UNIT_TYPES = {
   // ----- Ratusz -----
   chlop:             { name: "Chłop",                 shape: SHAPE_1x1, hp: 1,  attack: 0,   range: 0, era: 1, building: "ratusz" },
 
   // ----- Koszary -----
   piechur:           { name: "Piechur",               shape: SHAPE_1x2, hp: 3,  attack: 1,   range: 1, era: 1, building: "koszary" },
-  piechurUlepszony:  { name: "Piechur ulepszony",     shape: SHAPE_1x3, hp: 4,  attack: 1.5, range: 1, era: 2, building: "koszary" },
   wlocznik:          { name: "Włócznik",              shape: SHAPE_1x2, hp: 2,  attack: 1,   range: 1, era: 1, building: "koszary", bonusVsCavalry: 3 },
+  piechurUlepszony:  { name: "Piechur ulepszony",     shape: SHAPE_1x3, hp: 4,  attack: 1.5, range: 1, era: 2, building: "koszary" },
   pikinier:          { name: "Pikinier",              shape: SHAPE_1x2, hp: 4,  attack: 2,   range: 1, era: 2, building: "koszary", bonusVsCavalry: 2 },
+  wojownikOrlow:     { name: "Wojownik orłów",        shape: SHAPE_LONG4, hp: 3, attack: 2,  range: 2, era: 2, building: "koszary" },
   halabardnik:       { name: "Halabardnik",           shape: SHAPE_1x2, hp: 6,  attack: 3,   range: 1, era: 3, building: "koszary", bonusVsCavalry: 3 },
-  wojownikOrlow:     { name: "Wojownik orłów",        shape: SHAPE_LONG4, hp: 3, attack: 2,  range: 2, era: 2, building: "koszary", availableNow: true },
   eWojownikOrlow:    { name: "Elit. wojownik orłów",  shape: SHAPE_LONG4, hp: 4, attack: 4,  range: 2, era: 3, building: "koszary" },
   eWojownikOrlowUl:  { name: "Elit. wojownik orłów+", shape: SHAPE_LONG4, hp: 6, attack: 5,  range: 2, era: 4, building: "koszary" },
 
-  // ----- Strzelnica -----
-  lucznik:           { name: "Łucznik",               shape: SHAPE_1x1, hp: 2,  attack: 1,   range: 4, era: 1, building: "strzelnica" },
-  wyszkolonyLucznik: { name: "Wyszkolony łucznik",    shape: SHAPE_1x1, hp: 2,  attack: 1.5, range: 6, era: 2, building: "strzelnica" },
-  oszczepnik:        { name: "Oszczepnik",            shape: SHAPE_1x1, hp: 2,  attack: 1,   range: 4, era: 1, building: "strzelnica" },
-  eOszczepnik:       { name: "Elit. oszczepnik",      shape: SHAPE_1x1, hp: 3,  attack: 2,   range: 5, era: 2, building: "strzelnica" },
-  slon:              { name: "Słoń bojowy",           shape: SHAPE_ELEPHANT, hp: 10, attack: 4, range: 6, era: 3, building: "strzelnica", availableNow: true },
+  // ----- Strzelnica (od ery 2) -----
+  lucznik:           { name: "Łucznik",               shape: SHAPE_1x1, hp: 2,  attack: 1,   range: 4, era: 2, building: "strzelnica" },
+  oszczepnik:        { name: "Oszczepnik",            shape: SHAPE_1x1, hp: 2,  attack: 1,   range: 4, era: 2, building: "strzelnica" },
+  wyszkolonyLucznik: { name: "Wyszkolony łucznik",    shape: SHAPE_1x1, hp: 2,  attack: 1.5, range: 6, era: 3, building: "strzelnica" },
+  eOszczepnik:       { name: "Elit. oszczepnik",      shape: SHAPE_1x1, hp: 3,  attack: 2,   range: 5, era: 3, building: "strzelnica" },
+  slon:              { name: "Słoń bojowy",           shape: SHAPE_ELEPHANT, hp: 10, attack: 4, range: 6, era: 3, building: "strzelnica" },
 
-  // ----- Stajnia -----
-  kawaleria1:        { name: "Kawaleria (1)",         shape: SHAPE_GAMMA3,  hp: 5, attack: 2, range: 1, era: 1, building: "stajnia", cavalry: true },
-  ciezkaKawaleria:   { name: "Ciężka kawaleria",      shape: SHAPE_SQUARE4, hp: 6, attack: 3, range: 1, era: 2, building: "stajnia", cavalry: true },
+  // ----- Stajnia (od ery 3) -----
+  kawaleria1:        { name: "Kawaleria (1)",         shape: SHAPE_GAMMA3,  hp: 5, attack: 2, range: 1, era: 3, building: "stajnia", cavalry: true },
   kawaleria2:        { name: "Kawaleria (2)",         shape: SHAPE_L3,      hp: 5, attack: 2, range: 1, era: 3, building: "stajnia", cavalry: true },
-  paladyn:           { name: "Paladyn",               shape: SHAPE_L3,      hp: 9, attack: 4, range: 1, era: 3, building: "stajnia", cavalry: true },
-  ulan:              { name: "Ułan",                  shape: SHAPE_SQUARE4, hp: 6, attack: 4, range: 1, era: 4, building: "stajnia", cavalry: true, availableNow: true },
+  ciezkaKawaleria:   { name: "Ciężka kawaleria",      shape: SHAPE_SQUARE4, hp: 6, attack: 3, range: 1, era: 4, building: "stajnia", cavalry: true },
+  paladyn:           { name: "Paladyn",               shape: SHAPE_L3,      hp: 9, attack: 4, range: 1, era: 4, building: "stajnia", cavalry: true },
+  ulan:              { name: "Ułan",                  shape: SHAPE_SQUARE4, hp: 6, attack: 4, range: 1, era: 4, building: "stajnia", cavalry: true },
 };
 
 // --- Kolory graczy (maksymalnie 8 graczy) ---

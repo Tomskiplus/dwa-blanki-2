@@ -200,6 +200,9 @@ function availablePointsFor(game, buildingKey) {
 function canPlaceBuilding(game, buildingKey, cells) {
   const type = BUILDING_TYPES[buildingKey];
   if (!type.canBuild) return { ok: false, reason: type.name + " nie da się zbudować." };
+  if (type.era > game.players[game.current].era) {
+    return { ok: false, reason: type.name + " będzie dostępna w erze " + type.era + " (" + ERA_NAMES[type.era] + ")." };
+  }
   if (game.phase !== "build") return { ok: false, reason: "Już ruszałeś wojskiem - w tej turze nie można budować." };
 
   const free = checkCellsFree(game, cells);
@@ -236,11 +239,9 @@ function placeBuilding(game, buildingKey, cells) {
   return check;
 }
 
-// Czy gracz, który ma turę, może już robić tę jednostkę?
-// Tak, jeśli jest z jego ery (albo wcześniejszej) ALBO ma znacznik availableNow (tymczasowo, do czasu er).
+// Czy gracz może już robić tę jednostkę? Tak, jeśli jest z jego ery albo wcześniejszej.
 function isUnitAvailable(game, unitKey, owner) {
-  const type = UNIT_TYPES[unitKey];
-  return type.era <= game.players[owner].era || type.availableNow === true;
+  return UNIT_TYPES[unitKey].era <= game.players[owner].era;
 }
 
 // Jakie jednostki może teraz zrobić ten budynek
@@ -521,4 +522,48 @@ function updateEliminations(game) {
   // Został tylko jeden gracz? To on wygrywa!
   const alivePlayers = game.players.filter(p => p.alive);
   if (alivePlayers.length === 1) game.winner = alivePlayers[0].id;
+}
+
+// =====================================================
+//  ERY
+//  1 - era mroku, 2 - era feudalna, 3 - era zamków, 4 - era imperiów
+// =====================================================
+
+// Jakie budynki trzeba mieć, żeby wyjść z obecnej ery gracza?
+// Wszystkie budynki z tej ery, które da się zbudować (np. w erze 1: koszary).
+// Gdy dodamy nowe budynki (mury, wieże...), same wejdą do wymagań swojej ery.
+function getEraRequirements(game, owner) {
+  const era = game.players[owner].era;
+  return Object.keys(BUILDING_TYPES).filter(key =>
+    BUILDING_TYPES[key].era === era && BUILDING_TYPES[key].canBuild
+  );
+}
+
+// Czy gracz, który ma turę, może przejść do następnej ery?
+// Zwraca { ok, reason, missing } - missing = lista brakujących budynków
+function canAdvanceEra(game) {
+  const player = game.players[game.current];
+  if (player.era >= MAX_ERA) return { ok: false, reason: "To już ostatnia era.", missing: [] };
+
+  // Sprawdzamy każdy wymagany budynek: czy gracz ma co najmniej jeden taki?
+  const missing = getEraRequirements(game, game.current).filter(key =>
+    !game.objects.some(obj => obj.kind === "building" && obj.type === key && obj.owner === game.current)
+  );
+  if (missing.length > 0) {
+    const names = missing.map(key => BUILDING_TYPES[key].name).join(", ");
+    return { ok: false, reason: "Do następnej ery brakuje: " + names + ".", missing: missing };
+  }
+  return { ok: true, reason: "", missing: [] };
+}
+
+// Przejście do następnej ery. Potem w tej turze nie można nic robić, więc tura się kończy.
+// Zwraca { ok, reason, era } - era = nowa era gracza
+function advanceEra(game) {
+  const check = canAdvanceEra(game);
+  if (!check.ok) return check;
+
+  const player = game.players[game.current];
+  player.era++;
+  endTurn(game);
+  return { ok: true, reason: "", era: player.era };
 }

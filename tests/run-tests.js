@@ -116,6 +116,7 @@ function buildingCells(key, x, y, rotation) {
 
 {
   const game = createGame(2, "mala");
+  game.players[0].era = 3;  // stajnia jest od ery 3
   const stable = placeBuilding(game, "stajnia", buildingCells("stajnia", 4, 5));
   check("Stajnię (6 kratek) da się postawić obok chłopa", stable.ok && game.buildPoints === 2);
   const barracks = placeBuilding(game, "koszary", buildingCells("koszary", 2, 9));
@@ -125,6 +126,7 @@ function buildingCells(key, x, y, rotation) {
 {
   // Strzelnica ma 5 kratek. Przy 4 punktach + bonusie NIE wolno (bonus jest tylko na koszary)
   const game = createGame(2, "mala");
+  game.players[0].era = 2;  // strzelnica jest od ery 2
   game.buildPoints = 4;
   check("Bonus koszar nie działa na inne budynki", !canPlaceBuilding(game, "strzelnica", buildingCells("strzelnica", 2, 6, 1)).ok);
   game.buildPoints = 5;
@@ -133,6 +135,7 @@ function buildingCells(key, x, y, rotation) {
 
 {
   const game = createGame(2, "mala");
+  game.players[0].era = MAX_ERA;  // wszystkie budynki dostępne - sprawdzamy TYLKO miejsce
   check("Budynek daleko od chłopa - nie wolno", !canPlaceBuilding(game, "stajnia", buildingCells("stajnia", 10, 7)).ok);
   check("Budynek na chłopie - nie wolno", !canPlaceBuilding(game, "koszary", buildingCells("koszary", 2, 5)).ok);
   check("Budynek poza planszą - nie wolno", !canPlaceBuilding(game, "stajnia", buildingCells("stajnia", -1, 5)).ok);
@@ -150,8 +153,7 @@ function buildingCells(key, x, y, rotation) {
   game.buildPoints = 20; // w teście dajemy sobie dużo punktów
 
   const options = getRecruitOptions(game, barracks);
-  check("Koszary w erze 1 robią: piechur, włócznik i (tymczasowo) wojownik orłów",
-    options.length === 3 && options.includes("piechur") && options.includes("wlocznik") && options.includes("wojownikOrlow"));
+  check("Koszary w erze 1 robią: piechur i włócznik", options.length === 2 && options.includes("piechur") && options.includes("wlocznik"));
 
   const soldier = placeUnit(game, "piechur", barracks, shapeCells(UNIT_TYPES.piechur.shape, 5, 6, 0));
   check("Piechur obok koszar - wolno", soldier.ok && game.buildPoints === 18);
@@ -346,19 +348,56 @@ function firstUnit(game, type) {
   addBuilding(game, "stajnia", 0, buildingCells("stajnia", 14, 2));
   const range = objectsOf(game, 0, "strzelnica")[0];
   const stable = objectsOf(game, 0, "stajnia")[0];
-  const rangeOptions = getRecruitOptions(game, range).sort().join(",");
-  const stableOptions = getRecruitOptions(game, stable).sort().join(",");
-  check("Strzelnica robi: łucznika, oszczepnika i słonia", rangeOptions === "lucznik,oszczepnik,slon");
-  check("Stajnia robi: kawalerię (1) i ułana", stableOptions === "kawaleria1,ulan");
-  check("Ciężka kawaleria (era 2, bez znacznika) jest jeszcze niedostępna", !isUnitAvailable(game, "ciezkaKawaleria", 0));
+  game.players[0].era = 2;
+  check("Strzelnica w erze 2 robi: łucznika i oszczepnika", getRecruitOptions(game, range).sort().join(",") === "lucznik,oszczepnik");
+  game.players[0].era = 3;
+  check("Strzelnica w erze 3 robi też: wyszkolonego łucznika, elit. oszczepnika i słonia",
+    getRecruitOptions(game, range).sort().join(",") === "eOszczepnik,lucznik,oszczepnik,slon,wyszkolonyLucznik");
+  check("Stajnia w erze 3 robi: kawalerię (1) i (2)", getRecruitOptions(game, stable).sort().join(",") === "kawaleria1,kawaleria2");
+  check("Ułan (era 4) w erze 3 jest jeszcze niedostępny", !isUnitAvailable(game, "ulan", 0));
 
   // Ułan postawiony z obrotem 1 pamięta ten obrót
+  game.players[0].era = 4;
   game.buildPoints = 20;
   const cells = shapeCells(UNIT_TYPES.ulan.shape, 16, 2, 1);
   const result = placeUnit(game, "ulan", stable, cells, 1);
   check("Ułan obok stajni - wolno", result.ok);
   check("Postawiona jednostka pamięta obrót", objectsOf(game, 0, "ulan")[0].rotation === 1);
   check("Jednostka bez podanego obrotu ma obrót 0", objectsOf(game, 0, "chlop")[0].rotation === 0);
+}
+
+// =====================================================
+//  ZMIANA "ery"
+//  Gracz 0 na małej planszy: ratusz (2,2)-(3,4), chłopi na (2,5) i (3,5)
+// =====================================================
+
+{
+  const game = createGame(2, "mala");
+  check("Na start gracz jest w erze 1 (era mroku)", game.players[0].era === 1 && ERA_NAMES[1] === "era mroku");
+  check("Strzelnica w erze 1 - nie wolno", !canPlaceBuilding(game, "strzelnica", buildingCells("strzelnica", 2, 6, 1)).ok);
+  check("Wymagania ery 1 to koszary", getEraRequirements(game, 0).join(",") === "koszary");
+
+  const noBarracks = canAdvanceEra(game);
+  check("Bez koszar nie można przejść do ery 2", !noBarracks.ok && noBarracks.missing.includes("koszary"));
+
+  // Koszary WROGA się nie liczą
+  addBuilding(game, "koszary", 1, buildingCells("koszary", 10, 6));
+  check("Koszary wroga nie wystarczą", !canAdvanceEra(game).ok);
+
+  placeBuilding(game, "koszary", buildingCells("koszary", 2, 6));
+  const result = advanceEra(game);
+  check("Z koszarami gracz przechodzi do ery 2", result.ok && game.players[0].era === 2);
+  check("Po przejściu do ery tura się kończy", game.current === 1);
+  check("Przeciwnik zostaje w erze 1", game.players[1].era === 1);
+
+  endTurn(game);  // znowu gracz 0, era 2
+  check("W erze 2 wymagana jest strzelnica", getEraRequirements(game, 0).join(",") === "strzelnica");
+  check("W erze 2 strzelnica obok chłopa - wolno", canPlaceBuilding(game, "strzelnica", buildingCells("strzelnica", 4, 3, 1)).ok);
+  check("W erze 2 bez strzelnicy nie można dalej", !canAdvanceEra(game).ok);
+
+  game.players[0].era = MAX_ERA;
+  const last = canAdvanceEra(game);
+  check("Z ery 4 (imperiów) nie można dalej", !last.ok && last.reason === "To już ostatnia era.");
 }
 
 // =====================================================

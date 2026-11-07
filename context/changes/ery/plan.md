@@ -120,7 +120,7 @@ podpowiedź pod listą.
 
 #### Automated
 
-- [ ] 1.1 Testy przechodzą: `node tests/run-tests.js`
+- [x] 1.1 Testy przechodzą: `node tests/run-tests.js`
 
 ### Phase 2: Panel, przycisk i baner
 
