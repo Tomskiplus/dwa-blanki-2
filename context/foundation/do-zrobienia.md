@@ -25,6 +25,9 @@ i może ruszać się sama.
 - Niektórych jednostek nie da się jeszcze zrobić (np. **słonia**), bo są z dalszych er – patrz punkt 4.
 
 ## 4. Ulepszenia i przechodzenie do następnych er
+✅ Zrobione 2026-11-07 (zmiany `ery`, `zamek-i-mury`, `ulepszenia-uniwersytet`).
+Zostało na później: dom zwiększa populację, wieża zwiadowcza + mgła wojny,
+jednostki specjalne zamku (menu kolorów).
 - Nazwy er: **mroku → feudalna → zamków → imperiów**.
 - Przejście do następnej ery: gdy gracz ma wymagane budynki; w tej turze nic więcej nie robi.
 - Nowe budynki: **zamek** (budowany w 2 turach) i **uniwersytet** (4 kratki w rzędzie:

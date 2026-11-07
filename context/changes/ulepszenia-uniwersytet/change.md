@@ -1,7 +1,7 @@
 ---
 change_id: ulepszenia-uniwersytet
 title: Ulepszenia jednostek, uniwersytet z badaniami i bombarda
-status: implementing
+status: implemented
 created: 2026-11-07
 updated: 2026-11-07
 archived_at: null

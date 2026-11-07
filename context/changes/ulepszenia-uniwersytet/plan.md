@@ -74,11 +74,11 @@ Ten plan opisuje tylko, JAK to zbudować w kodzie.
 
 #### Automated
 
-- [x] 3.1 Testy przechodzą: `node tests/run-tests.js`
-- [x] 3.2 Zrzuty ekranu: koszary z ulepszeniami, uniwersytet z badaniami, bombarda, chłop z kosą
+- [x] 3.1 Testy przechodzą: `node tests/run-tests.js` — b8be7db
+- [x] 3.2 Zrzuty ekranu: koszary z ulepszeniami, uniwersytet z badaniami, bombarda, chłop z kosą — b8be7db
 
 #### Manual
 
-- [ ] 3.3 Ulepszenie zmienia wszystkie jednostki (np. włócznicy → pikinierzy), piechur rośnie z przodu
-- [ ] 3.4 Badania działają (np. Pancerz łuskowy: 7 ruchu; Szarża: 2 ataki kawalerii; Mordownia)
-- [ ] 3.5 Po Prochu uniwersytet robi bombardy; bombarda mocno bije budynki
+- [x] 3.3 Ulepszenie zmienia wszystkie jednostki (np. włócznicy → pikinierzy), piechur rośnie z przodu — b8be7db
+- [x] 3.4 Badania działają (np. Pancerz łuskowy: 7 ruchu; Szarża: 2 ataki kawalerii; Mordownia) — b8be7db
+- [x] 3.5 Po Prochu uniwersytet robi bombardy; bombarda mocno bije budynki — b8be7db
