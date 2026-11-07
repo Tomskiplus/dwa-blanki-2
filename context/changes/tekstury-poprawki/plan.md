@@ -58,10 +58,10 @@ postawienie włócznika zabiera 1 punkt.
 
 #### Automated
 
-- [x] 1.1 Testy przechodzą: `node tests/run-tests.js`
-- [x] 1.2 Zrzut ekranu (Edge headless) – galeria jednostek bez koloru poza rysunkiem
+- [x] 1.1 Testy przechodzą: `node tests/run-tests.js` — 5f16757
+- [x] 1.2 Zrzut ekranu (Edge headless) – galeria jednostek bez koloru poza rysunkiem — 5f16757
 
 #### Manual
 
-- [x] 1.3 Tekstury wyglądają tak, jak chce autor gry (kolor w środku, pełne pola, ułan z wystającą włócznią, chłop = kwadrat)
+- [x] 1.3 Tekstury wyglądają tak, jak chce autor gry (kolor w środku, pełne pola, ułan z wystającą włócznią, chłop = kwadrat) — 5f16757
 - [x] 1.4 Włócznik kosztuje 1 punkt, wojownik orłów 3

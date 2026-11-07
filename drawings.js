@@ -154,7 +154,7 @@ const UNIT_DRAWINGS = {
   },
   pikinier: (ctx, s) => {
     drawSpearBase(ctx, s);
-    penLine(ctx, s, 0.15, 0.45, 0.95, 1);          // skośna kreska przez daszek
+    penLine(ctx, s, 0, 1, 1, 2);                   // skośna kreska w kwadracie
   },
   halabardnik: (ctx, s) => {
     drawSpearBase(ctx, s);
@@ -181,20 +181,33 @@ const UNIT_DRAWINGS = {
     colorCircle(ctx, s, 0.5, 0.5, 0.47);           // koło na całe pole
   },
   wyszkolonyLucznik: (ctx, s) => {
-    colorCircle(ctx, s, 0.44, 0.56, 0.4);          // duże koło
-    colorCircle(ctx, s, 0.76, 0.26, 0.2);          // + małe koło na nim
+    colorCircle(ctx, s, 0.33, 0.5, 0.29);          // koło (łucznik)...
+    // ...trzyma łuk z prawej strony: wygięty łuk ")" i prosta cięciwa
+    ctx.beginPath();
+    ctx.arc(0.45 * s, 0.5 * s, 0.48 * s, -1.0, 1.0);  // łuk
+    ctx.stroke();
+    const bowX = 0.45 + 0.48 * Math.cos(1.0);          // gdzie kończą się ramiona łuku
+    const bowY = 0.48 * Math.sin(1.0);
+    penLine(ctx, s, bowX, 0.5 - bowY, bowX, 0.5 + bowY);  // cięciwa
   },
   oszczepnik: (ctx, s) => {
     drawJavelinBase(ctx, s);                       // kwadrat z kropką
   },
   eOszczepnik: (ctx, s) => {
     drawJavelinBase(ctx, s);
-    inkPolygon(ctx, s, [[0.6, 0], [1, 0], [1, 0.4]]);   // zamalowany róg
+    // oszczep nad kropką: poziomy kij z grotem w prawo
+    penLine(ctx, s, 0.12, 0.24, 0.72, 0.24);
+    inkPolygon(ctx, s, [[0.7, 0.13], [0.92, 0.24], [0.7, 0.35]]);
   },
   slon: (ctx, s) => {
-    // obrys całego kształtu: kwadrat na górze + podstawa 3×2
+    // Cały słoń jest szary (kwadrat na górze + podstawa 3×2)...
+    const playerColor = ctx.fillStyle;
+    ctx.fillStyle = "#b5b5b5";
     colorPolygon(ctx, s, [[1, 0], [2, 0], [2, 1], [3, 1], [3, 3], [0, 3], [0, 1], [1, 1]]);
-    penLine(ctx, s, 1, 1, 2, 1);                   // kreska pod kwadratem
+    penLine(ctx, s, 1, 1, 2, 1);                   // kreska pod górnym kwadratem
+    // ...a na środku podstawy ma mały kwadrat w kolorze gracza
+    ctx.fillStyle = playerColor;
+    colorRect(ctx, s, 1, 1.5, 1, 1);
   },
 
   // ----- Stajnia -----
