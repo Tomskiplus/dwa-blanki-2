@@ -13,6 +13,9 @@ const HOVER_COLOR = "#ffe066";        // kolor przycisku po najechaniu myszką
 const SELECTED_COLOR = "#bfe3ff";     // kolor wybranego przycisku (np. rozmiar planszy)
 const FLOAT_AMOUNT = 4;     // jak mocno kształty "pływają" w górę i w dół (0 = stoją)
 
+const RECRUIT_TOP = 185;    // gdzie w panelu zaczyna się lista jednostek budynku
+const RECRUIT_STEP = 28;    // odstęp między przyciskami jednostek (8 jednostek musi się zmieścić)
+
 const BOARD_AREA = 600;     // plansza zajmuje kwadrat 600×600 po lewej
 const PANEL_X = 600;        // panel z informacjami zaczyna się tu
 const PANEL_WIDTH = 200;    // szerokość panelu
@@ -49,6 +52,7 @@ let reachableMoves = new Map(); // dokąd może dojść oddział: "dx,dy" -> kos
 let attackTargets = [];         // wrogowie, których wybrana jednostka może teraz zaatakować
 let attackInfo = "";            // napis po ataku, np. "Trafienie! -2 życia"
 let showTurnBanner = false;     // czy pokazać duży napis "Tura gracza X"
+let turnBannerNote = "";        // dodatkowa linijka na banerze, np. "Czerwony wchodzi w erę feudalną!"
 
 // Zmienia ekran i czyści stary komunikat
 function goToScreen(screenName) {
@@ -297,22 +301,26 @@ function getGameButtons() {
   } else if (game.phase === "move") {
     // Po ruchu nie ma już przycisków budowania
   } else if (selected) {
-    // Kliknięty budynek: przyciski jednostek, które może zrobić
+    // Kliknięty budynek: przyciski jednostek, które może zrobić.
+    // Niskie przyciski (co 31 px), bo w późnych erach koszary robią aż 8 jednostek.
     getRecruitOptions(game, selected).forEach((key, index) => {
       const type = UNIT_TYPES[key];
       buttons.push({
         label: type.name + " (" + type.shape.length + ")",
-        x: x, y: 185 + index * 46, w: w, h: 40, fontSize: 16,
+        x: x, y: RECRUIT_TOP + index * RECRUIT_STEP, w: w, h: RECRUIT_STEP - 3, fontSize: 13,
         selected: action !== null && action.key === key,
         onClick: () => startPlacing("unit", key),
       });
     });
-    const closeY = 185 + getRecruitOptions(game, selected).length * 46;
-    buttons.push({ label: "ZAMKNIJ", x: x, y: closeY, w: w, h: 34, fontSize: 15,
+    // Mały przycisk "X" obok nagłówka zamyka listę
+    buttons.push({ label: "X", x: PANEL_X + PANEL_WIDTH - 38, y: 158, w: 24, h: 24, fontSize: 14,
       onClick: () => { selectedBuildingId = null; action = null; } });
   } else {
-    // Nic nie kliknięte: przyciski budynków, które można postawić
-    const buildable = Object.keys(BUILDING_TYPES).filter(key => BUILDING_TYPES[key].canBuild);
+    // Nic nie kliknięte: budynki, które można postawić w erze gracza
+    const era = game.players[game.current].era;
+    const buildable = Object.keys(BUILDING_TYPES).filter(key =>
+      BUILDING_TYPES[key].canBuild && BUILDING_TYPES[key].era <= era
+    );
     buildable.forEach((key, index) => {
       const type = BUILDING_TYPES[key];
       buttons.push({
@@ -322,6 +330,13 @@ function getGameButtons() {
         onClick: () => startPlacing("building", key),
       });
     });
+  }
+
+  // Przycisk następnej ery - tylko gdy nic nie jest wybrane i nie jesteśmy w ostatniej erze
+  const nothingSelected = !getSelectedUnit() && !selected && !action;
+  if (nothingSelected && game.players[game.current].era < MAX_ERA) {
+    buttons.push({ label: "NASTĘPNA ERA", x: x, y: 412, w: w, h: 44, fontSize: 18,
+      onClick: goToNextEra });
   }
 
   buttons.push({ label: "KONIEC TURY", x: x, y: 470, w: w, h: 50, fontSize: 20,
@@ -499,7 +514,28 @@ function finishTurn() {
   endTurn(game);
   clearSelection();
   message = "";
+  turnBannerNote = "";
   showTurnBanner = true;
+}
+
+// Przycisk NASTĘPNA ERA: przejście do kolejnej ery (to od razu kończy turę)
+function goToNextEra() {
+  const player = game.players[game.current];  // zapamiętujemy, bo advanceEra zmieni gracza
+  const result = advanceEra(game);
+  if (!result.ok) {
+    message = result.reason;
+    return;
+  }
+  clearSelection();
+  message = "";
+  turnBannerNote = player.colorName + " przechodzi do " + ERA_GENITIVE[result.era] + "!";
+  showTurnBanner = true;
+}
+
+// Nazwa ery z wielkiej litery, np. "Era feudalna"
+function eraTitle(era) {
+  const name = ERA_NAMES[era];
+  return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
 // Jeśli myszka jest nad polem, na które oddział może dojść, zwraca { dx, dy, cost }
@@ -925,28 +961,35 @@ function drawPanel() {
 
   drawPlayerSquares(centerX, 95);
 
+  // Era gracza, np. "Era feudalna (2/4)"
+  drawText(eraTitle(player.era) + " (" + player.era + "/" + MAX_ERA + ")", centerX, 115, 14, "#1a5276");
+
   // Punkty
   if (game.phase === "build") {
-    drawText("Punkty budowy: " + game.buildPoints, left, 125, 17, "#000000", "left");
+    drawText("Punkty budowy: " + game.buildPoints, left, 136, 17, "#000000", "left");
     if (game.barracksBonus > 0) {
-      drawText("+" + game.barracksBonus + " bonus na koszary", left, 146, 13, "#555555", "left");
+      drawText("+" + game.barracksBonus + " bonus na koszary", left, 154, 13, "#555555", "left");
     }
   } else {
-    drawText("Faza ruchu", left, 125, 17, "#000000", "left");
-    drawText("budowanie skończone", left, 146, 13, "#555555", "left");
+    drawText("Faza ruchu", left, 136, 17, "#000000", "left");
+    drawText("budowanie skończone", left, 154, 13, "#555555", "left");
   }
 
-  // Środek panelu: informacje o jednostce albo nagłówek nad przyciskami
+  // Środek panelu: informacje o jednostce albo nagłówek nad przyciskami.
+  // infoY = gdzie pod spodem wypisać podpowiedź
   const unit = getSelectedUnit();
+  const selected = getSelectedBuilding();
+  let infoY = 345;
   if (unit) {
     drawUnitInfo(unit, left);
+    infoY = 305;
   } else if (game.phase === "build") {
-    const selected = getSelectedBuilding();
     const header = selected ? BUILDING_TYPES[selected.type].name + " - jednostki:" : "Zbuduj obok chłopa:";
-    drawText(header, left, 170, 14, "#555555", "left");
+    drawText(header, left, 172, 14, "#555555", "left");
+    if (selected) infoY = RECRUIT_TOP + getRecruitOptions(game, selected).length * RECRUIT_STEP + 12;
   }
 
-  drawPanelInfo(left);
+  drawPanelInfo(left, infoY);
 
   getButtons().forEach(drawButton);
 }
@@ -999,12 +1042,25 @@ function drawUnitInfo(unit, left) {
   }
 }
 
-// Podpowiedź albo powód, dla którego czegoś nie wolno (nad przyciskiem KONIEC TURY)
-function drawPanelInfo(left) {
-  let text = "Kliknij swój budynek, żeby robić w nim jednostki, albo jednostkę, żeby nią ruszyć.";
+// Podpowiedź albo powód, dla którego czegoś nie wolno. y = gdzie zacząć pisać.
+function drawPanelInfo(left, y) {
+  let text = "Kliknij budynek albo jednostkę.";
   let color = "#555555";
 
-  if (game.phase === "move") text = "Kliknij swoją jednostkę, żeby nią ruszyć.";
+  // Gdy nic nie jest wybrane: co trzeba mieć do następnej ery
+  if (game.players[game.current].era < MAX_ERA) {
+    const eraCheck = canAdvanceEra(game);
+    if (eraCheck.ok) {
+      text = "Masz wszystko do następnej ery!";
+      color = "#1e8449";
+    } else {
+      text = eraCheck.reason;
+    }
+  }
+  if (getSelectedBuilding()) {
+    text = "Wybierz jednostkę, potem kliknij obok budynku.";
+    color = "#555555";
+  }
 
   const unit = getSelectedUnit();
   if (unit) {
@@ -1048,7 +1104,7 @@ function drawPanelInfo(left) {
   }
   if (message !== "") { text = message; color = "#c0392b"; }
 
-  drawWrappedText(text, left, 385, PANEL_WIDTH - 30, 18, 14, color);
+  drawWrappedText(text, left, y, PANEL_WIDTH - 30, 18, 14, color);
 }
 
 // Pisze tekst w kilku linijkach, żeby zmieścił się w szerokości maxWidth
@@ -1086,9 +1142,12 @@ function drawTurnBanner() {
   ctx.lineWidth = LINE_WIDTH;
   ctx.strokeRect(150, 200, 500, 200);
 
-  drawText("TURA " + game.turn, 400, 245, 26, "#ffffff");
-  drawText("Gracz " + player.colorName, 400, 295, 40, "#ffffff");
-  drawText("Kliknij, aby zacząć", 400, 355, 20, "#ffffff");
+  drawText("TURA " + game.turn, 400, 235, 26, "#ffffff");
+  drawText("Gracz " + player.colorName, 400, 282, 40, "#ffffff");
+  drawText(eraTitle(player.era), 400, 320, 18, "#ffffff");
+  // Informacja o zmianie ery poprzedniego gracza (jeśli była)
+  if (turnBannerNote !== "") drawText("⭐ " + turnBannerNote, 400, 350, 16, "#ffffff");
+  drawText("Kliknij, aby zacząć", 400, 380, 18, "#ffffff");
 }
 
 // Ekran zwycięstwa: duży napis i okienko w kolorze zwycięzcy

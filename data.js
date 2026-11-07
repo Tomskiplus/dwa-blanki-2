@@ -13,6 +13,8 @@ const BUILDING_HP_PER_CELL = 2;  // budynek ma 2 życia za każdą swoją kratk�
 // --- Ery ---
 // ERA_NAMES[1] to nazwa ery 1 itd. (pozycja 0 jest pusta, żeby numery się zgadzały)
 const ERA_NAMES = ["", "era mroku", "era feudalna", "era zamków", "era imperiów"];
+// To samo w innej formie, do zdań typu "Czerwony przechodzi do ery feudalnej"
+const ERA_GENITIVE = ["", "ery mroku", "ery feudalnej", "ery zamków", "ery imperiów"];
 const MAX_ERA = 4;
 
 // --- Kształty ---
