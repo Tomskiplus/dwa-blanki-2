@@ -139,7 +139,10 @@ function buildingCells(key, x, y, rotation) {
   check("Budynek daleko od chłopa - nie wolno", !canPlaceBuilding(game, "stajnia", buildingCells("stajnia", 10, 7)).ok);
   check("Budynek na chłopie - nie wolno", !canPlaceBuilding(game, "koszary", buildingCells("koszary", 2, 5)).ok);
   check("Budynek poza planszą - nie wolno", !canPlaceBuilding(game, "stajnia", buildingCells("stajnia", -1, 5)).ok);
-  check("Drugiego ratusza nie da się zbudować", !canPlaceBuilding(game, "ratusz", buildingCells("ratusz", 4, 5)).ok);
+  game.players[0].era = 1;
+  check("Drugiego ratusza nie da się zbudować w erze 1", !canPlaceBuilding(game, "ratusz", buildingCells("ratusz", 4, 5)).ok);
+  game.players[0].era = MAX_ERA;
+  check("W erze 4 drugi ratusz da się zbudować", canPlaceBuilding(game, "ratusz", buildingCells("ratusz", 4, 5)).ok);
   check("Budynek obok chłopa WROGA - nie wolno", !canPlaceBuilding(game, "stajnia", buildingCells("stajnia", 14, 7)).ok);
 
   // Obrócona strzelnica (litera L) też pasuje obok chłopa
@@ -375,7 +378,8 @@ function firstUnit(game, type) {
   const game = createGame(2, "mala");
   check("Na start gracz jest w erze 1 (era mroku)", game.players[0].era === 1 && ERA_NAMES[1] === "era mroku");
   check("Strzelnica w erze 1 - nie wolno", !canPlaceBuilding(game, "strzelnica", buildingCells("strzelnica", 2, 6, 1)).ok);
-  check("Wymagania ery 1 to koszary", getEraRequirements(game, 0).join(",") === "koszary");
+  check("Wymagania ery 1: koszary, dom, palisada, brama drewniana",
+    getEraRequirements(game, 0).sort().join(",") === "bramaDrewniana,dom,koszary,palisada");
 
   const noBarracks = canAdvanceEra(game);
   check("Bez koszar nie można przejść do ery 2", !noBarracks.ok && noBarracks.missing.includes("koszary"));
@@ -385,13 +389,19 @@ function firstUnit(game, type) {
   check("Koszary wroga nie wystarczą", !canAdvanceEra(game).ok);
 
   placeBuilding(game, "koszary", buildingCells("koszary", 2, 6));
+  check("Same koszary to za mało", !canAdvanceEra(game).ok);
+  // Pozostałe budynki ery 1 stawiamy "na skróty" (addBuilding nie sprawdza zasad)
+  addBuilding(game, "dom", 0, buildingCells("dom", 0, 10));
+  addBuilding(game, "palisada", 0, [{ x: 0, y: 13 }]);
+  addBuilding(game, "bramaDrewniana", 0, buildingCells("bramaDrewniana", 6, 10));
   const result = advanceEra(game);
-  check("Z koszarami gracz przechodzi do ery 2", result.ok && game.players[0].era === 2);
+  check("Ze wszystkimi budynkami ery 1 gracz przechodzi do ery 2", result.ok && game.players[0].era === 2);
   check("Po przejściu do ery tura się kończy", game.current === 1);
   check("Przeciwnik zostaje w erze 1", game.players[1].era === 1);
 
   endTurn(game);  // znowu gracz 0, era 2
-  check("W erze 2 wymagana jest strzelnica", getEraRequirements(game, 0).join(",") === "strzelnica");
+  check("Wymagania ery 2: strzelnica, mur, brama kamienna, wieża drewniana",
+    getEraRequirements(game, 0).sort().join(",") === "bramaKamienna,mur,strzelnica,wiezaDrewniana");
   check("W erze 2 strzelnica obok chłopa - wolno", canPlaceBuilding(game, "strzelnica", buildingCells("strzelnica", 4, 3, 1)).ok);
   check("W erze 2 bez strzelnicy nie można dalej", !canAdvanceEra(game).ok);
 
@@ -420,6 +430,81 @@ function firstUnit(game, type) {
 
   game.buildPoints = 0;
   check("Przy 0 punktach włócznika nie da się postawić", !canPlaceUnit(game, "wlocznik", barracks, shapeCells(UNIT_TYPES.wlocznik.shape, 5, 8, 0)).ok);
+}
+
+// =====================================================
+//  ZMIANA "zamek-i-mury"
+//  Gracz 0 na małej planszy: ratusz (2,2)-(3,4), chłopi na (2,5) i (3,5)
+// =====================================================
+
+{
+  // Palisada i mur: przedłużanie
+  const game = createGame(2, "mala");
+  check("Palisada obok chłopa - wolno", placeBuilding(game, "palisada", [{ x: 4, y: 6 }]).ok);
+  check("Palisada ma 1 życia, kosztuje 1", objectsOf(game, 0, "palisada")[0].hp === 1 && game.buildPoints === 7);
+  check("Palisada dalej, ale bokiem przy palisadzie - wolno (przedłużanie)", placeBuilding(game, "palisada", [{ x: 5, y: 6 }]).ok);
+  check("Palisada stykająca się tylko ROGIEM z palisadą - nie wolno", !canPlaceBuilding(game, "palisada", [{ x: 6, y: 7 }]).ok);
+  check("Dom przy samej palisadzie (bez chłopa) - nie wolno", !canPlaceBuilding(game, "dom", buildingCells("dom", 6, 5)).ok);
+  check("Mur w erze 1 - nie wolno", !canPlaceBuilding(game, "mur", [{ x: 6, y: 6 }]).ok);
+  game.players[0].era = 2;
+  check("Mur w erze 2 przy palisadzie - wolno", placeBuilding(game, "mur", [{ x: 6, y: 6 }]).ok);
+  check("Mur ma 4 życia", objectsOf(game, 0, "mur")[0].hp === 4);
+}
+
+{
+  // Brama przepuszcza swoich, a wrogów nie
+  const game = createGame(2, "mala");
+  addBuilding(game, "bramaDrewniana", 0, buildingCells("bramaDrewniana", 8, 8));   // (8,8)-(9,9)
+  const mine = addUnit(game, "lucznik", 0, [{ x: 7, y: 8 }]);
+  const enemy = addUnit(game, "lucznik", 1, [{ x: 10, y: 9 }]);
+  const myMoves = getReachableMoves(game, getSquadOfUnit(game, mine));
+  check("Moja jednostka może wejść do mojej bramy", myMoves.has("1,0"));
+  check("Moja jednostka może przejść przez moją bramę", myMoves.has("3,0"));
+  moveSquad(game, mine, 1, 0);
+  check("Klik w bramę, w której stoi jednostka, trafia w jednostkę", getObjectAt(game, 8, 8) === mine);
+
+  endTurn(game);  // tura wroga
+  const enemyMoves = getReachableMoves(game, getSquadOfUnit(game, enemy));
+  check("Wróg nie wejdzie do mojej bramy", !enemyMoves.has("-1,0") && !enemyMoves.has("-1,-1"));
+}
+
+{
+  // Wieża strzela raz na turę
+  const game = createGame(2, "mala");
+  const tower = addBuilding(game, "wiezaDrewniana", 0, buildingCells("wiezaDrewniana", 10, 2));  // (10,2)-(10,4)
+  const near = addUnit(game, "piechur", 1, [{ x: 14, y: 4 }, { x: 14, y: 5 }]);
+  const far = addUnit(game, "piechur", 1, [{ x: 15, y: 0 }, { x: 15, y: 1 }]);
+  check("Wieża drewniana ma 6 życia (3 kratki × 2)", tower.hp === 6);
+  const targets = getAttackTargets(game, tower);
+  check("Wieża (zasięg 4) trafia wroga 4 pola dalej, ale nie 5", targets.includes(near) && !targets.includes(far));
+  check("Strzał wieży zadaje 1 obrażenie", attack(game, tower, near).ok && near.hp === 2);
+  check("Drugi strzał wieży w tej turze - nie wolno", !attack(game, tower, near).ok);
+  endTurn(game);
+  endTurn(game);
+  check("W następnej turze wieża znowu strzela", attack(game, tower, near).ok);
+}
+
+{
+  // Zamek: budowa w 2 tury
+  const game = createGame(2, "mala");
+  game.players[0].era = 3;
+  const cells = buildingCells("zamek", 2, 6);
+  check("Zamek ma 10 pól", cells.length === 10);
+  check("Zamek obok chłopa - wolno, mimo że kosztuje 10 (a jest 8 punktów)", placeBuilding(game, "zamek", cells).ok);
+  const castle = objectsOf(game, 0, "zamek")[0];
+  check("Teraz zapłacone 8, reszta (2) na następną turę", game.buildPoints === 0 && castle.debt === 2 && castle.underConstruction);
+  check("Zamek w budowie nie strzela", getAttackTargets(game, castle).length === 0);
+
+  addBuilding(game, "stajnia", 0, buildingCells("stajnia", 12, 0));
+  addBuilding(game, "wiezaKamienna", 0, buildingCells("wiezaKamienna", 15, 0));
+  check("Zamek w budowie nie liczy się do następnej ery", canAdvanceEra(game).missing.includes("zamek"));
+
+  endTurn(game);
+  endTurn(game);  // znowu gracz 0
+  check("Na początku następnej tury zamek jest gotowy", !castle.underConstruction && castle.debt === 0);
+  check("Dokończenie zamku zabrało 2 punkty z nowej tury", game.buildPoints === 6);
+  check("Gotowy zamek liczy się do następnej ery", canAdvanceEra(game).ok);
+  check("Zamek ma 40 życia (10 × 4)", castle.hp === 40);
 }
 
 // =====================================================

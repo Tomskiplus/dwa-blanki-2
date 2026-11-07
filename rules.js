@@ -33,13 +33,23 @@ function isInsideBoard(game, x, y) {
 }
 
 // Zwraca obiekt (budynek albo jednostkę), który stoi na kratce (x, y), albo null
+// Jednostki sprawdzamy NAJPIERW - bo jednostka może stać w swojej bramie
+// i wtedy kliknięcie ma trafić w jednostkę, a nie w bramę pod nią.
 function getObjectAt(game, x, y) {
-  for (const obj of game.objects) {
-    for (const cell of obj.cells) {
-      if (cell.x === x && cell.y === y) return obj;
+  for (const kind of ["unit", "building"]) {
+    for (const obj of game.objects) {
+      if (obj.kind !== kind) continue;
+      for (const cell of obj.cells) {
+        if (cell.x === x && cell.y === y) return obj;
+      }
     }
   }
   return null;
+}
+
+// Czy dwa kształty stykają się BOKIEM (nie tylko rogiem)?
+function touchesBySide(cellsA, cellsB) {
+  return cellsA.some(a => cellsB.some(b => Math.abs(a.x - b.x) + Math.abs(a.y - b.y) === 1));
 }
 
 // Odległość między dwoma kształtami - liczona jak ruch króla w szachach:
@@ -68,7 +78,11 @@ function addBuilding(game, typeKey, owner, cells) {
     type: typeKey,
     owner: owner,
     cells: cells,
-    hp: cells.length * BUILDING_HP_PER_CELL,
+    // życie: kratki × życie za kratkę (np. mur ma 4 za kratkę, palisada tylko 1)
+    hp: cells.length * (BUILDING_TYPES[typeKey].hpPerCell || BUILDING_HP_PER_CELL),
+    hasAttacked: false,       // wieże i zamek strzelają raz na turę
+    underConstruction: false, // zamek w budowie (jeszcze nie strzela)
+    debt: 0,                  // ile punktów budowy zamek zabierze na początku następnej tury
   };
   building.maxHp = building.hp;
   game.objects.push(building);
@@ -208,14 +222,31 @@ function canPlaceBuilding(game, buildingKey, cells) {
   const free = checkCellsFree(game, cells);
   if (!free.ok) return free;
 
-  // Budynek musi dotykać (bokiem albo rogiem) chłopa aktualnego gracza
+  // Budynek musi dotykać (bokiem albo rogiem) chłopa aktualnego gracza...
   const touchesPeasant = game.objects.some(obj =>
     obj.owner === game.current && obj.type === "chlop" && distance(obj.cells, cells) === 1
   );
-  if (!touchesPeasant) return { ok: false, reason: "Budynek musi dotykać twojego chłopa." };
+  // ...ALBO, jeśli to palisada/mur, może dotykać BOKIEM twojej palisady/muru (przedłużanie)
+  const extendsWall = type.wall === true && game.objects.some(obj =>
+    obj.owner === game.current && obj.kind === "building" && BUILDING_TYPES[obj.type].wall && touchesBySide(obj.cells, cells)
+  );
+  if (!touchesPeasant && !extendsWall) {
+    if (type.wall) return { ok: false, reason: type.name + " musi dotykać chłopa albo (bokiem) twojego muru." };
+    return { ok: false, reason: "Budynek musi dotykać twojego chłopa." };
+  }
 
   const cost = cells.length;
   const available = availablePointsFor(game, buildingKey);
+
+  // Zamek buduje się 2 tury: teraz płacisz, ile masz, a resztę (najwyżej 8) zabierze następna tura
+  if (type.buildTurns) {
+    const unfinished = game.objects.some(obj => obj.owner === game.current && obj.underConstruction);
+    if (unfinished) return { ok: false, reason: "Najpierw dokończ budowę zamku." };
+    if (available < 1) return { ok: false, reason: "Za mało punktów: potrzeba choć 1." };
+    if (cost - available > BUILD_POINTS) return { ok: false, reason: "Za mało punktów: nawet w 2 tury się nie uda." };
+    return { ok: true, reason: "" };
+  }
+
   if (cost > available) return { ok: false, reason: "Za mało punktów: potrzeba " + cost + ", masz " + available + "." };
 
   return { ok: true, reason: "" };
@@ -233,9 +264,12 @@ function placeBuilding(game, buildingKey, cells) {
     game.barracksBonus -= fromBonus;
     cost -= fromBonus;
   }
-  game.buildPoints -= cost;
-
-  addBuilding(game, buildingKey, game.current, cells);
+  // Zamek: płacimy, ile się da, a resztę zapisujemy jako "dług" na następną turę
+  const paid = Math.min(cost, game.buildPoints);
+  game.buildPoints -= paid;
+  const building = addBuilding(game, buildingKey, game.current, cells);
+  building.debt = cost - paid;
+  building.underConstruction = building.debt > 0;
   return check;
 }
 
@@ -318,6 +352,19 @@ function endTurn(game) {
       obj.hasAttacked = false;
     }
   }
+
+  // Budowle gracza: wieże i zamek znowu mogą strzelać, a zamek w budowie zabiera
+  // swoje brakujące punkty z nowej tury i jest gotowy
+  for (const obj of game.objects) {
+    if (obj.kind !== "building" || obj.owner !== next) continue;
+    obj.hasAttacked = false;
+    if (obj.underConstruction) {
+      const pay = Math.min(obj.debt, game.buildPoints);
+      game.buildPoints -= pay;
+      obj.debt -= pay;
+      if (obj.debt === 0) obj.underConstruction = false;
+    }
+  }
 }
 
 // =====================================================
@@ -397,7 +444,10 @@ function squadFitsAt(game, squad, squadCells, dx, dy) {
     const y = cell.y + dy;
     if (!isInsideBoard(game, x, y)) return false;
     const obj = getObjectAt(game, x, y);
-    if (obj && !squad.unitIds.includes(obj.id)) return false;
+    if (!obj || squad.unitIds.includes(obj.id)) continue;
+    // Przez SWOJĄ bramę można przejść (i w niej stanąć)
+    const ownGate = obj.kind === "building" && BUILDING_TYPES[obj.type].gate && obj.owner === game.current;
+    if (!ownGate) return false;
   }
   return true;
 }
@@ -465,34 +515,49 @@ function moveSquad(game, unit, dx, dy) {
 //  WALKA
 // =====================================================
 
-// Lista wrogich obiektów (jednostek i budynków), które jednostka może teraz zaatakować.
-// Pusta, gdy jednostka nie umie walczyć, już atakowała w tej turze albo dopiero powstała.
-function getAttackTargets(game, unit) {
-  const type = UNIT_TYPES[unit.type];
-  if (unit.owner !== game.current) return [];
-  if (unit.isNew || unit.hasAttacked) return [];
-  if (type.attack <= 0 || type.range <= 0) return [];
+// Dane typu obiektu: jednostki są w UNIT_TYPES, budowle w BUILDING_TYPES
+function typeOf(obj) {
+  return obj.kind === "unit" ? UNIT_TYPES[obj.type] : BUILDING_TYPES[obj.type];
+}
 
+// Czy ten obiekt w ogóle umie strzelać/walczyć? (jednostka z atakiem albo gotowa wieża/zamek)
+function canFight(obj) {
+  const type = typeOf(obj);
+  if (!type.attack || type.attack <= 0 || !type.range) return false;
+  if (obj.kind === "building" && obj.underConstruction) return false;
+  return true;
+}
+
+// Lista wrogich obiektów (jednostek i budynków), które ten obiekt może teraz zaatakować.
+// Atakować może jednostka albo budowla (wieża, zamek).
+// Pusta, gdy nie umie walczyć, już atakowała w tej turze albo dopiero powstała.
+function getAttackTargets(game, attacker) {
+  if (attacker.owner !== game.current) return [];
+  if (attacker.isNew || attacker.hasAttacked) return [];
+  if (!canFight(attacker)) return [];
+
+  const range = typeOf(attacker).range;
   return game.objects.filter(obj =>
-    obj.owner !== unit.owner && distance(unit.cells, obj.cells) <= type.range
+    obj.owner !== attacker.owner && distance(attacker.cells, obj.cells) <= range
   );
 }
 
 // Ile obrażeń zada atakujący celowi (z bonusem przeciw kawalerii)
 function getDamage(attacker, target) {
-  const type = UNIT_TYPES[attacker.type];
+  const type = typeOf(attacker);
   let damage = type.attack;
   const targetIsCavalry = target.kind === "unit" && UNIT_TYPES[target.type].cavalry;
   if (targetIsCavalry && type.bonusVsCavalry) damage += type.bonusVsCavalry;
   return damage;
 }
 
-// Czy jednostka może zaatakować ten cel? Zwraca { ok, reason }
+// Czy jednostka albo budowla może zaatakować ten cel? Zwraca { ok, reason }
 function canAttack(game, attacker, target) {
-  const type = UNIT_TYPES[attacker.type];
+  const type = typeOf(attacker);
   if (attacker.owner !== game.current) return { ok: false, reason: "To nie twoja jednostka." };
   if (target.owner === attacker.owner) return { ok: false, reason: "Nie można atakować swoich." };
-  if (type.attack <= 0) return { ok: false, reason: type.name + " nie umie walczyć." };
+  if (attacker.kind === "building" && attacker.underConstruction) return { ok: false, reason: type.name + " jest jeszcze w budowie." };
+  if (!canFight(attacker)) return { ok: false, reason: type.name + " nie umie walczyć." };
   if (attacker.isNew) return { ok: false, reason: "Nowa jednostka zaatakuje w następnej turze." };
   if (attacker.hasAttacked) return { ok: false, reason: "Ta jednostka już atakowała w tej turze." };
   if (distance(attacker.cells, target.cells) > type.range) return { ok: false, reason: "Cel jest za daleko." };
@@ -555,7 +620,7 @@ function canAdvanceEra(game) {
 
   // Sprawdzamy każdy wymagany budynek: czy gracz ma co najmniej jeden taki?
   const missing = getEraRequirements(game, game.current).filter(key =>
-    !game.objects.some(obj => obj.kind === "building" && obj.type === key && obj.owner === game.current)
+    !game.objects.some(obj => obj.kind === "building" && obj.type === key && obj.owner === game.current && !obj.underConstruction)
   );
   if (missing.length > 0) {
     const names = missing.map(key => BUILDING_TYPES[key].name).join(", ");

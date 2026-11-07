@@ -26,6 +26,12 @@ const MAX_ERA = 4;
 // canBuild: false = tego budynku nie da się postawić w trakcie gry
 // era = od której ery można go budować (w zeszycie: napis E.1, E.2...)
 // Żeby przejść do następnej ery, trzeba mieć WSZYSTKIE budynki z obecnej ery.
+// group = w której zakładce panelu jest przycisk: "budynki" albo "obrona"
+// hpPerCell = życie za każdą kratkę (gdy go nie ma: BUILDING_HP_PER_CELL)
+// wall: true = palisada/mur - blokuje drogę i da się go PRZEDŁUŻAĆ (stawiać obok swojego muru)
+// gate: true = brama - SWOJE jednostki przechodzą, wrogowie nie
+// attack, range = budowla strzela jak łucznik (raz na turę)
+// buildTurns: 2 = budowa trwa 2 tury (zamek)
 const BUILDING_TYPES = {
   ratusz: {
     name: "Ratusz",
@@ -33,8 +39,92 @@ const BUILDING_TYPES = {
     // 2 kratki szerokości, 3 wysokości: górny rząd to dach, pod nim 2×2 kwadraty
     shape: [[0, 0], [1, 0], [0, 1], [1, 1], [0, 2], [1, 2]],
     hasRoof: true,
-    canBuild: false,
+    canBuild: true,   // drugi ratusz można zbudować dopiero w erze 4
+    era: 4,
+    group: "budynki",
+  },
+  dom: {
+    name: "Dom",
+    short: "D",
+    shape: [[0, 0], [1, 0], [0, 1], [1, 1]],   // 2×2 (na razie nic nie robi, później populacja)
+    canBuild: true,
     era: 1,
+    group: "budynki",
+  },
+  palisada: {
+    name: "Palisada",
+    short: "",
+    shape: [[0, 0]],             // 1 pole - słaby mur, da się przedłużać
+    canBuild: true,
+    era: 1,
+    group: "obrona",
+    wall: true,
+    hpPerCell: 1,
+  },
+  bramaDrewniana: {
+    name: "Brama drewniana",
+    short: "",
+    shape: [[0, 0], [1, 0], [0, 1], [1, 1]],   // 2×2
+    canBuild: true,
+    era: 1,
+    group: "obrona",
+    gate: true,
+    hpPerCell: 2,
+  },
+  mur: {
+    name: "Mur",
+    short: "",
+    shape: [[0, 0]],             // 1 pole - mocny mur, da się przedłużać
+    canBuild: true,
+    era: 2,
+    group: "obrona",
+    wall: true,
+    hpPerCell: 4,
+  },
+  bramaKamienna: {
+    name: "Brama kamienna",
+    short: "",
+    shape: [[0, 0], [1, 0], [0, 1], [1, 1]],   // 2×2
+    canBuild: true,
+    era: 2,
+    group: "obrona",
+    gate: true,
+    hpPerCell: 4,
+  },
+  wiezaDrewniana: {
+    name: "Wieża drewniana",
+    short: "",
+    shape: [[0, 0], [0, 1], [0, 2]],           // 1×3
+    canBuild: true,
+    era: 2,
+    group: "obrona",
+    hpPerCell: 2,
+    attack: 1,
+    range: 4,
+  },
+  wiezaKamienna: {
+    name: "Wieża z kamienia",
+    short: "",
+    shape: [[0, 0], [0, 1]],                   // 1×2
+    canBuild: true,
+    era: 3,
+    group: "obrona",
+    hpPerCell: 4,
+    attack: 2,
+    range: 5,
+  },
+  zamek: {
+    name: "Zamek",
+    short: "",
+    // 10 pól: dwie wieżyczki na górze, pod nimi 2 rzędy po 4
+    shape: [[0, 0], [2, 0], [0, 1], [1, 1], [2, 1], [3, 1], [0, 2], [1, 2], [2, 2], [3, 2]],
+    canBuild: true,
+    era: 3,
+    group: "obrona",
+    hpPerCell: 4,
+    attack: 3,
+    range: 6,
+    buildTurns: 2,
   },
   koszary: {
     name: "Koszary",
@@ -43,6 +133,7 @@ const BUILDING_TYPES = {
     shape: [[0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [2, 1], [0, 2], [1, 2], [2, 2]],
     canBuild: true,
     era: 1,
+    group: "budynki",
   },
   strzelnica: {
     name: "Strzelnica",
@@ -51,6 +142,7 @@ const BUILDING_TYPES = {
     shape: [[0, 0], [0, 1], [0, 2], [1, 2], [2, 2]],
     canBuild: true,
     era: 2,
+    group: "budynki",
   },
   stajnia: {
     name: "Stajnia",
@@ -59,6 +151,7 @@ const BUILDING_TYPES = {
     shape: [[0, 0], [1, 0], [0, 1], [1, 1], [0, 2], [1, 2]],
     canBuild: true,
     era: 3,
+    group: "budynki",
   },
 };
 

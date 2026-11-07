@@ -1,7 +1,7 @@
 ---
 change_id: zamek-i-mury
 title: Zamek, mury, bramy, wieże i dom
-status: planned
+status: implementing
 created: 2026-11-07
 updated: 2026-11-07
 archived_at: null

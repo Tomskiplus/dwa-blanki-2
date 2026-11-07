@@ -80,7 +80,7 @@ Mury blokują drogę, bramy przepuszczają swoich, wieże i zamek strzelają, za
 
 #### Automated
 
-- [ ] 1.1 Testy przechodzą: `node tests/run-tests.js`
+- [x] 1.1 Testy przechodzą: `node tests/run-tests.js`
 
 ### Phase 2: Wygląd i panel
 
