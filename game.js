@@ -13,8 +13,10 @@ const HOVER_COLOR = "#ffe066";        // kolor przycisku po najechaniu myszką
 const SELECTED_COLOR = "#bfe3ff";     // kolor wybranego przycisku (np. rozmiar planszy)
 const FLOAT_AMOUNT = 4;     // jak mocno kształty "pływają" w górę i w dół (0 = stoją)
 
-const RECRUIT_TOP = 185;    // gdzie w panelu zaczyna się lista jednostek budynku
+const RECRUIT_TOP = 192;    // gdzie w panelu zaczyna się lista jednostek budynku
 const RECRUIT_STEP = 28;    // odstęp między przyciskami jednostek (8 jednostek musi się zmieścić)
+const BUILD_LIST_TOP = 194; // gdzie zaczyna się lista budowli w zakładce
+const BUILD_LIST_STEP = 31; // odstęp między przyciskami budowli
 
 const BOARD_AREA = 600;     // plansza zajmuje kwadrat 600×600 po lewej
 const PANEL_X = 600;        // panel z informacjami zaczyna się tu
@@ -53,6 +55,7 @@ let attackTargets = [];         // wrogowie, których wybrana jednostka może te
 let attackInfo = "";            // napis po ataku, np. "Trafienie! -2 życia"
 let showTurnBanner = false;     // czy pokazać duży napis "Tura gracza X"
 let turnBannerNote = "";        // dodatkowa linijka na banerze, np. "Czerwony wchodzi w erę feudalną!"
+let buildTab = "budynki";       // która zakładka budowania jest otwarta: "budynki" albo "obrona"
 
 // Zmienia ekran i czyści stary komunikat
 function goToScreen(screenName) {
@@ -298,34 +301,35 @@ function getGameButtons() {
     // Wybrana jednostka: tylko przycisk ZAMKNIJ (informacje rysuje drawPanel)
     buttons.push({ label: "ZAMKNIJ", x: x, y: 255, w: w, h: 34, fontSize: 15,
       onClick: clearSelection });
-  } else if (game.phase === "move") {
-    // Po ruchu nie ma już przycisków budowania
   } else if (selected) {
-    // Kliknięty budynek: przyciski jednostek, które może zrobić.
-    // Niskie przyciski (co 31 px), bo w późnych erach koszary robią aż 8 jednostek.
-    getRecruitOptions(game, selected).forEach((key, index) => {
-      const type = UNIT_TYPES[key];
-      buttons.push({
-        label: type.name + " (" + unitCost(key) + ")",
-        x: x, y: RECRUIT_TOP + index * RECRUIT_STEP, w: w, h: RECRUIT_STEP - 3, fontSize: 13,
-        selected: action !== null && action.key === key,
-        onClick: () => startPlacing("unit", key),
+    // Kliknięty budynek: w fazie budowy przyciski jednostek, które może zrobić.
+    // Niskie przyciski, bo w późnych erach koszary robią aż 8 jednostek.
+    if (game.phase === "build") {
+      getRecruitOptions(game, selected).forEach((key, index) => {
+        const type = UNIT_TYPES[key];
+        buttons.push({
+          label: type.name + " (" + unitCost(key) + ")",
+          x: x, y: RECRUIT_TOP + index * RECRUIT_STEP, w: w, h: RECRUIT_STEP - 3, fontSize: 13,
+          selected: action !== null && action.key === key,
+          onClick: () => startPlacing("unit", key),
+        });
       });
-    });
-    // Mały przycisk "X" obok nagłówka zamyka listę
-    buttons.push({ label: "X", x: PANEL_X + PANEL_WIDTH - 38, y: 158, w: 24, h: 24, fontSize: 14,
-      onClick: () => { selectedBuildingId = null; action = null; } });
-  } else {
-    // Nic nie kliknięte: budynki, które można postawić w erze gracza
-    const era = game.players[game.current].era;
-    const buildable = Object.keys(BUILDING_TYPES).filter(key =>
-      BUILDING_TYPES[key].canBuild && BUILDING_TYPES[key].era <= era
-    );
-    buildable.forEach((key, index) => {
+    }
+    // Mały przycisk "X" obok nagłówka zamyka budynek
+    buttons.push({ label: "X", x: PANEL_X + PANEL_WIDTH - 38, y: 162, w: 24, h: 24, fontSize: 14,
+      onClick: clearSelection });
+  } else if (game.phase === "build") {
+    // Nic nie kliknięte: dwie zakładki i budowle z wybranej zakładki
+    for (const [tab, label, tabX] of [["budynki", "BUDYNKI", x], ["obrona", "OBRONA", x + 88]]) {
+      buttons.push({ label: label, x: tabX, y: 164, w: 82, h: 22, fontSize: 12,
+        selected: buildTab === tab,
+        onClick: () => { buildTab = tab; action = null; } });
+    }
+    getBuildableKeys().forEach((key, index) => {
       const type = BUILDING_TYPES[key];
       buttons.push({
         label: type.name + " (" + type.shape.length + ")",
-        x: x, y: 185 + index * 46, w: w, h: 40, fontSize: 18,
+        x: x, y: BUILD_LIST_TOP + index * BUILD_LIST_STEP, w: w, h: BUILD_LIST_STEP - 3, fontSize: 14,
         selected: action !== null && action.key === key,
         onClick: () => startPlacing("building", key),
       });
@@ -335,16 +339,26 @@ function getGameButtons() {
   // Przycisk następnej ery - tylko gdy nic nie jest wybrane i nie jesteśmy w ostatniej erze
   const nothingSelected = !getSelectedUnit() && !selected && !action;
   if (nothingSelected && game.players[game.current].era < MAX_ERA) {
-    buttons.push({ label: "NASTĘPNA ERA", x: x, y: 412, w: w, h: 44, fontSize: 18,
+    buttons.push({ label: "NASTĘPNA ERA", x: x, y: 478, w: w, h: 42, fontSize: 18,
       onClick: goToNextEra });
   }
 
-  buttons.push({ label: "KONIEC TURY", x: x, y: 470, w: w, h: 50, fontSize: 20,
+  buttons.push({ label: "KONIEC TURY", x: x, y: 530, w: w, h: 52, fontSize: 20,
     onClick: finishTurn });
-  buttons.push({ label: "MENU", x: x, y: 535, w: w, h: 45, fontSize: 18,
+  // Mały przycisk MENU w prawym górnym rogu panelu
+  buttons.push({ label: "MENU", x: PANEL_X + PANEL_WIDTH - 62, y: 12, w: 50, h: 26, fontSize: 11,
     onClick: () => goToScreen("title") });
 
   return buttons;
+}
+
+// Budowle z wybranej zakładki, które gracz może już stawiać (wg ery)
+function getBuildableKeys() {
+  const era = game.players[game.current].era;
+  return Object.keys(BUILDING_TYPES).filter(key => {
+    const type = BUILDING_TYPES[key];
+    return type.canBuild && type.era <= era && type.group === buildTab;
+  });
 }
 
 function getVictoryButtons() {
@@ -481,7 +495,8 @@ function refreshReachable() {
   const unit = getSelectedUnit();
   const squad = unit ? getSquadOfUnit(game, unit) : null;
   reachableMoves = squad ? getReachableMoves(game, squad) : new Map();
-  attackTargets = unit ? getAttackTargets(game, unit) : [];
+  const attacker = getSelectedAttacker();
+  attackTargets = attacker ? getAttackTargets(game, attacker) : [];
 }
 
 // Wybrana jednostka atakuje cel. Jeśli ktoś wygrał - przechodzimy na ekran zwycięstwa.
@@ -588,11 +603,13 @@ function clickBoard(pos) {
   if (action) {
     const cells = getGhostCells(cell);
     let result;
-    if (action.kind === "building") result = placeBuilding(game, action.key, cells);
+    if (action.kind === "building") result = placeBuilding(game, action.key, cells, action.rotation);
     else result = placeUnit(game, action.key, getSelectedBuilding(), cells, action.rotation);
 
     if (result.ok) {
-      action = null;
+      // Palisada i mur: tryb stawiania zostaje, żeby klikać pole za polem
+      const isWall = action.kind === "building" && BUILDING_TYPES[action.key].wall;
+      if (!isWall) action = null;
       message = "";
     } else {
       message = result.reason;
@@ -605,9 +622,10 @@ function clickBoard(pos) {
   const unit = getSelectedUnit();
   const clicked = getObjectAt(game, cell.x, cell.y);
 
-  // 2. Jeśli wybraliśmy jednostkę i kliknęliśmy wroga w zasięgu - atak!
-  if (unit && clicked && attackTargets.includes(clicked)) {
-    attackTarget(unit, clicked);
+  // 2. Jeśli wybraliśmy jednostkę (albo wieżę/zamek) i kliknęliśmy wroga w zasięgu - atak!
+  const attacker = getSelectedAttacker();
+  if (attacker && clicked && attackTargets.includes(clicked)) {
+    attackTarget(attacker, clicked);
     return;
   }
 
@@ -632,11 +650,20 @@ function clickBoard(pos) {
     selectUnit(obj, cell);
   } else if (obj && obj.owner === game.current && obj.kind === "building") {
     clearSelection();
-    if (game.phase === "build") selectedBuildingId = obj.id;
-    else message = "Po ruchu nie można już budować ani robić jednostek.";
+    selectedBuildingId = obj.id;   // pokazujemy budynek w panelu (jednostki robimy tylko w fazie budowy)
+    refreshReachable();            // wieża/zamek: od razu liczymy cele do strzału
   } else {
     clearSelection();
   }
+}
+
+// Kto teraz strzela: wybrana jednostka albo wybrana wieża/zamek (albo nikt)
+function getSelectedAttacker() {
+  const unit = getSelectedUnit();
+  if (unit) return unit;
+  const building = getSelectedBuilding();
+  if (building && canFight(building)) return building;
+  return null;
 }
 
 // Zamienia kratkę planszy (kolumna, rząd) na piksele na canvasie (lewy górny róg kratki)
@@ -763,6 +790,30 @@ function drawRoof(roofCells, color) {
 function drawBuilding(building) {
   const type = BUILDING_TYPES[building.type];
   const color = game.players[building.owner].color;
+
+  // Palisada/mur połączony z sąsiadami tylko po skosie - rysujemy ukośny pasek
+  if (type.wall) {
+    const direction = wallDiagonal(building);
+    if (direction) {
+      drawDiagonalWall(building, direction, color);
+      return;
+    }
+  }
+
+  // Budowle z własnym rysunkiem w drawings.js (mury, bramy, wieże, zamek, dom)
+  const picture = BUILDING_DRAWINGS[building.type];
+  if (picture) {
+    // Zamek w budowie jest półprzezroczysty i ma napis "budowa"
+    if (building.underConstruction) ctx.globalAlpha = 0.45;
+    drawPicture(type.shape, picture, building.cells, building.rotation || 0, color);
+    ctx.globalAlpha = 1;
+    if (building.underConstruction) {
+      const center = shapeCenter(building.cells);
+      drawText("budowa", center.x, center.y, Math.max(10, Math.floor(board.cell * 0.5)), "#000000");
+    }
+    return;
+  }
+
   let bodyCells = building.cells;
 
   // Ratusz: górny rząd to dach (trójkąt), reszta to zwykłe kwadraty
@@ -779,6 +830,38 @@ function drawBuilding(building) {
   // Skrót nazwy na środku budynku
   const center = shapeCenter(bodyCells);
   drawText(type.short, center.x, center.y, Math.floor(board.cell * 0.6), "#ffffff");
+}
+
+// W którą stronę biegnie ukośny mur? Zwraca "/" albo "\" - albo null, gdy mur jest prosty.
+// Patrzymy na sąsiednie kratki z palisadą/murem tego samego gracza:
+// jeśli jest sąsiad z boku - mur jest prosty; jeśli tylko po skosie - ukośny.
+function wallDiagonal(building) {
+  const { x, y } = building.cells[0];
+  const hasWall = (wx, wy) => {
+    const obj = getObjectAt(game, wx, wy);
+    return obj && obj.kind === "building" && obj.owner === building.owner && BUILDING_TYPES[obj.type].wall;
+  };
+
+  if (hasWall(x - 1, y) || hasWall(x + 1, y) || hasWall(x, y - 1) || hasWall(x, y + 1)) return null;
+  if (hasWall(x + 1, y - 1) || hasWall(x - 1, y + 1)) return "/";   // prawy-górny albo lewy-dolny sąsiad
+  if (hasWall(x - 1, y - 1) || hasWall(x + 1, y + 1)) return "\\";  // lewy-górny albo prawy-dolny sąsiad
+  return null;
+}
+
+// Rysuje ukośny kawałek muru/palisady: pasek z drawings.js obrócony o 45° wokół środka kratki
+function drawDiagonalWall(building, direction, color) {
+  const s = board.cell;
+  const corner = cellToPixel(building.cells[0].x, building.cells[0].y);
+
+  ctx.save();
+  ctx.translate(corner.x + s / 2, corner.y + s / 2);            // środek kratki
+  ctx.rotate(direction === "/" ? -Math.PI / 4 : Math.PI / 4);  // "/" w górę w prawo, "\" w dół w prawo
+  ctx.strokeStyle = "#1a1a1a";
+  ctx.fillStyle = color;
+  ctx.lineWidth = Math.max(1.5, s * 0.08);
+  ctx.lineJoin = "round";
+  WALL_DIAGONAL_DRAWINGS[building.type](ctx, s);
+  ctx.restore();
 }
 
 // Rysuje jedną jednostkę: rysunek jak w zeszycie, w środku pokolorowany jasnym kolorem gracza
@@ -801,10 +884,14 @@ function lightColor(hex, amount) {
 // najpierw przesuwamy "pędzel" w odpowiedni róg, potem obracamy o 90° tyle razy, ile trzeba.
 function drawUnitPicture(unitKey, cells, rotation, fillColor) {
   const draw = UNIT_DRAWINGS[unitKey];
-  if (!draw) return; // brak rysunku - zostaje samo kolorowe tło
+  if (!draw) return; // brak rysunku - nic nie rysujemy
+  drawPicture(UNIT_TYPES[unitKey].shape, draw, cells, rotation, fillColor);
+}
 
+// Wspólny "obracacz" rysunków - dla jednostek i budowli.
+// shape = kształt przed obrotem, draw = funkcja rysująca z drawings.js
+function drawPicture(shape, draw, cells, rotation, fillColor) {
   // Wymiary kształtu przed obrotem (w kratkach)
-  const shape = UNIT_TYPES[unitKey].shape;
   const width = Math.max(...shape.map(([x]) => x)) + 1;
   const height = Math.max(...shape.map(([, y]) => y)) + 1;
 
@@ -865,7 +952,11 @@ function drawObjects() {
 
   // Wybrany budynek dostaje grubą żółtą ramkę
   const selected = getSelectedBuilding();
-  if (selected) drawShapeOutline(selected.cells, 5, HOVER_COLOR);
+  if (selected) {
+    drawShapeOutline(selected.cells, 5, HOVER_COLOR);
+    // Wieża/zamek: wrogowie w zasięgu dostają czerwone ramki
+    for (const target of attackTargets) drawShapeOutline(target.cells, 4, "#e74c3c");
+  }
 
   drawUnitSelection();
 }
@@ -934,6 +1025,13 @@ function drawGhost() {
 
   // Jednostka: na duchu widać też jej rysunek (w aktualnym obrocie)
   if (action.kind === "unit") drawUnitPicture(action.key, cells, action.rotation);
+  // Budowla z rysunkiem (mur, brama, wieża...): półprzezroczysty rysunek na duchu
+  if (action.kind === "building" && BUILDING_DRAWINGS[action.key]) {
+    ctx.globalAlpha = 0.6;
+    drawPicture(BUILDING_TYPES[action.key].shape, BUILDING_DRAWINGS[action.key], cells, action.rotation,
+      game.players[game.current].color);
+    ctx.globalAlpha = 1;
+  }
 }
 
 // =====================================================
@@ -955,7 +1053,7 @@ function drawPanel() {
   const centerX = PANEL_X + PANEL_WIDTH / 2;
   const player = game.players[game.current];
 
-  drawText("TURA " + game.turn, centerX, 28, 24, "#000000");
+  drawText("TURA " + game.turn, left, 26, 22, "#000000", "left");
 
   // Kto teraz gra - prostokąt w kolorze gracza
   ctx.fillStyle = player.color;
@@ -985,14 +1083,22 @@ function drawPanel() {
   // infoY = gdzie pod spodem wypisać podpowiedź
   const unit = getSelectedUnit();
   const selected = getSelectedBuilding();
-  let infoY = 345;
+  let infoY = 190;
   if (unit) {
     drawUnitInfo(unit, left);
     infoY = 305;
+  } else if (selected) {
+    // Wybrany budynek: nazwa, a pod nią jednostki do zrobienia albo informacje o budowli
+    drawText(BUILDING_TYPES[selected.type].name, left, 176, 15, "#000000", "left");
+    const recruits = game.phase === "build" ? getRecruitOptions(game, selected).length : 0;
+    if (recruits > 0) {
+      infoY = RECRUIT_TOP + recruits * RECRUIT_STEP + 12;
+    } else {
+      infoY = drawBuildingInfo(selected, left);
+    }
   } else if (game.phase === "build") {
-    const header = selected ? BUILDING_TYPES[selected.type].name + " - jednostki:" : "Zbuduj obok chłopa:";
-    drawText(header, left, 172, 14, "#555555", "left");
-    if (selected) infoY = RECRUIT_TOP + getRecruitOptions(game, selected).length * RECRUIT_STEP + 12;
+    // Zakładki BUDYNKI / OBRONA rysują się jako przyciski; pod listą podpowiedź
+    infoY = BUILD_LIST_TOP + getBuildableKeys().length * BUILD_LIST_STEP + 12;
   }
 
   drawPanelInfo(left, infoY);
@@ -1025,6 +1131,35 @@ function drawPlayerSquares(centerX, y) {
     }
     x += size + gap;
   });
+}
+
+// Informacje o wybranej budowli (bez jednostek do zrobienia): życie, strzelanie, budowa.
+// Zwraca y, pod którym można pisać podpowiedź.
+function drawBuildingInfo(building, left) {
+  const type = BUILDING_TYPES[building.type];
+  drawText("Życie: " + building.hp + "/" + building.maxHp, left, 196, 13, "#333333", "left");
+  let y = 214;
+  if (building.underConstruction) {
+    drawText("W budowie! Gotowy w następnej", left, y, 13, "#b9770e", "left");
+    drawText("turze (zabierze " + building.debt + " pkt).", left, y + 18, 13, "#b9770e", "left");
+    return y + 46;
+  }
+  if (type.attack) {
+    const state = building.hasAttacked ? "strzał użyty" : "strzał gotowy";
+    drawText("Atak: " + type.attack + "   Zasięg: " + type.range, left, y, 13, "#333333", "left");
+    drawText("(" + state + ")", left, y + 18, 13, "#333333", "left");
+    return y + 46;
+  }
+  if (type.gate) {
+    drawText("Twoje jednostki przechodzą,", left, y, 13, "#333333", "left");
+    drawText("wrogowie nie.", left, y + 18, 13, "#333333", "left");
+    return y + 46;
+  }
+  if (type.wall) {
+    drawText("Blokuje drogę wszystkim.", left, y, 13, "#333333", "left");
+    return y + 28;
+  }
+  return y + 10;
 }
 
 // Informacje o wybranej jednostce: nazwa, życie, atak, zasięg i punkty ruchu oddziału
@@ -1063,9 +1198,29 @@ function drawPanelInfo(left, y) {
       text = eraCheck.reason;
     }
   }
-  if (getSelectedBuilding()) {
-    text = "Wybierz jednostkę, potem kliknij obok budynku.";
+  const selectedBuilding = getSelectedBuilding();
+  if (selectedBuilding) {
+    const hasRecruits = game.phase === "build" && getRecruitOptions(game, selectedBuilding).length > 0;
+    text = hasRecruits ? "Wybierz jednostkę, potem kliknij obok budynku." : "";
     color = "#555555";
+    if (canFight(selectedBuilding) && attackTargets.length === 0 && !selectedBuilding.hasAttacked) {
+      text = "Brak wrogów w zasięgu.";
+    }
+    if (attackTargets.length > 0) {
+      text = "Czerwona ramka = wróg w zasięgu. Kliknij go, żeby strzelić!";
+      color = "#c0392b";
+    }
+  }
+
+  // Myszka nad wrogiem w zasięgu wieży/zamku - ile obrażeń zadamy
+  const attacker = getSelectedAttacker();
+  if (attacker && attacker.kind === "building") {
+    const cell = mouseToCell(mouse);
+    const hovered = cell ? getObjectAt(game, cell.x, cell.y) : null;
+    if (hovered && attackTargets.includes(hovered)) {
+      text = "Obrażenia: " + getDamage(attacker, hovered) + " (wróg ma " + hovered.hp + " życia).";
+      color = "#c0392b";
+    }
   }
 
   const unit = getSelectedUnit();

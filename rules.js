@@ -70,14 +70,15 @@ function distance(cellsA, cellsB) {
 //  TWORZENIE OBIEKTÓW
 // =====================================================
 
-// Dodaje budynek na planszę i zwraca go
-function addBuilding(game, typeKey, owner, cells) {
+// Dodaje budynek na planszę i zwraca go (rotation = obrót 0-3, potrzebny do rysowania)
+function addBuilding(game, typeKey, owner, cells, rotation) {
   const building = {
     id: game.nextId++,
     kind: "building",
     type: typeKey,
     owner: owner,
     cells: cells,
+    rotation: rotation || 0,
     // życie: kratki × życie za kratkę (np. mur ma 4 za kratkę, palisada tylko 1)
     hp: cells.length * (BUILDING_TYPES[typeKey].hpPerCell || BUILDING_HP_PER_CELL),
     hasAttacked: false,       // wieże i zamek strzelają raz na turę
@@ -226,12 +227,12 @@ function canPlaceBuilding(game, buildingKey, cells) {
   const touchesPeasant = game.objects.some(obj =>
     obj.owner === game.current && obj.type === "chlop" && distance(obj.cells, cells) === 1
   );
-  // ...ALBO, jeśli to palisada/mur, może dotykać BOKIEM twojej palisady/muru (przedłużanie)
+  // ...ALBO, jeśli to palisada/mur, może dotykać twojej palisady/muru - bokiem albo po skosie (przedłużanie)
   const extendsWall = type.wall === true && game.objects.some(obj =>
-    obj.owner === game.current && obj.kind === "building" && BUILDING_TYPES[obj.type].wall && touchesBySide(obj.cells, cells)
+    obj.owner === game.current && obj.kind === "building" && BUILDING_TYPES[obj.type].wall && distance(obj.cells, cells) === 1
   );
   if (!touchesPeasant && !extendsWall) {
-    if (type.wall) return { ok: false, reason: type.name + " musi dotykać chłopa albo (bokiem) twojego muru." };
+    if (type.wall) return { ok: false, reason: type.name + " musi dotykać chłopa albo twojego muru." };
     return { ok: false, reason: "Budynek musi dotykać twojego chłopa." };
   }
 
@@ -253,7 +254,7 @@ function canPlaceBuilding(game, buildingKey, cells) {
 }
 
 // Stawia budynek (najpierw sprawdza, czy wolno). Zwraca { ok, reason }.
-function placeBuilding(game, buildingKey, cells) {
+function placeBuilding(game, buildingKey, cells, rotation) {
   const check = canPlaceBuilding(game, buildingKey, cells);
   if (!check.ok) return check;
 
@@ -267,7 +268,7 @@ function placeBuilding(game, buildingKey, cells) {
   // Zamek: płacimy, ile się da, a resztę zapisujemy jako "dług" na następną turę
   const paid = Math.min(cost, game.buildPoints);
   game.buildPoints -= paid;
-  const building = addBuilding(game, buildingKey, game.current, cells);
+  const building = addBuilding(game, buildingKey, game.current, cells, rotation);
   building.debt = cost - paid;
   building.underConstruction = building.debt > 0;
   return check;
@@ -452,6 +453,25 @@ function squadFitsAt(game, squad, squadCells, dx, dy) {
   return true;
 }
 
+// Czy na kratce (x, y) stoi palisada albo mur?
+function isWallAt(game, x, y) {
+  const obj = getObjectAt(game, x, y);
+  return obj !== null && obj.kind === "building" && BUILDING_TYPES[obj.type].wall === true;
+}
+
+// Czy krok po skosie (stepX, stepY) przecina ukośny mur?
+// Dla każdej kratki oddziału sprawdzamy dwie kratki "na rogu" kroku:
+//   [mur][ do ]
+//   [ z ][mur]   <- jeśli OBIE są murem, to szpara jest zamknięta i nie da się przejść
+function crossesDiagonalWall(game, squadCells, dx, dy, stepX, stepY) {
+  for (const cell of squadCells) {
+    const fromX = cell.x + dx;
+    const fromY = cell.y + dy;
+    if (isWallAt(game, fromX + stepX, fromY) && isWallAt(game, fromX, fromY + stepY)) return true;
+  }
+  return false;
+}
+
 // Szuka wszystkich przesunięć (dx, dy), na które oddział może dojść.
 // Zwraca Map: "dx,dy" -> ile punktów kosztuje dojście.
 // Każdy krok (też po skosie) kosztuje 1 punkt. Oddział idzie krok po kroku,
@@ -476,6 +496,8 @@ function getReachableMoves(game, squad) {
       const key = dx + "," + dy;
       if (costs.has(key)) continue; // tu już byliśmy (i to taniej)
       if (!squadFitsAt(game, squad, squadCells, dx, dy)) continue;
+      // Krok po skosie nie może "przecisnąć się" przez ukośny mur
+      if (stepX !== 0 && stepY !== 0 && crossesDiagonalWall(game, squadCells, current.dx, current.dy, stepX, stepY)) continue;
       costs.set(key, cost + 1);
       queue.push({ dx: dx, dy: dy });
     }

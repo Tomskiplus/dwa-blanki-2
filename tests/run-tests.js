@@ -443,12 +443,26 @@ function firstUnit(game, type) {
   check("Palisada obok chłopa - wolno", placeBuilding(game, "palisada", [{ x: 4, y: 6 }]).ok);
   check("Palisada ma 1 życia, kosztuje 1", objectsOf(game, 0, "palisada")[0].hp === 1 && game.buildPoints === 7);
   check("Palisada dalej, ale bokiem przy palisadzie - wolno (przedłużanie)", placeBuilding(game, "palisada", [{ x: 5, y: 6 }]).ok);
-  check("Palisada stykająca się tylko ROGIEM z palisadą - nie wolno", !canPlaceBuilding(game, "palisada", [{ x: 6, y: 7 }]).ok);
+  check("Palisada po skosie (rogiem) przy palisadzie - też wolno", canPlaceBuilding(game, "palisada", [{ x: 6, y: 7 }]).ok);
   check("Dom przy samej palisadzie (bez chłopa) - nie wolno", !canPlaceBuilding(game, "dom", buildingCells("dom", 6, 5)).ok);
   check("Mur w erze 1 - nie wolno", !canPlaceBuilding(game, "mur", [{ x: 6, y: 6 }]).ok);
   game.players[0].era = 2;
   check("Mur w erze 2 przy palisadzie - wolno", placeBuilding(game, "mur", [{ x: 6, y: 6 }]).ok);
   check("Mur ma 4 życia", objectsOf(game, 0, "mur")[0].hp === 4);
+}
+
+{
+  // Ukośny mur: nie da się przecisnąć po skosie między dwoma kawałkami stykającymi się rogami
+  //   (10,5)=mur   (11,5)=cel
+  //   (10,6)=start (11,6)=mur
+  const game = createGame(2, "mala");
+  const walker = addUnit(game, "lucznik", 0, [{ x: 10, y: 6 }]);
+  const squad = { unitIds: [walker.id], points: 1 };
+  check("Bez muru krok po skosie w górę-prawo jest możliwy", getReachableMoves(game, squad).has("1,-1"));
+  addBuilding(game, "palisada", 1, [{ x: 10, y: 5 }]);
+  addBuilding(game, "palisada", 1, [{ x: 11, y: 6 }]);
+  check("Przez ukośną palisadę nie da się przejść po skosie", !getReachableMoves(game, squad).has("1,-1"));
+  check("Ale w inne strony dalej można iść", getReachableMoves(game, squad).has("-1,0"));
 }
 
 {

@@ -235,3 +235,151 @@ const UNIT_DRAWINGS = {
     penArrow(ctx, s, 0.25, 1.75, 1.75, 0.25);
   },
 };
+
+// =====================================================
+//  RYSUNKI BUDOWLI (mury, bramy, wieże, zamek, dom)
+//  Tu ctx.fillStyle = PEŁNY kolor gracza (budowle są mocniej pokolorowane niż jednostki).
+//  Szare i brązowe części malujemy własnym kolorem, a kolor gracza pokazuje, czyja to budowla.
+// =====================================================
+
+const STONE_COLOR = "#a3a3a3";   // szary kamień
+const WOOD_COLOR = "#8d6e63";    // brązowe drewno
+const DARK_WOOD_COLOR = "#5d4037";
+
+// Maluje kształt innym kolorem (np. szarym), a potem przywraca kolor gracza
+function withColor(ctx, color, drawFn) {
+  const playerColor = ctx.fillStyle;
+  ctx.fillStyle = color;
+  drawFn();
+  ctx.fillStyle = playerColor;
+}
+
+// Mała chorągiewka w kolorze gracza (pokazuje, czyja to budowla)
+function drawFlag(ctx, s, x, y) {
+  penLine(ctx, s, x, y, x, y + 0.45);
+  colorPolygon(ctx, s, [[x, y], [x + 0.4, y + 0.12], [x, y + 0.24]]);
+}
+
+// Brama: prostokąt 2×2 z łukiem i kratą w środku. wallColor = drewno albo kamień
+function drawGate(ctx, s, wallColor) {
+  withColor(ctx, wallColor, () => colorRect(ctx, s, 0, 0, 2, 2));
+  // Otwór bramy: łuk u góry, proste boki
+  ctx.beginPath();
+  ctx.moveTo(0.4 * s, 2 * s);
+  ctx.lineTo(0.4 * s, 1.1 * s);
+  ctx.arc(1 * s, 1.1 * s, 0.6 * s, Math.PI, 0);
+  ctx.lineTo(1.6 * s, 2 * s);
+  ctx.closePath();
+  withColor(ctx, "#f2f2f2", () => ctx.fill());
+  ctx.stroke();
+  // Krata w otworze
+  ctx.save();
+  ctx.clip();                       // rysujemy TYLKO w środku otworu
+  for (const x of [0.7, 1, 1.3]) penLine(ctx, s, x, 0.4, x, 2);
+  for (const y of [1.2, 1.5, 1.8]) penLine(ctx, s, 0.4, y, 1.6, y);
+  ctx.restore();
+}
+
+const BUILDING_DRAWINGS = {
+  // Dom 2×2: czerwony kwadrat z kreskami jak w zeszycie
+  dom: (ctx, s) => {
+    colorRect(ctx, s, 0, 0, 2, 2);
+    penLine(ctx, s, 1, 0, 1, 2);
+    penLine(ctx, s, 0, 1, 2, 1);
+  },
+
+  // Palisada: trzy zaostrzone pale w kolorze gracza
+  palisada: (ctx, s) => {
+    for (let i = 0; i < 3; i++) {
+      const x = i / 3;
+      colorPolygon(ctx, s, [[x, 1], [x, 0.35], [x + 1 / 6, 0], [x + 1 / 3, 0.35], [x + 1 / 3, 1]]);
+    }
+  },
+
+  // Mur: szare cegły z paskiem w kolorze gracza na górze
+  mur: (ctx, s) => {
+    withColor(ctx, STONE_COLOR, () => colorRect(ctx, s, 0, 0, 1, 1));
+    colorRect(ctx, s, 0, 0, 1, 0.3);
+    penLine(ctx, s, 0, 0.65, 1, 0.65);
+    penLine(ctx, s, 0.5, 0.3, 0.5, 0.65);
+    penLine(ctx, s, 0.25, 0.65, 0.25, 1);
+    penLine(ctx, s, 0.75, 0.65, 0.75, 1);
+  },
+
+  // Brama drewniana: brązowa, z kratą i chorągiewką
+  bramaDrewniana: (ctx, s) => {
+    drawGate(ctx, s, WOOD_COLOR);
+    drawFlag(ctx, s, 1, 0.05);
+  },
+
+  // Brama kamienna: szara, z blankami na górze, kratą i chorągiewką
+  bramaKamienna: (ctx, s) => {
+    drawGate(ctx, s, STONE_COLOR);
+    for (const x of [0, 0.6, 1.2, 1.7]) {
+      withColor(ctx, "#f2f2f2", () => colorRect(ctx, s, x + 0.15, 0, 0.15, 0.15));  // przerwy między blankami
+    }
+    drawFlag(ctx, s, 1, 0.2);
+  },
+
+  // Wieża drewniana 1×3: ciemny dach, pasek w kolorze gracza, brązowy korpus z okienkiem
+  wiezaDrewniana: (ctx, s) => {
+    withColor(ctx, DARK_WOOD_COLOR, () => colorPolygon(ctx, s, [[0, 1], [0.5, 0.05], [1, 1]]));
+    withColor(ctx, WOOD_COLOR, () => colorRect(ctx, s, 0, 1, 1, 2));
+    colorRect(ctx, s, 0, 1, 1, 0.35);
+    withColor(ctx, "#f2f2f2", () => colorRect(ctx, s, 0.35, 1.6, 0.3, 0.45));
+  },
+
+  // Wieża z kamienia 1×2: szara z blankami, drzwiami i kropką w kolorze gracza
+  wiezaKamienna: (ctx, s) => {
+    withColor(ctx, STONE_COLOR, () => {
+      colorRect(ctx, s, 0, 0.25, 1, 1.75);
+      colorRect(ctx, s, 0, 0, 0.3, 0.25);
+      colorRect(ctx, s, 0.35, 0, 0.3, 0.25);
+      colorRect(ctx, s, 0.7, 0, 0.3, 0.25);
+    });
+    colorCircle(ctx, s, 0.5, 0.85, 0.14);
+    withColor(ctx, "#5f6b7a", () => colorPolygon(ctx, s, [[0.3, 2], [0.3, 1.6], [0.5, 1.4], [0.7, 1.6], [0.7, 2]]));
+  },
+
+  // Zamek: szary, z dwiema wieżyczkami (prawa w kolorze gracza) i dwiema bramami
+  zamek: (ctx, s) => {
+    withColor(ctx, STONE_COLOR, () =>
+      colorPolygon(ctx, s, [[0, 0], [1, 0], [1, 1], [2, 1], [2, 0], [3, 0], [3, 1], [4, 1], [4, 3], [0, 3]])
+    );
+    colorRect(ctx, s, 2, 0, 1, 1);                                   // wieżyczka w kolorze gracza
+    withColor(ctx, "#5f6b7a", () =>                                  // lewe drzwi (ciemne)
+      colorPolygon(ctx, s, [[0.9, 3], [0.9, 2.1], [1.3, 1.7], [1.7, 2.1], [1.7, 3]])
+    );
+    colorPolygon(ctx, s, [[2.3, 3], [2.3, 2.1], [2.7, 1.7], [3.1, 2.1], [3.1, 3]]);  // prawe drzwi w kolorze gracza
+  },
+};
+
+// =====================================================
+//  UKOŚNE MURY I PALISADY
+//  Gdy kawałek muru łączy się z sąsiadami TYLKO po skosie, rysujemy go jako ukośny pasek.
+//  Tu (0, 0) to ŚRODEK kratki, a pasek leży poziomo - game.js obraca go o 45°.
+//  Pasek ma długość przekątnej kratki (√2 ≈ 1.41), więc sięga od rogu do rogu.
+// =====================================================
+
+const HALF_DIAGONAL = Math.SQRT2 / 2;   // połowa przekątnej kratki (ok. 0.71)
+
+const WALL_DIAGONAL_DRAWINGS = {
+  // Palisada: 4 zaostrzone pale w rzędzie
+  palisada: (ctx, s) => {
+    const stake = (HALF_DIAGONAL * 2) / 4;   // szerokość jednego pala
+    for (let i = 0; i < 4; i++) {
+      const x = -HALF_DIAGONAL + i * stake;
+      colorPolygon(ctx, s, [[x, 0.22], [x, -0.08], [x + stake / 2, -0.32], [x + stake, -0.08], [x + stake, 0.22]]);
+    }
+  },
+
+  // Mur: szary pasek cegieł z paskiem w kolorze gracza
+  mur: (ctx, s) => {
+    const L = HALF_DIAGONAL;
+    withColor(ctx, STONE_COLOR, () => colorRect(ctx, s, -L, -0.24, 2 * L, 0.48));
+    colorRect(ctx, s, -L, -0.24, 2 * L, 0.14);
+    penLine(ctx, s, -L, 0.07, L, 0.07);
+    for (const x of [-0.35, 0, 0.35]) penLine(ctx, s, x, -0.1, x, 0.07);
+    for (const x of [-0.53, -0.18, 0.18, 0.53]) penLine(ctx, s, x, 0.07, x, 0.24);
+  },
+};
