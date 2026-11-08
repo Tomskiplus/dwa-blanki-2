@@ -249,7 +249,7 @@ const RESEARCH = {
   wypalanie:      { name: "Wypalanie",       info: "Budynki: +1 życia za każde pole." },
   plonacyGrot:    { name: "Płonący grot",    info: "Jednostki ze strzelnicy: +2 ataku." },
   mordownia:      { name: "Mordownia",       info: "Wieże i zamek strzelają też do wroga tuż obok." },
-  pancerzLuskowy: { name: "Pancerz łuskowy", info: "Każdy oddział: +2 punkty ruchu." },
+  pancerzLuskowy: { name: "Pancerz łuskowy", info: "Każda jednostka: +2 darmowe kroki." },
   szarza:         { name: "Szarża",          info: "Kawaleria atakuje 2 razy na turę." },
   sparing:        { name: "Sparing",         info: "Jednostki z koszar: +3 życia." },
   proch:          { name: "Proch",           info: "Uniwersytet może robić bombardy." },

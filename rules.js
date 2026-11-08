@@ -105,6 +105,7 @@ function addUnit(game, typeKey, owner, cells, rotation) {
     attacksUsed: 0,      // ile razy już atakowała w tej turze (kawaleria z Szarżą może 2 razy)
     hasAttacked: false,  // czy już atakowała w tej turze
     isNew: false,        // czy dopiero powstała (wtedy nie rusza się i nie atakuje)
+    freeSteps: movePointsFor(game, owner),  // darmowe kroki w tej turze (dalsze kroki biorą punkty budowy)
   };
   game.objects.push(unit);
   return unit;
@@ -162,8 +163,7 @@ function createGame(playerCount, sizeKey) {
     nextId: 1,            // każdy obiekt dostaje swój numer
     buildPoints: BUILD_POINTS,
     barracksBonus: BARRACKS_BONUS,
-    phase: "build",       // "build" = budowanie, "move" = ruch
-    squads: [],           // oddziały (liczone na początku ruchu)
+    squads: [],           // oddziały zrobione ramką w tej turze: [{ unitIds: [...] }]
     winner: null,         // numer zwycięzcy albo null
   };
 
@@ -221,7 +221,6 @@ function canPlaceBuilding(game, buildingKey, cells) {
   if (type.era > game.players[game.current].era) {
     return { ok: false, reason: type.name + " będzie dostępna w erze " + type.era + " (" + ERA_NAMES[type.era] + ")." };
   }
-  if (game.phase !== "build") return { ok: false, reason: "Już ruszałeś wojskiem - w tej turze nie można budować." };
 
   const free = checkCellsFree(game, cells);
   if (!free.ok) return free;
@@ -304,7 +303,6 @@ function getRecruitOptions(game, building) {
 // Czy aktualny gracz może zrobić jednostkę unitKey w budynku building na tych kratkach?
 function canPlaceUnit(game, unitKey, building, cells) {
   const type = UNIT_TYPES[unitKey];
-  if (game.phase !== "build") return { ok: false, reason: "Już ruszałeś wojskiem - w tej turze nie można budować." };
   if (building.owner !== game.current) return { ok: false, reason: "To nie twój budynek." };
   if (type.building !== building.type) return { ok: false, reason: BUILDING_TYPES[building.type].name + " nie robi tej jednostki." };
   if (type.era > game.players[game.current].era) return { ok: false, reason: type.name + " będzie dostępny w erze " + type.era + "." };
@@ -313,8 +311,16 @@ function canPlaceUnit(game, unitKey, building, cells) {
   const free = checkCellsFree(game, cells);
   if (!free.ok) return free;
 
-  // Nowa jednostka pojawia się obok budynku, który ją zrobił
-  if (distance(building.cells, cells) !== 1) return { ok: false, reason: "Jednostka musi stać obok budynku, który ją robi." };
+  // Nowa jednostka pojawia się obok budynku, który ją zrobił,
+  // albo obok twojej jednostki, która tego budynku dotyka (tylko o jedną jednostkę dalej)
+  const nextToBuilding = distance(building.cells, cells) === 1;
+  const nextToHelper = game.objects.some(obj =>
+    obj.kind === "unit" && obj.owner === game.current &&
+    distance(building.cells, obj.cells) === 1 && distance(obj.cells, cells) === 1
+  );
+  if (!nextToBuilding && !nextToHelper) {
+    return { ok: false, reason: "Jednostka musi stać obok budynku albo obok twojej jednostki przy budynku." };
+  }
 
   const cost = unitCost(unitKey);
   if (cost > game.buildPoints) return { ok: false, reason: "Za mało punktów: potrzeba " + cost + ", masz " + game.buildPoints + "." };
@@ -351,8 +357,7 @@ function endTurn(game) {
 
   game.buildPoints = BUILD_POINTS;
   game.barracksBonus = BARRACKS_BONUS;
-  game.phase = "build";
-  game.squads = [];
+  game.squads = [];   // oddziały z ramki trzymają się tylko do końca tury
 
   // Jednostki gracza, który zaczyna turę, są już gotowe do działania
   for (const obj of game.objects) {
@@ -360,6 +365,7 @@ function endTurn(game) {
       obj.isNew = false;
       obj.hasAttacked = false;
       obj.attacksUsed = 0;
+      obj.freeSteps = movePointsFor(game, next);  // świeże darmowe kroki
     }
   }
 
@@ -382,14 +388,16 @@ function endTurn(game) {
 
 // =====================================================
 //  RUCH ODDZIAŁÓW
-//  Oddział = jednostki jednego gracza, które się stykają (bokiem albo rogiem).
-//  Oddział rusza się razem, jak jeden klocek.
+//  Każda jednostka chodzi sama. Oddział robi się ramką myszki: zaznaczone
+//  jednostki, które się stykają (bokiem albo rogiem), ruszają się razem jak
+//  jeden klocek - ale tylko do końca tury.
+//  Każda jednostka ma swoje darmowe kroki (freeSteps). Dalsze kroki biorą
+//  po 1 punkcie ze wspólnych punktów budowy.
 // =====================================================
 
-// Znajduje oddziały gracza. Zwraca listę oddziałów, a każdy oddział to lista numerów (id) jednostek.
-// Nowe jednostki (isNew) nie należą do żadnego oddziału - w tej turze jeszcze stoją.
-function findSquads(game, owner) {
-  const units = game.objects.filter(obj => obj.kind === "unit" && obj.owner === owner && !obj.isNew);
+// Dzieli listę jednostek na grupy, które się stykają.
+// Zwraca listę grup, a każda grupa to lista numerów (id) jednostek.
+function groupTouching(units) {
   const visited = new Set();
   const squads = [];
 
@@ -416,28 +424,49 @@ function findSquads(game, owner) {
   return squads;
 }
 
-// Zaczyna fazę ruchu: od teraz nie można budować.
-// Każdy oddział dostaje pulę: 5 punktów ruchu + niewydane punkty budowy.
-function startMovePhase(game) {
-  if (game.phase === "move") return;
-  const points = movePointsFor(game, game.current) + game.buildPoints;
-  game.squads = findSquads(game, game.current).map(ids => ({ unitIds: ids, points: points }));
-  game.phase = "move";
-  game.buildPoints = 0;
-  game.barracksBonus = 0;
+// Robi oddziały z zaznaczonych jednostek (ramka myszki).
+// Liczą się tylko jednostki aktualnego gracza, które nie są nowe.
+// Zaznaczone jednostki wychodzą ze swoich starych oddziałów.
+// Grupy, które się stykają, stają się oddziałami; samotna jednostka chodzi sama.
+// Zwraca listę grup (list numerów jednostek) - też tych jednoosobowych.
+function formSquads(game, unitIds) {
+  const units = game.objects.filter(obj =>
+    obj.kind === "unit" && obj.owner === game.current && !obj.isNew && unitIds.includes(obj.id)
+  );
+  const ids = units.map(unit => unit.id);
+
+  // Wyjmujemy zaznaczone jednostki ze starych oddziałów (puste i jednoosobowe usuwamy)
+  for (const squad of game.squads) {
+    squad.unitIds = squad.unitIds.filter(id => !ids.includes(id));
+  }
+  game.squads = game.squads.filter(squad => squad.unitIds.length >= 2);
+
+  const groups = groupTouching(units);
+  for (const group of groups) {
+    if (group.length >= 2) game.squads.push({ unitIds: group });
+  }
+  return groups;
 }
 
 // Zwraca oddział, do którego należy jednostka: { unitIds, points }.
-// W fazie budowy pokazujemy "podgląd" - ile punktów ruchu oddział BĘDZIE miał.
+// Jednostka bez oddziału z ramki to "oddział" jednoosobowy.
+// points = darmowe kroki najsłabszej jednostki + wspólne punkty budowy.
 // Zwraca null, gdy jednostka nie może się ruszać (np. jest nowa albo nie jest nasza).
 function getSquadOfUnit(game, unit) {
   if (unit.owner !== game.current || unit.isNew) return null;
 
-  if (game.phase === "move") {
-    return game.squads.find(squad => squad.unitIds.includes(unit.id)) || null;
+  let ids = [unit.id];
+  const squad = game.squads.find(s => s.unitIds.includes(unit.id));
+  if (squad) {
+    // Żywi członkowie oddziału - i tylko ci, którzy dalej stykają się z tą jednostką
+    // (np. gdy ktoś ze środka oddziału zginął)
+    const members = game.objects.filter(obj => squad.unitIds.includes(obj.id));
+    ids = groupTouching(members).find(group => group.includes(unit.id));
   }
-  const ids = findSquads(game, game.current).find(squad => squad.includes(unit.id));
-  return { unitIds: ids, points: movePointsFor(game, game.current) + game.buildPoints };
+
+  const members = game.objects.filter(obj => ids.includes(obj.id));
+  const minFree = Math.min(...members.map(member => member.freeSteps));
+  return { unitIds: ids, points: minFree + game.buildPoints, minFree: minFree };
 }
 
 // Wszystkie kratki wszystkich jednostek oddziału
@@ -520,28 +549,27 @@ function getReachableMoves(game, squad) {
 }
 
 // Przesuwa cały oddział, do którego należy jednostka "unit", o (dx, dy).
-// Pierwszy ruch w turze kończy budowanie. Zwraca { ok, reason }.
+// Po ruchu dalej można budować. Zwraca { ok, reason }.
 function moveSquad(game, unit, dx, dy) {
   if (unit.owner !== game.current) return { ok: false, reason: "To nie twoja jednostka." };
   if (unit.isNew) return { ok: false, reason: "Nowa jednostka ruszy się w następnej turze." };
 
-  // Najpierw sprawdzamy, czy ruch jest możliwy (bez kończenia budowania!)
-  const preview = getSquadOfUnit(game, unit);
-  if (!preview) return { ok: false, reason: "Ta jednostka nie może się ruszyć." };
-  const cost = getReachableMoves(game, preview).get(dx + "," + dy);
+  const squad = getSquadOfUnit(game, unit);
+  if (!squad) return { ok: false, reason: "Ta jednostka nie może się ruszyć." };
+  const cost = getReachableMoves(game, squad).get(dx + "," + dy);
   if (cost === undefined) return { ok: false, reason: "Oddział nie dojdzie w to miejsce." };
 
-  // Ruch jest możliwy - dopiero teraz zaczyna się faza ruchu
-  startMovePhase(game);
-  const squad = getSquadOfUnit(game, unit);
+  // Płacimy za ruch: najpierw darmowe kroki najsłabszej jednostki,
+  // a za resztę po 1 punkcie budowy na krok (za cały oddział razem)
+  game.buildPoints -= Math.max(0, cost - squad.minFree);
 
-  // Przesuwamy każdą kratkę każdej jednostki oddziału
+  // Przesuwamy każdą kratkę każdej jednostki oddziału i odejmujemy jej przebytą drogę
   for (const obj of game.objects) {
     if (squad.unitIds.includes(obj.id)) {
       obj.cells = obj.cells.map(c => ({ x: c.x + dx, y: c.y + dy }));
+      obj.freeSteps -= Math.min(cost, obj.freeSteps);
     }
   }
-  squad.points -= cost;
   tryGrowAll(game, game.current);  // może teraz jest miejsce, żeby ulepszona jednostka urosła
   return { ok: true, reason: "" };
 }
@@ -760,7 +788,6 @@ function getUpgradeOptions(game, building) {
 // Czy gracz, który ma turę, może kupić ulepszenie "fromKey" w tym budynku?
 function canBuyUpgrade(game, building, fromKey) {
   if (building.owner !== game.current) return { ok: false, reason: "To nie twój budynek." };
-  if (game.phase !== "build") return { ok: false, reason: "Już ruszałeś wojskiem - w tej turze nie można budować." };
   if (!getUpgradeOptions(game, building).some(up => up.from === fromKey)) return { ok: false, reason: "Tego ulepszenia nie można tu kupić." };
   if (game.buildPoints < UPGRADE_COST) return { ok: false, reason: "Za mało punktów: potrzeba " + UPGRADE_COST + ", masz " + game.buildPoints + "." };
   return { ok: true, reason: "" };
@@ -844,7 +871,6 @@ function getResearchOptions(game, building) {
 
 function canBuyResearch(game, building, key) {
   if (building.owner !== game.current) return { ok: false, reason: "To nie twój budynek." };
-  if (game.phase !== "build") return { ok: false, reason: "Już ruszałeś wojskiem - w tej turze nie można budować." };
   if (!getResearchOptions(game, building).includes(key)) return { ok: false, reason: "Tego nie można tu zbadać." };
   if (game.buildPoints < RESEARCH_COST) return { ok: false, reason: "Za mało punktów: potrzeba " + RESEARCH_COST + ", masz " + game.buildPoints + "." };
   return { ok: true, reason: "" };
@@ -860,6 +886,8 @@ function buyResearch(game, building, key) {
 
   for (const obj of game.objects) {
     if (obj.owner !== game.current) continue;
+    // Pancerz łuskowy działa od razu: +2 darmowe kroki już w tej turze
+    if (key === "pancerzLuskowy" && obj.kind === "unit") obj.freeSteps += 2;
     if (key === "sparing" && obj.kind === "unit" && UNIT_TYPES[obj.type].building === "koszary") {
       obj.maxHp = unitMaxHp(game, obj.owner, obj.type);
       obj.hp = obj.maxHp;

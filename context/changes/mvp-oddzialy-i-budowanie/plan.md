@@ -126,7 +126,7 @@ Zasady w Node (`tests/run-tests.js`), interfejs zrzutami ekranu (headless Edge) 
 
 #### Automated
 
-- [ ] 1.1 Testy przechodzą: `node tests/run-tests.js`
+- [x] 1.1 Testy przechodzą: `node tests/run-tests.js`
 
 ### Phase 2: Interfejs – ramka i panel
 

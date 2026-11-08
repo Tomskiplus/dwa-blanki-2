@@ -198,41 +198,103 @@ function firstUnit(game, type) {
 }
 
 {
+  // Każda jednostka chodzi sama; oddział robi się ramką (formSquads)
   const game = createGame(2, "mala");
-  const squads = findSquads(game, 0);
-  check("Dwaj chłopi stojący obok siebie to 1 oddział", squads.length === 1 && squads[0].length === 2);
+  const [p1, p2] = objectsOf(game, 0, "chlop");
+  check("Stykający się chłopi bez ramki chodzą osobno", getSquadOfUnit(game, p1).unitIds.length === 1);
 
-  // Jednostki stykające się tylko rogiem też tworzą oddział
-  addUnit(game, "piechur", 0, [{ x: 4, y: 6 }, { x: 4, y: 7 }]);  // dotyka chłopa (3,5) rogiem
-  check("Jednostka stykająca się rogiem dołącza do oddziału", findSquads(game, 0)[0].length === 3);
+  const groups = formSquads(game, [p1.id, p2.id]);
+  check("Ramka: dwaj stykający się chłopi to 1 oddział", groups.length === 1 && getSquadOfUnit(game, p1).unitIds.length === 2);
 
-  addUnit(game, "lucznik", 0, [{ x: 10, y: 10 }]);  // daleko od reszty
-  check("Jednostka daleko od innych to osobny oddział", findSquads(game, 0).length === 2);
+  // Jednostki stykające się tylko rogiem też tworzą oddział; daleka jednostka to osobna grupa
+  const corner = addUnit(game, "piechur", 0, [{ x: 4, y: 6 }, { x: 4, y: 7 }]);  // dotyka chłopa (3,5) rogiem
+  const far = addUnit(game, "lucznik", 0, [{ x: 10, y: 10 }]);
+  const groups2 = formSquads(game, [p1.id, p2.id, corner.id, far.id]);
+  check("Ramka: jednostka stykająca się rogiem dołącza do oddziału", getSquadOfUnit(game, p1).unitIds.length === 3);
+  check("Ramka: jednostka daleko od innych to osobna grupa", groups2.length === 2 && getSquadOfUnit(game, far).unitIds.length === 1);
 
-  const newOne = addUnit(game, "lucznik", 0, [{ x: 12, y: 12 }]);
+  const newOne = addUnit(game, "lucznik", 0, [{ x: 11, y: 10 }]);  // stoi obok "far"
   newOne.isNew = true;
-  check("Nowa jednostka nie należy do żadnego oddziału", findSquads(game, 0).length === 2);
+  formSquads(game, [far.id, newOne.id]);
+  check("Nowa jednostka nie wchodzi do oddziału", getSquadOfUnit(game, far).unitIds.length === 1 && getSquadOfUnit(game, newOne) === null);
   check("Nowa jednostka nie może się ruszyć", !moveSquad(game, newOne, 1, 0).ok);
+
+  // Nowa ramka zabiera jednostkę ze starego oddziału
+  formSquads(game, [p1.id]);
+  check("Jednostka z nowej ramki wychodzi ze starego oddziału", getSquadOfUnit(game, p1).unitIds.length === 1 && getSquadOfUnit(game, p2).unitIds.length === 2);
 }
 
 {
   const game = createGame(2, "mala");
   game.buildPoints = 2;  // jakby gracz wydał 6 punktów na budowanie
-  const peasant = firstUnit(game, "chlop");
-  check("Pula ruchu = 5 + niewydane punkty budowy (2) = 7", getSquadOfUnit(game, peasant).points === 7);
+  const [peasant, other] = objectsOf(game, 0, "chlop");
+  check("Zasięg = 5 darmowych kroków + 2 punkty budowy = 7", getSquadOfUnit(game, peasant).points === 7);
 
   const moves = getReachableMoves(game, getSquadOfUnit(game, peasant));
   check("Krok po skosie kosztuje 1 punkt", moves.get("1,1") === 1);
-  check("Oddział nie wejdzie na ratusz (krok w górę zablokowany)", !moves.has("0,-1"));
-  check("Oddział dojdzie 7 pól w dół, ale nie 8", moves.has("0,7") && !moves.has("0,8"));
+  check("Jednostka nie wejdzie na ratusz (krok w górę zablokowany)", !moves.has("0,-1"));
+  check("Jednostka dojdzie 7 pól w dół, ale nie 8", moves.has("0,7") && !moves.has("0,8"));
 
-  check("Nieudany ruch NIE kończy budowania", !moveSquad(game, peasant, 0, 9).ok && game.phase === "build");
+  check("Nieudany ruch nic nie zabiera", !moveSquad(game, peasant, 0, 9).ok && game.buildPoints === 2 && peasant.freeSteps === 5);
 
   const result = moveSquad(game, peasant, 0, 3);
   check("Ruch o 3 pola w dół się udaje", result.ok);
-  check("Obaj chłopi przesunęli się razem", firstUnit(game, "chlop").cells[0].y === 8 && objectsOf(game, 0, "chlop")[1].cells[0].y === 8);
-  check("Z puli zostały 4 punkty", getSquadOfUnit(game, peasant).points === 4);
-  check("Po ruchu nie można już budować", game.phase === "move" && !canPlaceBuilding(game, "stajnia", buildingCells("stajnia", 2, 9)).ok);
+  check("Rusza się tylko kliknięty chłop (bez ramki)", peasant.cells[0].y === 8 && other.cells[0].y === 5);
+  check("3 kroki z darmowych: punkty budowy dalej 2", game.buildPoints === 2 && peasant.freeSteps === 2);
+  check("Zostało 4 zasięgu (2 darmowe + 2 budowy)", getSquadOfUnit(game, peasant).points === 4);
+  check("Po ruchu dalej można budować", canPlaceBuilding(game, "palisada", [{ x: 2, y: 9 }]).ok);
+}
+
+{
+  // Przykład z zasad: 8 punktów budowy, łucznik idzie 7 pól -> zostaje 6, inny ma zasięg 5 + 6
+  const game = createGame(2, "mala");
+  const a = addUnit(game, "lucznik", 0, [{ x: 10, y: 0 }]);
+  const b = addUnit(game, "lucznik", 0, [{ x: 14, y: 0 }]);
+  check("Ruch o 7 pól się udaje", moveSquad(game, a, 0, 7).ok);
+  check("Ruch dalej niż 5 zabrał 2 punkty budowy (zostało 6)", game.buildPoints === 6 && a.freeSteps === 0);
+  check("Inny łucznik ma teraz zasięg 5 + 6 = 11", getSquadOfUnit(game, b).points === 11);
+  check("Po ruchu da się zrobić jednostkę za resztę punktów", canPlaceUnit(game, "chlop", objectsOf(game, 0, "ratusz")[0], [{ x: 4, y: 2 }]).ok);
+
+  // Wszystkie punkty budowy na ruch - bonus koszar zostaje i nie liczy się do ruchu
+  check("Łucznik idzie jeszcze 6 pól (same punkty budowy)", moveSquad(game, a, 0, 6).ok && game.buildPoints === 0);
+  check("Bonus koszar zostaje po ruchu", game.barracksBonus === 1);
+  check("Bonus koszar nie dodaje ruchu: drugi łucznik ma tylko 5", getSquadOfUnit(game, b).points === 5);
+}
+
+{
+  // Oddział z jednostek z różną liczbą darmowych kroków idzie tyle, ile najsłabsza
+  const game = createGame(2, "mala");
+  const a = addUnit(game, "lucznik", 0, [{ x: 10, y: 0 }]);
+  const b = addUnit(game, "lucznik", 0, [{ x: 13, y: 0 }]);
+  moveSquad(game, b, -2, 0);  // b staje na (11,0) obok a i ma już tylko 3 darmowe kroki
+  formSquads(game, [a.id, b.id]);
+  const squad = getSquadOfUnit(game, a);
+  check("Oddział: zasięg = darmowe kroki najsłabszego (3) + punkty budowy (8)", squad.unitIds.length === 2 && squad.points === 11);
+  check("Oddział rusza się razem o 5 pól", moveSquad(game, a, 0, 5).ok && a.cells[0].y === 5 && b.cells[0].y === 5);
+  check("Za oddział płaci się 1 punkt na krok (2 kroki ponad darmowe = 2 punkty)", game.buildPoints === 6);
+  check("Każdej jednostce odjęto przebytą drogę", a.freeSteps === 0 && b.freeSteps === 0);
+
+  // Nowa tura: oddział z ramki znika, darmowe kroki wracają
+  endTurn(game);
+  endTurn(game);
+  check("W nowej turze oddział z ramki znika", game.squads.length === 0 && getSquadOfUnit(game, a).unitIds.length === 1);
+  check("W nowej turze darmowe kroki wracają do 5", a.freeSteps === 5 && b.freeSteps === 5);
+}
+
+{
+  // Nowa jednostka obok własnej jednostki, która stoi przy budynku
+  const game = createGame(2, "mala");
+  placeBuilding(game, "koszary", buildingCells("koszary", 2, 6));  // koszary (2..4, 6..8)
+  const barracks = objectsOf(game, 0, "koszary")[0];
+  game.buildPoints = 20;
+  const pikeShape = UNIT_TYPES.piechur.shape;
+  check("Piechur obok koszar - wolno", placeUnit(game, "piechur", barracks, shapeCells(pikeShape, 5, 6, 0)).ok);
+  check("Piechur obok NOWEGO piechura przy koszarach - wolno", canPlaceUnit(game, "piechur", barracks, shapeCells(pikeShape, 6, 6, 0)).ok);
+  check("Obok piechura przy koszarach rogiem - wolno", canPlaceUnit(game, "piechur", barracks, shapeCells(pikeShape, 6, 8, 0)).ok);
+  placeUnit(game, "piechur", barracks, shapeCells(pikeShape, 6, 6, 0));
+  check("O dwie jednostki dalej - nie wolno (bez łańcuszka)", !canPlaceUnit(game, "piechur", barracks, shapeCells(pikeShape, 7, 6, 0)).ok);
+  addUnit(game, "lucznik", 1, [{ x: 2, y: 9 }]);  // jednostka WROGA przy koszarach
+  check("Obok jednostki wroga przy budynku - nie wolno", !canPlaceUnit(game, "piechur", barracks, shapeCells(pikeShape, 2, 10, 0)).ok);
 }
 
 {
@@ -255,16 +317,15 @@ function firstUnit(game, type) {
 }
 
 {
-  // Oddziały są "zamrożone" do końca tury: po zetknięciu się nie łączą od razu
+  // Zetknięcie się nie robi oddziału - ani teraz, ani w następnej turze
   const game = createGame(2, "mala");
   const a = addUnit(game, "lucznik", 0, [{ x: 10, y: 0 }]);
   const b = addUnit(game, "lucznik", 0, [{ x: 14, y: 0 }]);
-  moveSquad(game, a, 2, 0);  // a staje na (12,0), b stoi na (14,0) - jeszcze się nie stykają
-  moveSquad(game, a, 1, 0);  // a staje na (13,0) i dotyka b
-  check("Zetknięte oddziały w tej turze ruszają się osobno", getSquadOfUnit(game, a).unitIds.length === 1);
+  moveSquad(game, a, 3, 0);  // a staje na (13,0) i dotyka b
+  check("Zetknięte jednostki dalej chodzą osobno", getSquadOfUnit(game, a).unitIds.length === 1);
   endTurn(game);
   endTurn(game);
-  check("W następnej turze to już jeden oddział", getSquadOfUnit(game, a).unitIds.includes(b.id));
+  check("W następnej turze też osobno (bez ramki)", !getSquadOfUnit(game, a).unitIds.includes(b.id));
 }
 
 // =====================================================
@@ -283,7 +344,7 @@ function firstUnit(game, type) {
   const result = attack(game, archer, near);
   check("Atak łucznika zadaje 1 obrażenie", result.ok && near.hp === 2);
   check("Drugi atak w tej samej turze - nie wolno", !attack(game, archer, near).ok);
-  check("Atak nie kończy budowania", game.phase === "build");
+  check("Po ataku dalej można budować", canPlaceBuilding(game, "palisada", [{ x: 2, y: 6 }]).ok);
 }
 
 {
@@ -621,6 +682,7 @@ function hasCell(obj, x, y) {
   check("Pancerz łuskowy: przed badaniem 5 ruchu", movePointsFor(game, 0) === 5);
   buyResearch(game, uni, "pancerzLuskowy");
   check("Pancerz łuskowy: po badaniu 7 ruchu", movePointsFor(game, 0) === 7);
+  check("Pancerz łuskowy działa od razu: bombarda ma 7 darmowych kroków", cannon.freeSteps === 7);
 }
 
 {
