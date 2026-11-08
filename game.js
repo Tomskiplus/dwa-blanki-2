@@ -57,6 +57,12 @@ let showTurnBanner = false;     // czy pokazać duży napis "Tura gracza X"
 let turnBannerNote = "";        // dodatkowa linijka na banerze, np. "Czerwony wchodzi w erę feudalną!"
 let buildTab = "budynki";       // która zakładka budowania jest otwarta: "budynki" albo "obrona"
 
+// Ramka myszki (zaznaczanie kilku jednostek, żeby zrobić z nich oddział)
+let dragStart = null;           // gdzie wciśnięto myszkę na planszy ({x, y} w pikselach) albo null
+let isDragging = false;         // czy myszka przesunęła się na tyle, że rysujemy ramkę
+let skipNextClick = false;      // po puszczeniu ramki przeglądarka wysyła "click" - ten jeden pomijamy
+const DRAG_MIN_PIXELS = 6;      // o ile trzeba przesunąć myszkę, żeby to była ramka, a nie kliknięcie
+
 // Zmienia ekran i czyści stary komunikat
 function goToScreen(screenName) {
   currentScreen = screenName;
@@ -318,7 +324,7 @@ function getGameButtons() {
     // Mały przycisk "X" obok nagłówka zamyka budynek
     buttons.push({ label: "X", x: PANEL_X + PANEL_WIDTH - 38, y: 162, w: 24, h: 24, fontSize: 14,
       onClick: clearSelection });
-  } else if (game.phase === "build") {
+  } else {
     // Nic nie kliknięte: dwie zakładki i budowle z wybranej zakładki
     for (const [tab, label, tabX] of [["budynki", "BUDYNKI", x], ["obrona", "OBRONA", x + 88]]) {
       buttons.push({ label: label, x: tabX, y: 164, w: 82, h: 22, fontSize: 12,
@@ -352,13 +358,12 @@ function getGameButtons() {
   return buttons;
 }
 
-// Lista przycisków w panelu wybranego budynku (tylko w fazie budowy):
+// Lista przycisków w panelu wybranego budynku:
 //  - jednostki do zrobienia, np. "Pikinier (1)"
 //  - ulepszenia, np. "↑ Halabardnik (4)"
 //  - badania w uniwersytecie, np. "Zbadaj: Proch (4)"
 // hint = podpowiedź pokazywana w panelu, gdy myszka jest nad przyciskiem
 function getBuildingMenu(building) {
-  if (game.phase !== "build") return [];
   const items = [];
 
   for (const key of getRecruitOptions(game, building)) {
@@ -543,6 +548,62 @@ function refreshReachable() {
   reachableMoves = squad ? getReachableMoves(game, squad) : new Map();
   const attacker = getSelectedAttacker();
   attackTargets = attacker ? getAttackTargets(game, attacker) : [];
+}
+
+// Prostokąt ramki w pikselach: { left, top, right, bottom } (niezależnie, w którą stronę ciągniemy)
+function frameRect(from, to) {
+  return {
+    left: Math.min(from.x, to.x),
+    top: Math.min(from.y, to.y),
+    right: Math.max(from.x, to.x),
+    bottom: Math.max(from.y, to.y),
+  };
+}
+
+// Koniec ramki: twoje jednostki, które mają choć jedną kratkę w ramce, tworzą oddziały
+// (te, które się stykają). Potem wybieramy pierwszą grupę, żeby od razu można było nią ruszyć.
+function finishFrame(from, to) {
+  const rect = frameRect(from, to);
+  const picked = game.objects.filter(obj =>
+    obj.kind === "unit" && obj.owner === game.current &&
+    obj.cells.some(c => {
+      // Środek kratki musi leżeć w ramce
+      const p = cellToPixel(c.x, c.y);
+      const cx = p.x + board.cell / 2;
+      const cy = p.y + board.cell / 2;
+      return cx >= rect.left && cx <= rect.right && cy >= rect.top && cy <= rect.bottom;
+    })
+  );
+
+  clearSelection();
+  message = "";
+  if (picked.length === 0) return;
+
+  const groups = formSquads(game, picked.map(unit => unit.id));
+  if (groups.length === 0) {
+    message = "Nowe jednostki ruszą się w następnej turze.";
+    return;
+  }
+  // Najpierw wybieramy największą grupę
+  groups.sort((a, b) => b.length - a.length);
+  const first = game.objects.find(obj => obj.id === groups[0][0]);
+  selectUnit(first, first.cells[0]);
+  const squadCount = groups.filter(group => group.length >= 2).length;
+  if (squadCount > 0) attackInfo = "Oddziały z ramki: " + squadCount + " (do końca tury).";
+}
+
+// Rysuje przerywaną ramkę, gdy gracz ciągnie myszką po planszy
+function drawFrame() {
+  if (!isDragging) return;
+  const rect = frameRect(dragStart, mouse);
+  ctx.save();
+  ctx.setLineDash([6, 4]);
+  ctx.strokeStyle = "#1a5276";
+  ctx.lineWidth = 2;
+  ctx.fillStyle = "rgba(41, 128, 185, 0.12)";
+  ctx.fillRect(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
+  ctx.strokeRect(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
+  ctx.restore();
 }
 
 // Wybrana jednostka atakuje cel. Jeśli ktoś wygrał - przechodzimy na ekran zwycięstwa.
@@ -1115,15 +1176,10 @@ function drawPanel() {
   // Era gracza, np. "Era feudalna (2/4)"
   drawText(eraTitle(player.era) + " (" + player.era + "/" + MAX_ERA + ")", centerX, 115, 14, "#1a5276");
 
-  // Punkty
-  if (game.phase === "build") {
-    drawText("Punkty budowy: " + game.buildPoints, left, 136, 17, "#000000", "left");
-    if (game.barracksBonus > 0) {
-      drawText("+" + game.barracksBonus + " bonus na koszary", left, 154, 13, "#555555", "left");
-    }
-  } else {
-    drawText("Faza ruchu", left, 136, 17, "#000000", "left");
-    drawText("budowanie skończone", left, 154, 13, "#555555", "left");
+  // Punkty budowy (wspólne: na budowanie i na kroki ponad darmowe)
+  drawText("Punkty budowy: " + game.buildPoints, left, 136, 17, "#000000", "left");
+  if (game.barracksBonus > 0) {
+    drawText("+" + game.barracksBonus + " bonus na koszary", left, 154, 13, "#555555", "left");
   }
 
   // Środek panelu: informacje o jednostce albo nagłówek nad przyciskami.
@@ -1143,7 +1199,7 @@ function drawPanel() {
     } else {
       infoY = drawBuildingInfo(selected, left);
     }
-  } else if (game.phase === "build") {
+  } else {
     // Zakładki BUDYNKI / OBRONA rysują się jako przyciski; pod listą podpowiedź
     infoY = BUILD_LIST_TOP + getBuildableKeys().length * BUILD_LIST_STEP + 12;
   }
@@ -1224,8 +1280,9 @@ function drawUnitInfo(unit, left) {
   drawText("Zasięg: " + type.range + "   (" + attackState + ")", left, 213, 13, "#333333", "left");
 
   if (squad) {
+    // Ruch = darmowe kroki (najsłabszej jednostki w oddziale) + wspólne punkty budowy
     const size = squad.unitIds.length;
-    const squadText = size === 1 ? "Bez oddziału" : "Oddział: " + size + " jedn.";
+    const squadText = size === 1 ? "Sam" : "Oddział: " + size + " jedn.";
     drawText(squadText + "   Ruch: " + squad.points, left, 236, 13, "#000000", "left");
   }
 }
@@ -1247,9 +1304,9 @@ function drawPanelInfo(left, y) {
   }
   const selectedBuilding = getSelectedBuilding();
   if (selectedBuilding) {
-    const hasRecruits = game.phase === "build" && getRecruitOptions(game, selectedBuilding).length > 0;
+    const hasRecruits = getRecruitOptions(game, selectedBuilding).length > 0;
     const hasMenu = getBuildingMenu(selectedBuilding).length > 0;
-    text = hasRecruits ? "Wybierz jednostkę, potem kliknij obok budynku." : (hasMenu ? "Wybierz z listy." : "");
+    text = hasRecruits ? "Wybierz jednostkę, potem kliknij obok budynku (albo obok swojej jednostki przy nim)." : (hasMenu ? "Wybierz z listy." : "");
     color = "#555555";
     if (canFight(selectedBuilding) && attackTargets.length === 0 && !selectedBuilding.hasAttacked) {
       text = "Brak wrogów w zasięgu.";
@@ -1273,11 +1330,7 @@ function drawPanelInfo(left, y) {
 
   const unit = getSelectedUnit();
   if (unit) {
-    text = "Kliknij podświetlone pole, żeby ruszyć oddział.";
-    if (game.phase === "build") {
-      text = "Uwaga: pierwszy ruch kończy budowanie w tej turze!";
-      color = "#b9770e";
-    }
+    text = "Kliknij pole, żeby ruszyć. Przeciągnij ramkę myszką = oddział.";
     if (attackTargets.length > 0) {
       text = "Czerwona ramka = wróg w zasięgu. Kliknij go, żeby zaatakować!";
       color = "#c0392b";
@@ -1388,6 +1441,7 @@ function drawGameScreen() {
   drawBoardGrid();
   drawObjects();
   drawGhost();
+  drawFrame();
   drawPanel();
   if (showTurnBanner) drawTurnBanner();
 }
@@ -1412,13 +1466,44 @@ canvas.addEventListener("mousemove", function (event) {
   mouse.x = pos.x;
   mouse.y = pos.y;
 
+  // Trzymamy wciśniętą myszkę i przesunęliśmy ją trochę - to już ramka, a nie kliknięcie
+  if (dragStart && Math.hypot(pos.x - dragStart.x, pos.y - dragStart.y) >= DRAG_MIN_PIXELS) {
+    isDragging = true;
+  }
+
   const overButton = getButtons().some(btn => isInside(mouse.x, mouse.y, btn));
   canvas.style.cursor = overButton ? "pointer" : "default";
+});
+
+// Wciśnięcie myszki na planszy: może to początek ramki (gdy nic nie stawiamy)
+canvas.addEventListener("mousedown", function (event) {
+  if (currentScreen !== "game" || showTurnBanner || action || event.button !== 0) return;
+  const pos = getMousePos(event);
+  if (pos.x >= PANEL_X) return;  // ramkę rysujemy tylko na planszy
+  dragStart = pos;
+  isDragging = false;
+});
+
+// Puszczenie myszki (też poza canvasem): jeśli była ramka - robimy z niej oddziały
+window.addEventListener("mouseup", function (event) {
+  if (isDragging) {
+    finishFrame(dragStart, mouse);
+    // "click" przyjdzie tylko, gdy puściliśmy myszkę nad canvasem
+    skipNextClick = event.target === canvas;
+  }
+  dragStart = null;
+  isDragging = false;
 });
 
 // Kliknięcie: sprawdzamy, który przycisk na TYM ekranie został kliknięty
 canvas.addEventListener("click", function (event) {
   const pos = getMousePos(event);
+
+  // To "kliknięcie" to tak naprawdę koniec ramki - pomijamy je
+  if (skipNextClick) {
+    skipNextClick = false;
+    return;
+  }
 
   // Baner zmiany tury znika po kliknięciu w dowolnym miejscu
   if (currentScreen === "game" && showTurnBanner) {
