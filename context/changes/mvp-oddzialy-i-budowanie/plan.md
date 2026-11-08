@@ -132,11 +132,11 @@ Zasady w Node (`tests/run-tests.js`), interfejs zrzutami ekranu (headless Edge) 
 
 #### Automated
 
-- [x] 2.1 Testy przechodzą: `node tests/run-tests.js`
-- [x] 2.2 Zrzut ekranu: panel z punktami budowy po ruchu, jednostka obok jednostki przy koszarach
+- [x] 2.1 Testy przechodzą: `node tests/run-tests.js` — 6e21c17
+- [x] 2.2 Zrzut ekranu: panel z punktami budowy po ruchu, jednostka obok jednostki przy koszarach — 6e21c17
 
 #### Manual
 
-- [x] 2.3 Stykające się jednostki chodzą osobno; ramka robi oddział, który rusza się razem
-- [x] 2.4 Po ruchu da się budować; ruch dalej niż 5 zabiera punkty budowy
-- [x] 2.5 Nową jednostkę da się postawić obok swojej jednostki przy budynku
+- [x] 2.3 Stykające się jednostki chodzą osobno; ramka robi oddział, który rusza się razem — 6e21c17
+- [x] 2.4 Po ruchu da się budować; ruch dalej niż 5 zabiera punkty budowy — 6e21c17
+- [x] 2.5 Nową jednostkę da się postawić obok swojej jednostki przy budynku — 6e21c17

@@ -5,6 +5,7 @@ Lista następnych kroków po skończeniu „podstaw rozgrywki”
 Każdy punkt to osobna zmiana: `/10x-new` → `/10x-plan` → `/10x-implement`.
 
 ## 1. Stawianie jednostek obok własnych jednostek
+✅ Zrobione 2026-11-08 (zmiana `mvp-oddzialy-i-budowanie`) – o jedną jednostkę dalej, rogiem też.
 Teraz nowa jednostka musi stać **tuż obok budynku**, który ją robi.
 Chcemy: jeśli **twoja** jednostka stoi obok budynku, to nową jednostkę można postawić
 też **obok tej jednostki** (ale tylko obok swojej, nie wroga).
@@ -13,6 +14,7 @@ też **obok tej jednostki** (ale tylko obok swojej, nie wroga).
 - Miejsce w kodzie: `canPlaceUnit` w `rules.js`.
 
 ## 2. Odłączanie jednostki od oddziału
+✅ Zrobione inaczej 2026-11-08: każda jednostka chodzi sama, oddział robi się ramką myszki (do końca tury).
 Osobny przycisk w panelu: „ODŁĄCZ” – wybrana jednostka przestaje należeć do oddziału
 i może ruszać się sama.
 - ❓ Do ustalenia: ile punktów ruchu dostaje odłączona jednostka (tyle, ile zostało oddziałowi?).
@@ -45,6 +47,7 @@ Oddział nie przechodzi przez budynki, więc obejście przeszkody kosztuje więc
 Jeśli w grze wygląda to inaczej – opisać dokładnie, kiedy.
 
 ## 6. Budowanie także po ruchu
+✅ Zrobione 2026-11-08: 5 darmowych kroków na jednostkę, dalsze z wspólnych punktów budowy.
 Teraz pierwszy ruch oddziału kończy budowanie w tej turze. **Ma być inaczej:**
 po ruchu nadal można budować i robić jednostki.
 - ❓ Do ustalenia: jak liczyć punkty, skoro niewydane punkty budowy zamieniają się w ruch?
