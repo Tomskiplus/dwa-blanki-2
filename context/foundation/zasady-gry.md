@@ -132,7 +132,7 @@ Kształty pozostałych jednostek (ze starych zdjęć, przybliżone):
 - Które jednostki są w której erze (np. włócznik – era 1, pikinier – era 2; reszta zgadnięta w `data.js`).
 - Wymagania do kolejnych er.
 - Dokładne kształty jednostek i budynków (ile kratek kosztują).
-- Kolorowe strony zeszytu – czy to różne cywilizacje/drużyny?
+- ~~Kolorowe strony zeszytu – czy to różne cywilizacje/drużyny?~~ → tak, patrz „Kolory (kraje)”.
 - Czy jednostki mogą przechodzić przez siebie/budynki?
 
 ## Ulepszenia i badania (ustalone 2026-11-07)
@@ -165,3 +165,27 @@ Kształty pozostałych jednostek (ze starych zdjęć, przybliżone):
 ### Bombarda (uniwersytet, era 4, po Prochu)
 - 5 pól: 4 w rzędzie + 1 pod trzecim; szara, trzecie pole w kolorze gracza.
 - Życie 5, atak 5, zasięg 5, **+4 obrażeń budynkom**; koszt 5; chodzi i atakuje jak zwykła jednostka.
+
+## Kolory (kraje) – USTALANE 2026-11-08 (jeszcze nie w grze)
+- Kolory działają jak **cywilizacje (kraje)**: każdy kolor ma swoje rzeczy.
+- Strona zeszytu z kolorami: każdy kolor ma 3 wiersze (koszary / strzelnica / stajnia) z jednostkami;
+  **X = ten kolor tej jednostki nie ma**; rysunki **z boku** = to, co robi **zamek** tego koloru.
+- Jednostka specjalna należy do kraju w kolorze, w jakim jest narysowana.
+- **17 kolorów:** czerwony, ciemnopomarańczowy, pomarańczowy, żółty, jasnozielony, zielony, ciemnozielony,
+  jasnoniebieski, niebieski, granatowy, fioletowy, różowy, beżowy, brązowy, szary, czarny, bordowy.
+
+### Jednostki specjalne z zamku – 1. wiersz zdjęcia statystyk (potwierdzone 2026-11-08)
+Zapis: życie / atak / zasięg. UL = po ulepszeniu.
+| Nazwa | Kratki | Kolor | Statystyki | Po UL |
+|---|---|---|---|---|
+| Mini armatka | 1 | czerwony | 8 / 5 / 7 | 8 / 6 / 8 |
+| Skorpion (balista) | 3 | pomarańczowy | 6 / 5 / 6 | 9 / 7 / 8 |
+| Łucznik kompozytowy | 1 | ciemnopomarańczowy | 3 / 2 / 10 | 3 / 3 / 12 |
+| Armatka turbo | 1 | jasnozielony | 8 / 5 / 4 | 8 / 8 / 6 |
+| Ulepszony paladyn (ulepsza się w zamku) | 3 | zielony | 9 / 5 / 1 | bez UL |
+| Słoń z balistą | 7 | ciemnozielony | 10 / 8 / 6 | bez UL |
+| Podwójny halabardnik | 1 | niebieski | 8 / 6 / 4 | 8 / 9 / 4 |
+
+❓ Do ustalenia: 2. i 3. wiersz zdjęcia (ok. 16 jednostek), czy nad 1. wierszem są jeszcze jednostki,
+co który kraj ma/nie ma (X), jak gracz wybiera kraj, kształty jednostek, ile kosztuje ulepszenie w zamku.
+
