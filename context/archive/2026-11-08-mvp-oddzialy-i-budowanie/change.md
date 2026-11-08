@@ -1,10 +1,10 @@
 ---
 change_id: mvp-oddzialy-i-budowanie
 title: Stare punkty MVP – jednostki obok jednostek, odłączanie, budowanie po ruchu
-status: implemented
+status: archived
 created: 2026-11-08
 updated: 2026-11-08
-archived_at: null
+archived_at: 2026-11-08T13:41:57Z
 ---
 
 ## Notes
