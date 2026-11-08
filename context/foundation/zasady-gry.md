@@ -28,23 +28,36 @@ Gdy zasada się zmieni, poprawiamy ją tutaj (nie robimy kopii pliku).
   - **5 punktów ruchu**.
 - Postawienie budynku lub jednostki kosztuje tyle punktów budowy, ile ma **kratek**.
 - **Budynek** można postawić tylko tak, żeby **dotykał chłopa** (bokiem lub rogiem).
-- **Jednostka** pojawia się obok budynku, który ją zrobił.
-- ⚠️ Na razie w grze: najpierw budujesz, potem chodzisz – po pierwszym ruchu nie można już budować.
-  **Do zmiany:** po ruchu ma się dać dalej budować (punkt 6 w `do-zrobienia.md`).
+- **Jednostka** pojawia się obok budynku, który ją zrobił **albo obok twojej jednostki, która
+  dotyka tego budynku** (ustalone 2026-11-08):
+  - tylko o jedną jednostkę dalej (bez łańcuszka),
+  - „obok” = bokiem albo rogiem,
+  - jednostka zrobiona w tej turze też się liczy.
 - Nowa jednostka nie rusza się i nie atakuje w turze, w której powstała.
-- **Niewydane punkty budowy przechodzą na ruch.**
-  Przykład: zostały 2 punkty budowy → ruch = 5 + 2 = 7.
+- **Budowanie i ruch można mieszać** – po ruchu dalej można budować (ustalone 2026-11-08).
+- **Punkty budowy są wspólne i przechodzą na ruch:**
+  - każda jednostka (albo oddział) ma **5 darmowych kroków** na turę,
+  - dalsze kroki biorą po **1 punkcie ze wspólnych punktów budowy** (za oddział 1 punkt na krok,
+    niezależnie od liczby jednostek),
+  - co zostanie, można wydać na budowanie.
+  - Przykład: 8 punktów budowy, piechur idzie 7 pól → zostaje 6 do budowy; inny piechur może
+    teraz iść 5 + 6.
+  - Bonus +1 za koszary **nie** przechodzi na ruch – zostaje na koszary.
 - **Zamek** buduje się przez **2 tury**.
 - **Ulepszenia** kosztują 4 pola (później).
 - **Następna era:** jeśli gracz ma wymagane budynki, może przejść do następnej ery –
   ale wtedy w tej turze **nie może już nic innego robić**.
 
-## Ruch – oddziały
-- Jednostki, które się **stykają** (bokiem albo rogiem), tworzą **oddział**.
-- Oddział rusza się **razem**, jak jeden klocek.
-- Każdy oddział i każda samotna jednostka ma **własną** pulę punktów ruchu.
+## Ruch – oddziały (zmienione 2026-11-08)
+- **Każda jednostka chodzi sama** – stykanie się nie robi oddziału.
+- **Oddział robisz ramką:** przeciągasz myszką prostokąt; zaznaczone twoje jednostki, które się
+  **stykają** (bokiem albo rogiem), tworzą oddział. Grupy daleko od siebie = **osobne** oddziały.
+- Oddział rusza się **razem**, jak jeden klocek, i trzyma się razem **tylko do końca tury**.
+- Jednostka zaznaczona nową ramką wychodzi ze starego oddziału i wchodzi do nowego.
+- Każda jednostka pamięta swoje kroki. Oddział może iść tyle, ile ma **najsłabsza** jednostka;
+  każdej odejmuje się przebytą drogę.
+- Kliknięcie jednostki z oddziału zaznacza cały oddział do ruchu; atakuje kliknięta jednostka.
 - Krok **po skosie kosztuje 1 punkt**, tak samo jak krok prosto.
-- Oddziały ustalają się na początku ruchu – jeśli dwa się zetkną, łączą się od następnej tury.
 
 ## Atak
 - Każda jednostka atakuje **najwyżej 1 raz na turę**.
