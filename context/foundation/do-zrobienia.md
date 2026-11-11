@@ -56,6 +56,14 @@ po ruchu nadal można budować i robić jednostki.
   Ale co, jeśli masz kilka oddziałów, a każdy ma swoją pulę?
 - Miejsce w kodzie: `startMovePhase`, `canPlaceBuilding`, `canPlaceUnit` w `rules.js`.
 
+## 7. Kolory (kraje)
+1. ✅ 17 krajów i wybór kraju przed grą – zrobione 2026-11-11 (zmiana `kraje-menu-kolorow`).
+2. Jednostki specjalne z zamku (zwykłe: statystyki + kształt) – **odłożone na później**.
+3. Jednostki z dziwnymi zasadami: mnich (nawraca), magnonella (obrażenia w następnej turze),
+   słoń z taranem (+3 budynkom), strzelnica prochowa (robi armatę).
+4. Czego kraj nie ma (X na stronie z kolorami) – trzeba przeczytać kraj po kraju.
+Wszystkie liczby są już w `zasady-gry.md` → „Kolory (kraje)”.
+
 ## Później (po MVP)
 - Gra z botem (1 vs bot).
 - Multiplayer przez internet (z TATĄ – serwer i konto).

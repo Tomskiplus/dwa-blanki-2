@@ -54,10 +54,10 @@ i `showNumber`; bez powtórzeń – bez numerów.
 
 #### Automated
 
-- [x] 1.1 Testy przechodzą: `node tests/run-tests.js`
-- [x] 1.2 Zrzut ekranu: EDYTOR z wyborem krajów; plansza z dwoma graczami tego samego kraju
+- [x] 1.1 Testy przechodzą: `node tests/run-tests.js` — e1387c9
+- [x] 1.2 Zrzut ekranu: EDYTOR z wyborem krajów; plansza z dwoma graczami tego samego kraju — e1387c9
 
 #### Manual
 
-- [x] 1.3 Strzałki zmieniają kraje, gra zaczyna się z wybranymi krajami
+- [x] 1.3 Strzałki zmieniają kraje, gra zaczyna się z wybranymi krajami — e1387c9
 - [x] 1.4 Kolory 17 krajów da się odróżnić; cyfry widać, gdy kraj się powtarza
