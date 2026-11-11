@@ -186,6 +186,32 @@ Zapis: życie / atak / zasięg. UL = po ulepszeniu.
 | Słoń z balistą | 7 | ciemnozielony | 10 / 8 / 6 | bez UL |
 | Podwójny halabardnik | 1 | niebieski | 8 / 6 / 4 | 8 / 9 / 4 |
 
-❓ Do ustalenia: 2. i 3. wiersz zdjęcia (ok. 16 jednostek), czy nad 1. wierszem są jeszcze jednostki,
+### 2. wiersz zdjęcia statystyk (potwierdzone 2026-11-08) – wszystkie bez UL
+| Nazwa | Kratki | Kolor | Statystyki | Uwagi |
+|---|---|---|---|---|
+| Płonący oszczepnik | 1 | jasnoniebieski | 4 / 3 / 6 | |
+| Opancerzony słoń trykacz | 7 | granatowy | 10 / 6 / 1 | |
+| Shurikeniarz | 1 | granatowy | 5 / 2 / 3 | |
+| Kawaleria z łukiem | 3 | granatowy | 5 / 3 / 5 | |
+| Ułan z pancerzem płytowym | 3 | granatowy | 5 / 2 / 4 | |
+| Słoń z taranem | 7 | granatowy | 9 / 8 / 1 | +3 obrażeń budynkom |
+| Armata | 7 | granatowy | 6 / 8 / 10 | robi ją strzelnica prochowa |
+
+**Strzelnica prochowa** (budynek specjalny, granatowy): 4 kratki, 10 życia / atak 1 / zasięg 3, produkuje armatę.
+
+### 3. wiersz zdjęcia statystyk (potwierdzone 2026-11-11)
+| Nazwa | Kratki | Kolor | Statystyki | Po UL | Uwagi |
+|---|---|---|---|---|---|
+| Mamut | 10 | granatowy | 12 / 7 / 8 | bez UL | |
+| Słoń opancerzony | 7 | granatowy | 10 / 5 / 6 | 11 / 6 / 6 | inny niż „opancerzony słoń trykacz” |
+| Super łucznik | 1 | fioletowy | 3 / 2 / 6 | 4 / 4 / 7 | |
+| Kawaleria z łukiem 2 | 3 | różowy | 5 / 3 / 4 | 6 / 5 / 4 | |
+| Mnich | 1 | beżowy | 3 / 0 / 7 | bez UL | **nawraca** = przejmuje jednostkę przeciwnika |
+| Magnonella | zajmuje 9, kosztuje 4 | brązowy | 3 / 10 / 11 | 5 / 11 / 12 | strzela tylko w budynek albo jednostkę, która nie ruszy się w następnej turze; obrażenia zadaje w następnej turze |
+| Opancerzony paladyn | 3 | szary | 8 / 4 / 1 | bez UL | |
+
+Ostatni rysunek w 3. wierszu (żółty kwadrat z włócznią) – **nie robimy**.
+
+❓ Do ustalenia: czy nad 1. wierszem są jeszcze jednostki,
 co który kraj ma/nie ma (X), jak gracz wybiera kraj, kształty jednostek, ile kosztuje ulepszenie w zamku.
 
