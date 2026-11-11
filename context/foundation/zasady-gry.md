@@ -212,6 +212,11 @@ Zapis: życie / atak / zasięg. UL = po ulepszeniu.
 
 Ostatni rysunek w 3. wierszu (żółty kwadrat z włócznią) – **nie robimy**.
 
+### Pozostałe kraje
+- **Żółty** – nie ma jednostki specjalnej.
+- **Czarny** – zwiadowca (kwadrat z łukiem), 1 kratka, 6 / 6 / 9, bez UL.
+- **Bordowy** – płonący oszczepnik, taki sam jak jasnoniebieski (4 / 3 / 6), tylko bordowy.
+
 ❓ Do ustalenia: czy nad 1. wierszem są jeszcze jednostki,
 co który kraj ma/nie ma (X), jak gracz wybiera kraj, kształty jednostek, ile kosztuje ulepszenie w zamku.
 
