@@ -8,13 +8,29 @@ Gdy zasada się zmieni, poprawiamy ją tutaj (nie robimy kopii pliku).
 - **Singleplayer** – menu z opcjami:
   - **1 vs bot** (później)
   - **Edytor** – tu można grać na jednym komputerze (gracze siadają po kolei)
-- **Multiplayer** – poczekalnia dla **2–8 graczy**.
-- Rozmiar planszy ustawia się w poczekalni (multiplayer) albo w menu (singleplayer).
+- **Multiplayer** – gra przez internet: przycisk **WYSZUKAJ GRĘ**, zawsze **1 na 1**
+  (zasady niżej, „Multiplayer przez internet”). Poczekalnia dla 2–8 graczy – kiedyś później.
+- Rozmiar planszy ustawia się w menu EDYTOR; w multiplayerze plansza jest zawsze MAŁA.
 
 ### Kolejność budowy (ustalona)
 1. Gra na jednym komputerze (gracze siedzą po kolei, jak przy planszówce) – testujemy zasady.
 2. Bot.
 3. Multiplayer przez internet – potrzebny serwer i konto, więc **robimy z TATĄ**.
+   (TATA wybrał Supabase, 2026-11-11; bot jest później.)
+
+### Multiplayer przez internet (ustalone 2026-11-11)
+| Sprawa | Zasada |
+|---|---|
+| Szukanie | Przycisk **WYSZUKAJ GRĘ**, zawsze **1 na 1** (na razie bez kodów pokoju i listy gier) |
+| Ranking | Nowy gracz ma **10**. Wygrana **+2**, przegrana **−1**. Nigdy mniej niż **0** |
+| Dobieranie | Przeciwnik o rankingu różnym najwyżej o **5**; gdy ktoś czeka **30 s** – każdy (najpierw najbliższy ranking) |
+| Kraj i plansza | Kraj wybierasz przed szukaniem (◀ ▶). Plansza zawsze **MAŁA 20×15**. Ten sam kraj → numery jak w EDYTORZE |
+| Kto zaczyna | **Niższy ranking**; przy remisie ten, kto dłużej czekał |
+| Tura przeciwnika | Widzisz każdy ruch **na żywo**; możesz klikać, żeby czytać statystyki, ale nic nie zmienisz |
+| Wyjście z gry | **2 minuty** na powrót (ta sama przeglądarka), potem **walkower** (+2 / −1). MENU w grze → **PODDAJ SIĘ** (z „NA PEWNO?”) |
+| Czas tury | **5 minut**; po czasie tura kończy się sama (to, co zrobione, zostaje) |
+| Prywatność | Bez czatu, nicków i imion – widać tylko kraj i ranking |
+| Ranking a komputer | Gracz = ta przeglądarka. Inny komputer albo wyczyszczone dane = nowy gracz z rankingiem 10 |
 
 ## Start gry
 - Każdy gracz zaczyna z: **ratusz + 2 chłopów**.

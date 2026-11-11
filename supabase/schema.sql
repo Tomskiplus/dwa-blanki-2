@@ -50,36 +50,13 @@ alter table public.room_players enable row level security;
 create policy rooms_select on public.rooms
   for select to authenticated using (true);
 
--- Pokój możesz założyć tylko na siebie.
-create policy rooms_insert on public.rooms
-  for insert to authenticated with check (host_id = (select auth.uid()));
-
--- Zmieniać stan gry mogą tylko gracze, którzy siedzą w tym pokoju.
-create policy rooms_update on public.rooms
-  for update to authenticated
-  using (exists (select 1 from public.room_players p
-                 where p.room_code = rooms.code and p.user_id = (select auth.uid())))
-  with check (exists (select 1 from public.room_players p
-                      where p.room_code = rooms.code and p.user_id = (select auth.uid())));
-
--- Usunąć pokój może tylko jego założyciel.
-create policy rooms_delete on public.rooms
-  for delete to authenticated using (host_id = (select auth.uid()));
-
 -- Gracze w pokojach: każdy może zobaczyć, kto gra.
 create policy room_players_select on public.room_players
   for select to authenticated using (true);
 
--- Dosiąść się możesz tylko sam (za siebie) i tylko gdy pokój czeka w poczekalni.
-create policy room_players_insert on public.room_players
-  for insert to authenticated
-  with check (user_id = (select auth.uid())
-              and exists (select 1 from public.rooms r
-                          where r.code = room_code and r.status = 'lobby'));
-
--- Wyjść z pokoju możesz tylko sam.
-create policy room_players_delete on public.room_players
-  for delete to authenticated using (user_id = (select auth.uid()));
+-- UWAGA: zakładać pokoje, dosiadać się i zapisywać ruchy można TYLKO przez funkcje
+-- bazy z pliku 02-mecze-i-ranking.sql (one pilnują tury, wersji i rankingu).
+-- Dlatego tu nie ma zasad insert / update / delete.
 
 -- ---------------------------------------------------------------------
 -- NA ŻYWO (Realtime) – gdy ktoś zrobi ruch, inni od razu dostają powiadomienie.

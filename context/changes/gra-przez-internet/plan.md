@@ -368,13 +368,13 @@ psuło bazy (`if not exists`, `create or replace`, `drop policy if exists`).
 
 #### Automated
 
-- [ ] 1.1 Testy zasad dalej przechodzą: `node tests/run-tests.js`
-- [ ] 1.2 Test bazy przechodzi (po uruchomieniu SQL przez TATĘ): `node tests/online-sql-test.js`
+- [x] 1.1 Testy zasad dalej przechodzą: `node tests/run-tests.js`
+- [x] 1.2 Test bazy przechodzi (po uruchomieniu SQL przez TATĘ): `node tests/online-sql-test.js`
 
 #### Manual
 
-- [ ] 1.3 TATA uruchomił `supabase/02-mecze-i-ranking.sql` w SQL Editor bez błędów
-- [ ] 1.4 W Table Editor widać tabele `profiles` i `match_queue`
+- [x] 1.3 TATA uruchomił `supabase/02-mecze-i-ranking.sql` w SQL Editor bez błędów
+- [x] 1.4 W Table Editor widać tabele `profiles` i `match_queue`
 
 ### Phase 2: Połączenie i szukanie gry
 
