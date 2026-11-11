@@ -368,28 +368,28 @@ psuło bazy (`if not exists`, `create or replace`, `drop policy if exists`).
 
 #### Automated
 
-- [x] 1.1 Testy zasad dalej przechodzą: `node tests/run-tests.js`
-- [x] 1.2 Test bazy przechodzi (po uruchomieniu SQL przez TATĘ): `node tests/online-sql-test.js`
+- [x] 1.1 Testy zasad dalej przechodzą: `node tests/run-tests.js` — 8b0d4f3
+- [x] 1.2 Test bazy przechodzi (po uruchomieniu SQL przez TATĘ): `node tests/online-sql-test.js` — 8b0d4f3
 
 #### Manual
 
-- [x] 1.3 TATA uruchomił `supabase/02-mecze-i-ranking.sql` w SQL Editor bez błędów
-- [x] 1.4 W Table Editor widać tabele `profiles` i `match_queue`
+- [x] 1.3 TATA uruchomił `supabase/02-mecze-i-ranking.sql` w SQL Editor bez błędów — 8b0d4f3
+- [x] 1.4 W Table Editor widać tabele `profiles` i `match_queue` — 8b0d4f3
 
 ### Phase 2: Połączenie i szukanie gry
 
 #### Automated
 
-- [ ] 2.1 Testy zasad przechodzą: `node tests/run-tests.js`
-- [ ] 2.2 Składnia nowych plików: `node --check network.js` i `node --check online.js`
-- [ ] 2.3 Plik biblioteki istnieje pod przypiętym adresem: `curl -sI <url> | head -1` → 200
+- [x] 2.1 Testy zasad przechodzą: `node tests/run-tests.js`
+- [x] 2.2 Składnia nowych plików: `node --check network.js` i `node --check online.js`
+- [x] 2.3 Plik biblioteki istnieje pod przypiętym adresem: `curl -sI <url> | head -1` → 200
 
 #### Manual
 
-- [ ] 2.4 MULTIPLAYER pokazuje „Twój ranking: 10”
-- [ ] 2.5 Zwykłe okno + okno prywatne: obaj klikają WYSZUKAJ GRĘ → oba okna dostają ten sam kod pokoju
-- [ ] 2.6 ANULUJ przerywa szukanie; WSTECZ wraca do tytułu
-- [ ] 2.7 EDYTOR działa jak wcześniej
+- [x] 2.4 MULTIPLAYER pokazuje „Twój ranking: 10”
+- [x] 2.5 Zwykłe okno + okno prywatne: obaj klikają WYSZUKAJ GRĘ → oba okna dostają ten sam kod pokoju
+- [x] 2.6 ANULUJ przerywa szukanie; WSTECZ wraca do tytułu
+- [x] 2.7 EDYTOR działa jak wcześniej
 
 ### Phase 3: Gra na żywo
 

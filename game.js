@@ -32,7 +32,8 @@ const mouse = { x: -1, y: -1 };  // gdzie jest myszka
 let message = "";                // napis pokazywany po kliknięciu
 let time = 0;                    // licznik czasu do animacji
 
-// Na którym ekranie jesteśmy: "title", "singleMenu", "editorSetup", "game" albo "victory"
+// Na którym ekranie jesteśmy: "title", "singleMenu", "editorSetup", "game", "victory",
+// a w grze przez internet (online.js) także "multiMenu" i "searching"
 let currentScreen = "title";
 
 // Ustawienia wybrane w edytorze
@@ -274,8 +275,9 @@ function getTitleButtons() {
   return [
     { label: "SINGLEPLAYER", x: 260, y: 200, w: 280, h: 60,
       onClick: () => goToScreen("singleMenu") },
+    // Gra przez internet - ekrany są w online.js
     { label: "MULTIPLAYER", x: 260, y: 280, w: 280, h: 60,
-      onClick: () => { message = "Tryb MULTIPLAYER - wkrótce!"; } },
+      onClick: openMultiplayer },
   ];
 }
 
@@ -455,6 +457,8 @@ function getButtons() {
   if (currentScreen === "editorSetup") return getEditorSetupButtons();
   if (currentScreen === "game") return getGameButtons();
   if (currentScreen === "victory") return getVictoryButtons();
+  if (currentScreen === "multiMenu") return getMultiMenuButtons();   // online.js
+  if (currentScreen === "searching") return getSearchingButtons();   // online.js
   return [];
 }
 
@@ -1610,6 +1614,8 @@ function gameLoop() {
   else if (currentScreen === "editorSetup") drawEditorSetupScreen();
   else if (currentScreen === "game") drawGameScreen();
   else if (currentScreen === "victory") drawVictoryScreen();
+  else if (currentScreen === "multiMenu") drawMultiMenuScreen();   // online.js
+  else if (currentScreen === "searching") drawSearchingScreen();   // online.js
 
   requestAnimationFrame(gameLoop); // poproś przeglądarkę o następną klatkę
 }
