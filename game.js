@@ -33,7 +33,7 @@ let message = "";                // napis pokazywany po kliknięciu
 let time = 0;                    // licznik czasu do animacji
 
 // Na którym ekranie jesteśmy: "title", "singleMenu", "editorSetup", "game", "victory",
-// a w grze przez internet (online.js) także "multiMenu" i "searching"
+// a w grze przez internet (online.js) także "multiMenu", "searching" i "onlineEnd"
 let currentScreen = "title";
 
 // Ustawienia wybrane w edytorze
@@ -334,6 +334,16 @@ function getGameButtons() {
   // Gdy widać baner zmiany tury, przyciski są "zasłonięte"
   if (showTurnBanner) return [];
 
+  // Mały przycisk MENU w prawym górnym rogu panelu (przez internet: wyjście z gry)
+  const menuButton = { label: "MENU", x: PANEL_X + PANEL_WIDTH - 62, y: 12, w: 50, h: 26, fontSize: 11,
+    onClick: () => {
+      if (online) leaveOnlineGame();
+      goToScreen("title");
+    } };
+
+  // Przez internet, w turze przeciwnika: tylko MENU (patrzymy, nic nie zmieniamy)
+  if (!isMyTurn()) return [menuButton];
+
   const buttons = [];
   const x = PANEL_X + 15;
   const w = PANEL_WIDTH - 30;
@@ -380,9 +390,7 @@ function getGameButtons() {
 
   buttons.push({ label: "KONIEC TURY", x: x, y: 530, w: w, h: 52, fontSize: 20,
     onClick: finishTurn });
-  // Mały przycisk MENU w prawym górnym rogu panelu
-  buttons.push({ label: "MENU", x: PANEL_X + PANEL_WIDTH - 62, y: 12, w: 50, h: 26, fontSize: 11,
-    onClick: () => goToScreen("title") });
+  buttons.push(menuButton);
 
   return buttons;
 }
@@ -430,6 +438,7 @@ function buyFromMenu(result, successText) {
   message = "";
   attackInfo = successText;   // niebieski napis w panelu
   refreshReachable();
+  afterAction();
 }
 
 // Budowle z wybranej zakładki, które gracz może już stawiać (wg ery)
@@ -459,6 +468,7 @@ function getButtons() {
   if (currentScreen === "victory") return getVictoryButtons();
   if (currentScreen === "multiMenu") return getMultiMenuButtons();   // online.js
   if (currentScreen === "searching") return getSearchingButtons();   // online.js
+  if (currentScreen === "onlineEnd") return getOnlineEndButtons();   // online.js
   return [];
 }
 
@@ -521,9 +531,16 @@ function drawEditorSetupScreen() {
 
 // Tworzy nową grę z ustawień edytora i przechodzi na ekran gry
 function startGame() {
+  if (online) leaveOnlineGame();   // na wszelki wypadek: EDYTOR to nie gra przez internet
   game = createGame(setup.playerCount, setup.sizeKey, setup.countries);
+  setupBoard();
+  clearSelection();
+  showTurnBanner = true;   // na start pokazujemy, kto zaczyna
+  goToScreen("game");
+}
 
-  // Liczymy, jak duża ma być jedna kratka, żeby cała plansza zmieściła się w 600×600
+// Liczy, jak duża ma być jedna kratka, żeby cała plansza zmieściła się w 600×600
+function setupBoard() {
   const cell = Math.floor(Math.min(BOARD_AREA / game.cols, BOARD_AREA / game.rows));
   board = {
     cell: cell,
@@ -531,10 +548,59 @@ function startGame() {
     offsetX: Math.floor((BOARD_AREA - cell * game.cols) / 2),
     offsetY: Math.floor((BOARD_AREA - cell * game.rows) / 2),
   };
+}
 
-  clearSelection();
-  showTurnBanner = true;   // na start pokazujemy, kto zaczyna
-  goToScreen("game");
+// =====================================================
+//  GRA PRZEZ INTERNET - "haczyki" (reszta jest w online.js)
+// =====================================================
+
+// Czy teraz mogę coś robić? W EDYTORZE zawsze tak.
+// Przez internet - tylko w swojej turze (online.mySlot = mój numer gracza).
+function isMyTurn() {
+  return !online || game.current === online.mySlot;
+}
+
+// Wołamy po KAŻDEJ zmianie stanu gry (budowa, ruch, atak, ulepszenie, era, koniec tury).
+// Przez internet wysyła "zapis świata" do bazy; w EDYTORZE nic nie robi.
+function afterAction() {
+  if (online) sendMyState();
+}
+
+// Przyszedł nowy stan gry z bazy (ruch przeciwnika albo start gry) - podmieniamy nasz.
+function applyRemoteState(newGame) {
+  const previous = game;
+  game = newGame;
+
+  // Pierwszy stan gry: wchodzimy na planszę
+  if (currentScreen !== "game") {
+    setupBoard();
+    clearSelection();
+    turnBannerNote = "";
+    showTurnBanner = true;   // na start każdy widzi, kto zaczyna
+    goToScreen("game");
+    return;
+  }
+
+  // Czy przeciwnik wszedł w nową erę? Pokażemy to na banerze
+  turnBannerNote = "";
+  game.players.forEach((player, index) => {
+    const before = previous && previous.players[index];
+    if (before && player.era > before.era) {
+      turnBannerNote = player.colorName + " przechodzi do " + ERA_GENITIVE[player.era] + "!";
+    }
+  });
+
+  if (!previous || previous.current !== game.current) {
+    // Zmieniła się tura
+    clearSelection();
+    message = "";
+    if (isMyTurn()) showTurnBanner = true;   // "TWOJA TURA"
+  } else {
+    // Ta sama tura: zaznaczenie zostaje, jeśli obiekt dalej istnieje
+    const stillThere = id => id === null || game.objects.some(obj => obj.id === id);
+    if (!stillThere(selectedUnitId) || !stillThere(selectedBuildingId)) clearSelection();
+    refreshReachable();
+  }
 }
 
 // =====================================================
@@ -656,7 +722,9 @@ function attackTarget(unit, target) {
   if (result.destroyed) attackInfo = "Trafienie! Zniszczono: " + targetName + "!";
 
   refreshReachable();  // zniszczony wróg mógł zwolnić drogę
-  if (game.winner !== null) goToScreen("victory");
+  afterAction();
+  // Przez internet ekran końca pokaże online.js, gdy baza potwierdzi wygraną
+  if (game.winner !== null && !online) goToScreen("victory");
 }
 
 // Zaczyna stawianie budynku albo jednostki - za myszką pojawi się "duch" kształtu
@@ -674,7 +742,9 @@ function finishTurn() {
   clearSelection();
   message = "";
   turnBannerNote = "";
-  showTurnBanner = true;
+  // Przez internet baneru nie ma - teraz po prostu patrzymy na turę przeciwnika
+  showTurnBanner = !online;
+  afterAction();
 }
 
 // Przycisk NASTĘPNA ERA: przejście do kolejnej ery (to od razu kończy turę)
@@ -688,7 +758,8 @@ function goToNextEra() {
   clearSelection();
   message = "";
   turnBannerNote = player.colorName + " przechodzi do " + ERA_GENITIVE[result.era] + "!";
-  showTurnBanner = true;
+  showTurnBanner = !online;   // przez internet: przeciwnik zobaczy to na swoim banerze
+  afterAction();
 }
 
 // Nazwa ery z wielkiej litery, np. "Era feudalna"
@@ -743,6 +814,12 @@ function clickBoard(pos) {
   const cell = mouseToCell(pos);
   if (!cell) return;
 
+  // Przez internet, w turze przeciwnika: kliknięcie tylko pokazuje statystyki (online.js)
+  if (!isMyTurn()) {
+    inspectObjectAt(cell);
+    return;
+  }
+
   // 1. Jeśli coś stawiamy - próbujemy to postawić
   if (action) {
     const cells = getGhostCells(cell);
@@ -755,6 +832,7 @@ function clickBoard(pos) {
       const isWall = action.kind === "building" && BUILDING_TYPES[action.key].wall;
       if (!isWall) action = null;
       message = "";
+      afterAction();
     } else {
       message = result.reason;
     }
@@ -782,6 +860,7 @@ function clickBoard(pos) {
       // "Uchwyt" przesuwa się razem z jednostką, więc można iść dalej
       selectedAnchor = { x: selectedAnchor.x + dx, y: selectedAnchor.y + dy };
       refreshReachable();
+      afterAction();
     } else {
       message = result.reason;
     }
@@ -1223,6 +1302,7 @@ function drawPanel() {
   const player = game.players[game.current];
 
   drawText("TURA " + game.turn, left, 26, 22, "#000000", "left");
+  if (online) drawOnlineClock();   // zegar tury 5:00 (online.js)
 
   // Kto teraz gra - prostokąt w kolorze gracza
   ctx.fillStyle = player.color;
@@ -1241,6 +1321,13 @@ function drawPanel() {
   drawText("Punkty budowy: " + game.buildPoints, left, 136, 17, "#000000", "left");
   if (game.barracksBonus > 0) {
     drawText("+" + game.barracksBonus + " bonus na koszary", left, 154, 13, "#555555", "left");
+  }
+
+  // Przez internet, w turze przeciwnika: zamiast budowania - "Tura przeciwnika" i statystyki
+  if (!isMyTurn()) {
+    drawOpponentTurnPanel(left);   // online.js
+    getButtons().forEach(drawButton);
+    return;
   }
 
   // Środek panelu: informacje o jednostce albo nagłówek nad przyciskami.
@@ -1470,11 +1557,19 @@ function drawTurnBanner() {
   ctx.strokeRect(150, 200, 500, 200);
 
   drawText("TURA " + game.turn, 400, 235, 26, "#ffffff");
-  drawText("Gracz " + player.colorName, 400, 282, 40, "#ffffff");
+  // Przez internet: "TWOJA TURA" albo czyja tura (w EDYTORZE zawsze "Gracz ...")
+  let title = "Gracz " + player.colorName;
+  let hint = "Kliknij, aby zacząć";
+  if (online && isMyTurn()) title = "TWOJA TURA (" + player.colorName + ")";
+  if (online && !isMyTurn()) {
+    title = "Zaczyna: " + player.colorName;
+    hint = "Kliknij, aby oglądać";
+  }
+  drawText(title, 400, 282, title.length > 22 ? 26 : 40, "#ffffff");
   drawText(eraTitle(player.era), 400, 320, 18, "#ffffff");
   // Informacja o zmianie ery poprzedniego gracza (jeśli była)
   if (turnBannerNote !== "") drawText("⭐ " + turnBannerNote, 400, 350, 16, "#ffffff");
-  drawText("Kliknij, aby zacząć", 400, 380, 18, "#ffffff");
+  drawText(hint, 400, 380, 18, "#ffffff");
 }
 
 // Ekran zwycięstwa: duży napis i okienko w kolorze zwycięzcy
@@ -1539,6 +1634,7 @@ canvas.addEventListener("mousemove", function (event) {
 // Wciśnięcie myszki na planszy: może to początek ramki (gdy nic nie stawiamy)
 canvas.addEventListener("mousedown", function (event) {
   if (currentScreen !== "game" || showTurnBanner || action || event.button !== 0) return;
+  if (!isMyTurn()) return;   // przez internet: w turze przeciwnika nie robimy oddziałów
   const pos = getMousePos(event);
   if (pos.x >= PANEL_X) return;  // ramkę rysujemy tylko na planszy
   dragStart = pos;
@@ -1616,6 +1712,7 @@ function gameLoop() {
   else if (currentScreen === "victory") drawVictoryScreen();
   else if (currentScreen === "multiMenu") drawMultiMenuScreen();   // online.js
   else if (currentScreen === "searching") drawSearchingScreen();   // online.js
+  else if (currentScreen === "onlineEnd") drawOnlineEndScreen();   // online.js
 
   requestAnimationFrame(gameLoop); // poproś przeglądarkę o następną klatkę
 }

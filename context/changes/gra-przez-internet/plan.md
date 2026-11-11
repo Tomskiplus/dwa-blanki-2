@@ -380,32 +380,32 @@ psuło bazy (`if not exists`, `create or replace`, `drop policy if exists`).
 
 #### Automated
 
-- [x] 2.1 Testy zasad przechodzą: `node tests/run-tests.js`
-- [x] 2.2 Składnia nowych plików: `node --check network.js` i `node --check online.js`
-- [x] 2.3 Plik biblioteki istnieje pod przypiętym adresem: `curl -sI <url> | head -1` → 200
+- [x] 2.1 Testy zasad przechodzą: `node tests/run-tests.js` — f61db41
+- [x] 2.2 Składnia nowych plików: `node --check network.js` i `node --check online.js` — f61db41
+- [x] 2.3 Plik biblioteki istnieje pod przypiętym adresem: `curl -sI <url> | head -1` → 200 — f61db41
 
 #### Manual
 
-- [x] 2.4 MULTIPLAYER pokazuje „Twój ranking: 10”
-- [x] 2.5 Zwykłe okno + okno prywatne: obaj klikają WYSZUKAJ GRĘ → oba okna dostają ten sam kod pokoju
-- [x] 2.6 ANULUJ przerywa szukanie; WSTECZ wraca do tytułu
-- [x] 2.7 EDYTOR działa jak wcześniej
+- [x] 2.4 MULTIPLAYER pokazuje „Twój ranking: 10” — f61db41
+- [x] 2.5 Zwykłe okno + okno prywatne: obaj klikają WYSZUKAJ GRĘ → oba okna dostają ten sam kod pokoju — f61db41
+- [x] 2.6 ANULUJ przerywa szukanie; WSTECZ wraca do tytułu — f61db41
+- [x] 2.7 EDYTOR działa jak wcześniej — f61db41
 
 ### Phase 3: Gra na żywo
 
 #### Automated
 
-- [ ] 3.1 Testy zasad przechodzą: `node tests/run-tests.js`
-- [ ] 3.2 Test bazy przechodzi: `node tests/online-sql-test.js`
-- [ ] 3.3 Składnia: `node --check game.js online.js network.js`
+- [x] 3.1 Testy zasad przechodzą: `node tests/run-tests.js`
+- [x] 3.2 Test bazy przechodzi: `node tests/online-sql-test.js`
+- [x] 3.3 Składnia: `node --check game.js online.js network.js`
 
 #### Manual
 
-- [ ] 3.4 Dwa okna: ruch jednego gracza od razu widać u drugiego
-- [ ] 3.5 Gracz bez tury nie może nic zbudować ani ruszyć, ale widzi statystyki klikniętej jednostki
-- [ ] 3.6 Zaczyna gracz z niższym rankingiem (sprawdzić po jednej rozegranej grze)
-- [ ] 3.7 Zegar dochodzi do 0:00 → tura przechodzi sama
-- [ ] 3.8 Zniszczenie ratusza przeciwnika → obaj widzą ekran zwycięstwa, ranking +2 / −1
+- [x] 3.4 Dwa okna: ruch jednego gracza od razu widać u drugiego
+- [x] 3.5 Gracz bez tury nie może nic zbudować ani ruszyć, ale widzi statystyki klikniętej jednostki
+- [x] 3.6 Zaczyna gracz z niższym rankingiem (sprawdzić po jednej rozegranej grze)
+- [x] 3.7 Zegar dochodzi do 0:00 → tura przechodzi sama
+- [x] 3.8 Zniszczenie ratusza przeciwnika → obaj widzą ekran zwycięstwa, ranking +2 / −1
 
 ### Phase 4: Rozłączenia i poddanie się
 
