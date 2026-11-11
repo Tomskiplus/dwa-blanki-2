@@ -53,6 +53,22 @@ function objectsOf(game, owner, type) {
 }
 
 {
+  // Kraje: 17 kolorów, wybór kraju, powtórzony kraj dostaje numer gracza
+  check("Jest 17 krajów", COUNTRIES.length === 17);
+  const byDefault = createGame(3, "mala");
+  check("Bez wyboru kraje są po kolei: czerwony, ciemnopomarańczowy, pomarańczowy",
+    byDefault.players.map(p => p.country).join(",") === "czerwony,ciemnopomaranczowy,pomaranczowy");
+  check("Bez powtórzeń nazwa bez numeru i bez cyfr", byDefault.players[0].colorName === "Czerwony" && !byDefault.players[0].showNumber);
+
+  const chosen = createGame(3, "mala", [9, 0, 9]);  // granatowy, czerwony, granatowy
+  check("Gracz dostaje wybrany kraj i jego kolor", chosen.players[0].country === "granatowy" && chosen.players[0].color === COUNTRIES[9].color);
+  check("Powtórzony kraj: nazwa z numerem gracza (Granatowy 1, Granatowy 3)",
+    chosen.players[0].colorName === "Granatowy 1" && chosen.players[2].colorName === "Granatowy 3");
+  check("Powtórzony kraj: cyfry na obiektach, a inny kraj bez cyfr",
+    chosen.players[0].showNumber && chosen.players[2].showNumber && !chosen.players[1].showNumber && chosen.players[1].colorName === "Czerwony");
+}
+
+{
   // Chłopi muszą stać tuż obok swojego ratusza
   const game = createGame(8, "srednia");
   let allNextToTownHall = true;

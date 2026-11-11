@@ -255,16 +255,27 @@ const RESEARCH = {
   proch:          { name: "Proch",           info: "Uniwersytet może robić bombardy." },
 };
 
-// --- Kolory graczy (maksymalnie 8 graczy) ---
-const PLAYER_COLORS = [
-  { name: "Czerwony",    color: "#d63031" },
-  { name: "Niebieski",   color: "#0984e3" },
-  { name: "Zielony",     color: "#00a046" },
-  { name: "Żółty",       color: "#e1b000" },
-  { name: "Fioletowy",   color: "#8e44ad" },
-  { name: "Pomarańczowy", color: "#e67e22" },
-  { name: "Błękitny",    color: "#00b5b0" },
-  { name: "Różowy",      color: "#e84393" },
+// --- Kraje (kolory) ---
+// Każdy kolor to osobny kraj - jak cywilizacja. Kolejność jak w zeszycie.
+// Gracz wybiera kraj przed grą; kilku graczy może mieć ten sam kraj.
+const COUNTRIES = [
+  { key: "czerwony",           name: "Czerwony",           color: "#d63031" },
+  { key: "ciemnopomaranczowy", name: "Ciemnopomarańczowy", color: "#c0510f" },
+  { key: "pomaranczowy",       name: "Pomarańczowy",       color: "#f0901a" },
+  { key: "zolty",              name: "Żółty",              color: "#e1b000" },
+  { key: "jasnozielony",       name: "Jasnozielony",       color: "#7cc832" },
+  { key: "zielony",            name: "Zielony",            color: "#1e9e3a" },
+  { key: "ciemnozielony",      name: "Ciemnozielony",      color: "#0d5c2a" },
+  { key: "jasnoniebieski",     name: "Jasnoniebieski",     color: "#3cb4e6" },
+  { key: "niebieski",          name: "Niebieski",          color: "#1f6fe0" },
+  { key: "granatowy",          name: "Granatowy",          color: "#1b2a7a" },
+  { key: "fioletowy",          name: "Fioletowy",          color: "#8e44ad" },
+  { key: "rozowy",             name: "Różowy",             color: "#e84393" },
+  { key: "bezowy",             name: "Beżowy",             color: "#c8a878" },
+  { key: "brazowy",            name: "Brązowy",            color: "#7a4a1e" },
+  { key: "szary",              name: "Szary",              color: "#8a8a8a" },
+  { key: "czarny",             name: "Czarny",             color: "#2b2b2b" },
+  { key: "bordowy",            name: "Bordowy",            color: "#7b1530" },
 ];
 
 const MIN_PLAYERS = 2;

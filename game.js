@@ -39,7 +39,25 @@ let currentScreen = "title";
 const setup = {
   playerCount: 2,
   sizeKey: "mala",
+  // Kraj każdego z 8 możliwych graczy (numer w COUNTRIES) - na start po kolei z listy
+  countries: [0, 1, 2, 3, 4, 5, 6, 7],
 };
+
+// Wiersze wyboru kraju na ekranie EDYTOR: 2 kolumny po 4 graczy
+const COUNTRY_ROW_TOP = 140;
+const COUNTRY_ROW_STEP = 44;
+
+// Gdzie stoi wiersz gracza "index" (lewy górny róg)
+function countryRowPos(index) {
+  const column = index < 4 ? 0 : 1;
+  return { x: column === 0 ? 60 : 420, y: COUNTRY_ROW_TOP + (index % 4) * COUNTRY_ROW_STEP };
+}
+
+// Zmienia kraj gracza o krok w lewo (-1) albo w prawo (+1); po ostatnim jest znowu pierwszy
+function changeCountry(index, step) {
+  const count = COUNTRIES.length;
+  setup.countries[index] = (setup.countries[index] + step + count) % count;
+}
 
 let game = null;   // stan gry (tworzy go createGame z rules.js)
 let board = null;  // gdzie i jak duża jest plansza na ekranie
@@ -275,10 +293,10 @@ function getSingleMenuButtons() {
 function getEditorSetupButtons() {
   const buttons = [
     // Mniej graczy (ale nie mniej niż MIN_PLAYERS)
-    { label: "−", x: 260, y: 175, w: 60, h: 60, fontSize: 36,
+    { label: "−", x: 390, y: 84, w: 42, h: 42, fontSize: 28,
       onClick: () => { setup.playerCount = Math.max(MIN_PLAYERS, setup.playerCount - 1); } },
     // Więcej graczy (ale nie więcej niż MAX_PLAYERS)
-    { label: "+", x: 480, y: 175, w: 60, h: 60, fontSize: 36,
+    { label: "+", x: 490, y: 84, w: 42, h: 42, fontSize: 28,
       onClick: () => { setup.playerCount = Math.min(MAX_PLAYERS, setup.playerCount + 1); } },
     { label: "START", x: 260, y: 450, w: 280, h: 60,
       onClick: startGame },
@@ -292,11 +310,20 @@ function getEditorSetupButtons() {
     const size = BOARD_SIZES[key];
     buttons.push({
       label: size.name + " " + size.cols + "×" + size.rows,
-      x: 115 + index * 195, y: 345, w: 180, h: 55, fontSize: 18,
+      x: 115 + index * 195, y: 360, w: 180, h: 50, fontSize: 18,
       selected: setup.sizeKey === key,
       onClick: () => { setup.sizeKey = key; },
     });
   });
+
+  // Strzałki ◀ ▶ przy każdym graczu - zmieniają jego kraj
+  for (let i = 0; i < setup.playerCount; i++) {
+    const pos = countryRowPos(i);
+    buttons.push({ label: "◀", x: pos.x + 110, y: pos.y, w: 34, h: 34, fontSize: 16,
+      onClick: () => changeCountry(i, -1) });
+    buttons.push({ label: "▶", x: pos.x + 294, y: pos.y, w: 34, h: 34, fontSize: 16,
+      onClick: () => changeCountry(i, 1) });
+  }
 
   return buttons;
 }
@@ -452,28 +479,34 @@ function drawSingleMenuScreen() {
 
 function drawEditorSetupScreen() {
   drawPaper();
-  drawBigTitle("EDYTOR", 70, 52);
+  drawBigTitle("EDYTOR", 50, 46);
 
-  // Liczba graczy
-  drawText("Liczba graczy", canvas.width / 2, 145, 24, "#000000");
-  drawText(String(setup.playerCount), canvas.width / 2, 207, 48, "#000000");
+  // Liczba graczy: napis, a obok przyciski − i + z liczbą pomiędzy
+  drawText("Liczba graczy:", 290, 105, 24, "#000000");
+  drawText(String(setup.playerCount), 461, 105, 32, "#000000");
 
-  // Kolorowe kwadraciki - po jednym dla każdego gracza
-  const squareSize = 30;
-  const gap = 10;
-  const rowWidth = setup.playerCount * squareSize + (setup.playerCount - 1) * gap;
-  let x = canvas.width / 2 - rowWidth / 2;
+  // Wiersz dla każdego gracza: kwadracik w kolorze kraju, "Gracz N", ◀ nazwa kraju ▶
   for (let i = 0; i < setup.playerCount; i++) {
-    ctx.fillStyle = PLAYER_COLORS[i].color;
-    ctx.fillRect(x, 255, squareSize, squareSize);
+    const pos = countryRowPos(i);
+    const country = COUNTRIES[setup.countries[i]];
+    ctx.fillStyle = country.color;
+    ctx.fillRect(pos.x, pos.y + 5, 24, 24);
     ctx.strokeStyle = "#000000";
     ctx.lineWidth = 2;
-    ctx.strokeRect(x, 255, squareSize, squareSize);
-    x += squareSize + gap;
+    ctx.strokeRect(pos.x, pos.y + 5, 24, 24);
+    drawText("Gracz " + (i + 1), pos.x + 32, pos.y + 17, 16, "#000000", "left");
+    // Długie nazwy (np. "Ciemnopomarańczowy") pomniejszamy, żeby zmieściły się między strzałkami
+    let nameSize = 14;
+    ctx.font = "bold " + nameSize + "px Arial, sans-serif";
+    while (ctx.measureText(country.name).width > 140 && nameSize > 9) {
+      nameSize--;
+      ctx.font = "bold " + nameSize + "px Arial, sans-serif";
+    }
+    drawText(country.name, pos.x + 219, pos.y + 17, nameSize, "#000000");
   }
 
   // Rozmiar planszy
-  drawText("Plansza", canvas.width / 2, 320, 24, "#000000");
+  drawText("Plansza", canvas.width / 2, 340, 24, "#000000");
 
   getButtons().forEach(drawButton);
 }
@@ -484,7 +517,7 @@ function drawEditorSetupScreen() {
 
 // Tworzy nową grę z ustawień edytora i przechodzi na ekran gry
 function startGame() {
-  game = createGame(setup.playerCount, setup.sizeKey);
+  game = createGame(setup.playerCount, setup.sizeKey, setup.countries);
 
   // Liczymy, jak duża ma być jedna kratka, żeby cała plansza zmieściła się w 600×600
   const cell = Math.floor(Math.min(BOARD_AREA / game.cols, BOARD_AREA / game.rows));
@@ -978,6 +1011,26 @@ function drawUnit(unit) {
   drawUnitPicture(unit.shapeType || unit.type, unit.cells, unit.rotation || 0, color);
 }
 
+// Mała cyfra z numerem gracza w lewym górnym rogu obiektu (białe kółko z czarną cyfrą)
+function drawOwnerNumber(obj) {
+  // Lewa górna kratka obiektu: najmniejsze y, a wśród nich najmniejsze x
+  const topY = Math.min(...obj.cells.map(c => c.y));
+  const topX = Math.min(...obj.cells.filter(c => c.y === topY).map(c => c.x));
+  const corner = cellToPixel(topX, topY);
+  const r = Math.max(6, board.cell * 0.22);
+  const cx = corner.x + r + 1;
+  const cy = corner.y + r + 1;
+
+  ctx.fillStyle = "#ffffff";
+  ctx.strokeStyle = "#000000";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  drawText(String(obj.owner + 1), cx, cy + 1, Math.floor(r * 1.5), "#000000");
+}
+
 // Rozjaśnia kolor (np. "#d63031") - miesza go z białym, żeby czarne linie były dobrze widać.
 // amount = ile zostaje koloru (0.45 = 45% koloru, 55% białego)
 function lightColor(hex, amount) {
@@ -1053,6 +1106,10 @@ function drawObjects() {
   }
   for (const obj of game.objects) {
     if (obj.kind === "unit") drawUnit(obj);
+  }
+  // Gdy kilku graczy ma ten sam kraj - mała cyfra z numerem gracza na każdym obiekcie
+  for (const obj of game.objects) {
+    if (game.players[obj.owner].showNumber) drawOwnerNumber(obj);
   }
   for (const obj of game.objects) {
     drawHpBar(obj);

@@ -171,6 +171,11 @@ Kształty pozostałych jednostek (ze starych zdjęć, przybliżone):
 - Strona zeszytu z kolorami: każdy kolor ma 3 wiersze (koszary / strzelnica / stajnia) z jednostkami;
   **X = ten kolor tej jednostki nie ma**; rysunki **z boku** = to, co robi **zamek** tego koloru.
 - Jednostka specjalna należy do kraju w kolorze, w jakim jest narysowana.
+- **Wybór kraju** (ustalone 2026-11-11): na ekranie EDYTOR każdy gracz ma „◀ kraj ▶”; strzałki zmieniają
+  kraj na poprzedni/następny z listy (w kółko). Na start kraje po kolei z listy (gracz 1 = czerwony,
+  gracz 2 = ciemnopomarańczowy…).
+- **Kilku graczy może mieć ten sam kraj.** Wtedy ich budynki i jednostki mają małą cyfrę z numerem gracza,
+  a nazwa w panelu i na banerze to np. „Czerwony 2”. Gdy kraje się nie powtarzają – bez cyfr.
 - **17 kolorów:** czerwony, ciemnopomarańczowy, pomarańczowy, żółty, jasnozielony, zielony, ciemnozielony,
   jasnoniebieski, niebieski, granatowy, fioletowy, różowy, beżowy, brązowy, szary, czarny, bordowy.
 

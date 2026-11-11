@@ -149,8 +149,9 @@ function getStartPeasantCells(spot) {
 }
 
 // Tworzy nową grę: gracze, plansza, ratusze i chłopi.
-// playerCount = ilu graczy (2-8), sizeKey = "mala", "srednia" albo "duza"
-function createGame(playerCount, sizeKey) {
+// playerCount = ilu graczy (2-8), sizeKey = "mala", "srednia" albo "duza",
+// countryIndexes = który kraj (numer w COUNTRIES) ma każdy gracz - jeśli nie podano, to po kolei
+function createGame(playerCount, sizeKey, countryIndexes) {
   const size = BOARD_SIZES[sizeKey];
 
   const game = {
@@ -169,11 +170,22 @@ function createGame(playerCount, sizeKey) {
 
   const spots = getStartSpots(size.cols, size.rows);
 
+  // Kraj każdego gracza (domyślnie po kolei z listy)
+  const chosen = [];
   for (let i = 0; i < playerCount; i++) {
+    chosen.push(countryIndexes ? countryIndexes[i] : i);
+  }
+
+  for (let i = 0; i < playerCount; i++) {
+    const country = COUNTRIES[chosen[i]];
+    // Czy ten kraj ma też ktoś inny? Wtedy dopisujemy numer gracza, żeby było wiadomo, kto jest kim
+    const repeated = chosen.filter(index => index === chosen[i]).length > 1;
     game.players.push({
       id: i,
-      colorName: PLAYER_COLORS[i].name,
-      color: PLAYER_COLORS[i].color,
+      country: country.key,
+      colorName: repeated ? country.name + " " + (i + 1) : country.name,
+      color: country.color,
+      showNumber: repeated,  // rysować cyfrę z numerem gracza na jego budynkach i jednostkach
       era: 1,
       alive: true,
       upgraded: {},   // kupione ulepszenia, np. { wlocznik: true } = włócznicy są już pikinierami
