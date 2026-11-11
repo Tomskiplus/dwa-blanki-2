@@ -66,6 +66,10 @@ Wszystkie liczby są już w `zasady-gry.md` → „Kolory (kraje)”.
 
 ## Później (po MVP)
 - Gra z botem (1 vs bot).
-- Multiplayer przez internet (z TATĄ – serwer i konto).
+- Multiplayer przez internet – **w toku** (2026-11-11). TATA wybrał Supabase
+  (anonimowe logowanie, baza w `supabase/schema.sql`, dane w `supabase-config.js`).
+  - Przy lobby (gra dla obcych): włączyć captchę (Cloudflare Turnstile) – zalecenie Supabase.
+  - Później: uczciwy ranking = logika gry na serwerze (Edge Function z `rules.js`).
+  - Opcjonalnie: wyłączyć dostawcę Email w Supabase (nie używamy).
 - Prawdziwy edytor map.
 - Plansza z wodą.
