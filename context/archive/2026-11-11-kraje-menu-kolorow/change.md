@@ -1,10 +1,10 @@
 ---
 change_id: kraje-menu-kolorow
 title: Kraje (17 kolorów) i wybór kraju przed grą
-status: implemented
+status: archived
 created: 2026-11-11
 updated: 2026-11-11
-archived_at: null
+archived_at: 2026-11-11T14:30:33Z
 ---
 
 ## Notes
