@@ -14,6 +14,10 @@ const TURN_SECONDS = 5 * 60;       // czas na turę (zasada Tomka: 5 minut)
 const TIMEOUT_GRACE_SECONDS = 15;  // zapas, zanim przeciwnik może zakończyć moją turę (tak samo w bazie)
 const SYNC_EVERY_TICKS = 5;        // co ile sekund sprawdzamy bazę "na wszelki wypadek"
 const FIRST_STATE_WAIT_MS = 5000;  // gracz z miejsca 1 czeka tyle na planszę od gracza z miejsca 0
+const HEARTBEAT_EVERY_TICKS = 10;  // co ile sekund wysyłamy "bicie serca" (jestem w grze)
+const DISCONNECT_NOTICE_SECONDS = 30;  // po tylu sekundach ciszy pokazujemy "przeciwnik się rozłączył"
+const WALKOVER_SECONDS = 2 * 60;   // po tylu sekundach ciszy przeciwnika - walkower (zasada Tomka: 2 minuty)
+const SURRENDER_CONFIRM_MS = 4000; // tyle czasu jest na drugie kliknięcie "NA PEWNO?"
 
 // --- Stan trybu online ---
 let onlineStatus = "offline";      // "offline", "connecting", "ready" albo "error"
@@ -30,6 +34,7 @@ let onlineTimer = null;            // "zegarek", który co sekundę sprawdza cza
 let tickCount = 0;                 // ile razy już tyknął
 let inspectedId = null;            // obiekt kliknięty w turze przeciwnika (pokazujemy jego statystyki)
 let onlineResult = null;           // wynik skończonej gry (do ekranu "onlineEnd")
+let resumingGame = false;          // czy wracamy do gry po ponownym otwarciu strony
 
 // =====================================================
 //  POMOCNICZE
@@ -112,6 +117,7 @@ function startSearch() {
     message = "Najpierw musimy połączyć się z serwerem gry.";
     return;
   }
+  resumingGame = false;
   goToScreen("searching");
   foundRoomCode = null;
   searchStartedAt = Date.now();
@@ -169,6 +175,7 @@ async function startOnlineGame(code) {
   }
   const room = loaded.data.room;
   const me = loaded.data.players.find(player => player.slot === loaded.data.mySlot);
+  const rival = loaded.data.players.find(player => player.slot !== loaded.data.mySlot);
 
   online = {
     code: code,
@@ -182,11 +189,15 @@ async function startOnlineGame(code) {
     autoEndedAt: null,             // tura, którą zegar już sam zakończył
     claiming: false,               // czy właśnie kończymy turę przeciwnika po czasie
     ended: false,                  // czy gra się skończyła
+    rivalLastSeen: Date.parse(rival.last_seen),  // kiedy przeciwnik ostatnio dał znak życia
+    claimingWalkover: false,       // czy właśnie prosimy bazę o walkower
+    surrenderAskedAt: 0,           // kiedy kliknięto PODDAJ SIĘ (czekamy na "NA PEWNO?")
   };
 
   // Słuchamy zmian na żywo i włączamy zegarek
-  watchRoom(code, room => receiveRoom(room, false), player => {});
+  watchRoom(code, room => receiveRoom(room, false), receivePlayer);
   startOnlineTick();
+  heartbeat(code);   // od razu mówimy "jestem" (ważne po powrocie do gry)
 
   if (room.status === "finished") {
     showOnlineEnd(room);
@@ -263,7 +274,21 @@ async function syncFromServer(force) {
   const loaded = await loadRoom(code);
   if (!online || online.code !== code) return;
   online.syncing = false;
-  if (loaded.ok) receiveRoom(loaded.data.room, force);
+  if (!loaded.ok) return;
+  loaded.data.players.forEach(receivePlayer);
+  receiveRoom(loaded.data.room, force);
+}
+
+// Przyszła zmiana gracza (na żywo albo z syncFromServer) - pilnujemy "bicia serca" przeciwnika
+function receivePlayer(player) {
+  if (!online || player.slot === online.mySlot || !player.last_seen) return;
+  online.rivalLastSeen = Math.max(online.rivalLastSeen, Date.parse(player.last_seen));
+}
+
+// Ile sekund przeciwnik milczy
+function rivalSilentSeconds() {
+  if (!online) return 0;
+  return (Date.now() - online.rivalLastSeen) / 1000;
 }
 
 // Przyszedł pokój z bazy (na żywo albo z syncFromServer)
@@ -345,6 +370,14 @@ function onlineTick() {
 
   if (online.unsent) sendMyState();
 
+  // Bicie serca: "jestem w grze"
+  if (tickCount % HEARTBEAT_EVERY_TICKS === 0) heartbeat(online.code);
+
+  // Przeciwnik milczy 2 minuty - prosimy bazę o walkower (co 5 sekund, aż się uda)
+  if (rivalSilentSeconds() >= WALKOVER_SECONDS && !online.claimingWalkover && tickCount % 5 === 0) {
+    askForWalkover();
+  }
+
   // Na wszelki wypadek co kilka sekund pytamy bazę (gdyby wiadomość na żywo zginęła).
   // Zanim pojawi się plansza - częściej.
   if (tickCount % (game ? SYNC_EVERY_TICKS : 2) === 0) syncFromServer(false);
@@ -405,8 +438,91 @@ function drawOpponentTurnPanel(left) {
 function drawOnlineClock() {
   const left = turnSecondsLeft();
   const color = left <= 30 ? "#c0392b" : "#000000";
-  drawText(formatClock(left), PANEL_X + 122, 26, 16, color);
+  drawText(formatClock(left), PANEL_X + 104, 26, 16, color);
 }
+
+// =====================================================
+//  ROZŁĄCZENIA, WALKOWER I PODDANIE SIĘ
+// =====================================================
+
+// Prosimy bazę o walkower (baza sama sprawdzi, czy przeciwnik naprawdę milczy 2 minuty)
+async function askForWalkover() {
+  online.claimingWalkover = true;
+  const code = online.code;
+  const result = await claimWalkover(code);
+  if (!online || online.code !== code) return;
+  online.claimingWalkover = false;
+  if (result.ok && result.data === true) syncFromServer(true);   // wygrana walkowerem - pokaże ekran końca
+}
+
+// Przycisk PODDAJ SIĘ (w grze przez internet zastępuje MENU).
+// Pierwsze kliknięcie pyta "NA PEWNO?", drugie (w ciągu 4 sekund) naprawdę się poddaje.
+function getSurrenderButton(x, y, w, h) {
+  const asking = Date.now() - online.surrenderAskedAt < SURRENDER_CONFIRM_MS;
+  return {
+    label: asking ? "NA PEWNO?" : "PODDAJ SIĘ",
+    x: x, y: y, w: w, h: h, fontSize: 11,
+    selected: asking,
+    onClick: () => {
+      if (!asking) {
+        online.surrenderAskedAt = Date.now();
+        return;
+      }
+      giveUp();
+    },
+  };
+}
+
+async function giveUp() {
+  const code = online.code;
+  const result = await surrender(code);
+  if (!online || online.code !== code) return;
+  if (result.ok) syncFromServer(true);   // pokaże ekran końca
+  else message = result.error;
+}
+
+// Czerwony pasek na planszy, gdy przeciwnik się rozłączył (woła go drawGameScreen z game.js)
+function drawOnlineOverlay() {
+  const silent = rivalSilentSeconds();
+  if (silent < DISCONNECT_NOTICE_SECONDS) return;
+
+  const left = WALKOVER_SECONDS - silent;
+  ctx.fillStyle = "rgba(192, 57, 43, 0.92)";
+  ctx.fillRect(0, 0, BOARD_AREA, 46);
+  const text = left > 0
+    ? "Przeciwnik się rozłączył - czekamy " + formatClock(left)
+    : "Przeciwnik nie wrócił - walkower...";
+  drawText(text, BOARD_AREA / 2, 23, 18, "#ffffff");
+}
+
+// Gdy wracamy do karty z grą (była schowana) - od razu mówimy "jestem"
+document.addEventListener("visibilitychange", function () {
+  if (!document.hidden && online) heartbeat(online.code);
+});
+
+// =====================================================
+//  POWRÓT DO GRY po ponownym otwarciu strony
+// =====================================================
+
+// Po otwarciu strony: jeśli ta przeglądarka ma trwającą grę - wracamy do niej od razu.
+// Gdy nie ma zapamiętanego gracza, nic nie robimy (nie zakładamy nowego).
+async function resumeOnlineGameIfAny() {
+  const saved = await hasSavedSession();
+  if (!saved.ok || !saved.data) return;
+
+  const active = await findMyActiveGame();
+  if (!active.ok || !active.data || currentScreen !== "title") return;
+
+  const profile = await getMyProfile();
+  if (profile.ok) {
+    onlineProfile = profile.data;
+    onlineStatus = "ready";
+  }
+  resumingGame = true;
+  startOnlineGame(active.data);
+}
+
+window.addEventListener("load", resumeOnlineGameIfAny);
 
 // =====================================================
 //  KONIEC GRY
@@ -560,7 +676,7 @@ function drawSearchingScreen() {
   drawPaper();
 
   if (foundRoomCode) {
-    drawBigTitle("MAMY PRZECIWNIKA!", 150, 44);
+    drawBigTitle(resumingGame ? "WRACAM DO GRY" : "MAMY PRZECIWNIKA!", 150, 44);
     drawText("Kod gry: " + foundRoomCode, canvas.width / 2, 250, 28, "#000000");
     drawText("Przygotowuję planszę...", canvas.width / 2, 300, 18, "#555555");
   } else {

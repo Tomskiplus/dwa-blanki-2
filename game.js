@@ -334,14 +334,13 @@ function getGameButtons() {
   // Gdy widać baner zmiany tury, przyciski są "zasłonięte"
   if (showTurnBanner) return [];
 
-  // Mały przycisk MENU w prawym górnym rogu panelu (przez internet: wyjście z gry)
-  const menuButton = { label: "MENU", x: PANEL_X + PANEL_WIDTH - 62, y: 12, w: 50, h: 26, fontSize: 11,
-    onClick: () => {
-      if (online) leaveOnlineGame();
-      goToScreen("title");
-    } };
+  // Mały przycisk MENU w prawym górnym rogu panelu.
+  // Przez internet zamiast niego jest PODDAJ SIĘ (z gry przez internet się nie "wychodzi").
+  let menuButton = { label: "MENU", x: PANEL_X + PANEL_WIDTH - 62, y: 12, w: 50, h: 26, fontSize: 11,
+    onClick: () => goToScreen("title") };
+  if (online) menuButton = getSurrenderButton(PANEL_X + PANEL_WIDTH - 74, 12, 66, 26);   // online.js
 
-  // Przez internet, w turze przeciwnika: tylko MENU (patrzymy, nic nie zmieniamy)
+  // Przez internet, w turze przeciwnika: tylko PODDAJ SIĘ (patrzymy, nic nie zmieniamy)
   if (!isMyTurn()) return [menuButton];
 
   const buttons = [];
@@ -1301,7 +1300,8 @@ function drawPanel() {
   const centerX = PANEL_X + PANEL_WIDTH / 2;
   const player = game.players[game.current];
 
-  drawText("TURA " + game.turn, left, 26, 22, "#000000", "left");
+  // Przez internet napis jest mniejszy, bo obok jest zegar tury i przycisk PODDAJ SIĘ
+  drawText("TURA " + game.turn, left, 26, online ? 17 : 22, "#000000", "left");
   if (online) drawOnlineClock();   // zegar tury 5:00 (online.js)
 
   // Kto teraz gra - prostokąt w kolorze gracza
@@ -1599,6 +1599,7 @@ function drawGameScreen() {
   drawGhost();
   drawFrame();
   drawPanel();
+  if (online) drawOnlineOverlay();   // czerwony pasek "przeciwnik się rozłączył" (online.js)
   if (showTurnBanner) drawTurnBanner();
 }
 

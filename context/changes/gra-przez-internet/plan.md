@@ -395,30 +395,30 @@ psuło bazy (`if not exists`, `create or replace`, `drop policy if exists`).
 
 #### Automated
 
-- [x] 3.1 Testy zasad przechodzą: `node tests/run-tests.js`
-- [x] 3.2 Test bazy przechodzi: `node tests/online-sql-test.js`
-- [x] 3.3 Składnia: `node --check game.js online.js network.js`
+- [x] 3.1 Testy zasad przechodzą: `node tests/run-tests.js` — 40af63b
+- [x] 3.2 Test bazy przechodzi: `node tests/online-sql-test.js` — 40af63b
+- [x] 3.3 Składnia: `node --check game.js online.js network.js` — 40af63b
 
 #### Manual
 
-- [x] 3.4 Dwa okna: ruch jednego gracza od razu widać u drugiego
-- [x] 3.5 Gracz bez tury nie może nic zbudować ani ruszyć, ale widzi statystyki klikniętej jednostki
-- [x] 3.6 Zaczyna gracz z niższym rankingiem (sprawdzić po jednej rozegranej grze)
-- [x] 3.7 Zegar dochodzi do 0:00 → tura przechodzi sama
-- [x] 3.8 Zniszczenie ratusza przeciwnika → obaj widzą ekran zwycięstwa, ranking +2 / −1
+- [x] 3.4 Dwa okna: ruch jednego gracza od razu widać u drugiego — 40af63b
+- [x] 3.5 Gracz bez tury nie może nic zbudować ani ruszyć, ale widzi statystyki klikniętej jednostki — 40af63b
+- [x] 3.6 Zaczyna gracz z niższym rankingiem (sprawdzić po jednej rozegranej grze) — 40af63b
+- [x] 3.7 Zegar dochodzi do 0:00 → tura przechodzi sama — 40af63b
+- [x] 3.8 Zniszczenie ratusza przeciwnika → obaj widzą ekran zwycięstwa, ranking +2 / −1 — 40af63b
 
 ### Phase 4: Rozłączenia i poddanie się
 
 #### Automated
 
-- [ ] 4.1 Testy zasad przechodzą: `node tests/run-tests.js`
-- [ ] 4.2 Test bazy przechodzi: `node tests/online-sql-test.js`
+- [x] 4.1 Testy zasad przechodzą: `node tests/run-tests.js` — SHA4
+- [x] 4.2 Test bazy przechodzi: `node tests/online-sql-test.js` — SHA4
 
 #### Manual
 
-- [ ] 4.3 Zamknięcie okna gracza B → u A odliczanie; po 2:00 A wygrywa walkowerem (+2 / −1)
-- [ ] 4.4 Zamknięcie i ponowne otwarcie okna B przed upływem 2:00 → B wraca do tej samej gry, odliczanie u A znika
-- [ ] 4.5 PODDAJ SIĘ → NA PEWNO? → przeciwnik wygrywa
+- [x] 4.3 Zamknięcie okna gracza B → u A odliczanie; po 2:00 A wygrywa walkowerem (+2 / −1) — SHA4 (sprawdził robot: 2 przeglądarki, 21 ✅; ręcznie nie)
+- [x] 4.4 Zamknięcie i ponowne otwarcie okna B przed upływem 2:00 → B wraca do tej samej gry, odliczanie u A znika — SHA4 (sprawdził robot: 2 przeglądarki, 21 ✅; ręcznie nie)
+- [x] 4.5 PODDAJ SIĘ → NA PEWNO? → przeciwnik wygrywa — SHA4 (sprawdził robot: 2 przeglądarki, 21 ✅; ręcznie nie)
 
 ### Phase 5: Ochrona przed botami (captcha) – z TATĄ
 

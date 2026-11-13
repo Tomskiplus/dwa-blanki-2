@@ -81,6 +81,37 @@ async function connect() {
   }
 }
 
+// Czy ta przeglądarka grała już przez internet? (ma zapamiętaną przepustkę)
+// Tylko sprawdza - NIE zakłada nowego gracza. data = true / false
+async function hasSavedSession() {
+  try {
+    if (typeof supabase === "undefined") return { ok: false, data: false, error: NO_CONNECTION };
+    if (!supabaseClient) supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+    const saved = await supabaseClient.auth.getSession();
+    if (!saved.data.session) return { ok: true, data: false, error: null };
+    myUserId = saved.data.session.user.id;
+    return { ok: true, data: true, error: null };
+  } catch (problem) {
+    return { ok: false, data: false, error: NO_CONNECTION };
+  }
+}
+
+// Czy gram teraz w jakiejś grze? data = kod pokoju albo null.
+// (Bez dopisywania do kolejki szukających - do tego jest findMatch)
+async function findMyActiveGame() {
+  try {
+    const result = await supabaseClient.from("room_players")
+      .select("room_code, rooms!inner(status)")
+      .eq("user_id", myUserId)
+      .eq("rooms.status", "playing")
+      .limit(1);
+    if (result.error) return { ok: false, data: null, error: NO_CONNECTION };
+    return { ok: true, data: result.data.length > 0 ? result.data[0].room_code : null, error: null };
+  } catch (problem) {
+    return { ok: false, data: null, error: NO_CONNECTION };
+  }
+}
+
 // =====================================================
 //  RANKING I SZUKANIE GRY
 // =====================================================
