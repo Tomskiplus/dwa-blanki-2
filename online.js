@@ -20,7 +20,7 @@ const WALKOVER_SECONDS = 2 * 60;   // po tylu sekundach ciszy przeciwnika - walk
 const SURRENDER_CONFIRM_MS = 4000; // tyle czasu jest na drugie kliknięcie "NA PEWNO?"
 
 // --- Stan trybu online ---
-let onlineStatus = "offline";      // "offline", "connecting", "ready" albo "error"
+let onlineStatus = "offline";      // "offline", "connecting", "captcha", "ready" albo "error"
 let onlineProfile = null;          // mój ranking: { rating, wins, losses }
 let onlineCountry = loadSavedCountry();  // numer mojego kraju w COUNTRIES
 let searchStartedAt = 0;           // kiedy kliknąłem WYSZUKAJ GRĘ (Date.now())
@@ -90,7 +90,29 @@ async function openMultiplayer() {
   foundRoomCode = null;
   onlineStatus = "connecting";
 
-  const connection = await connect();
+  // Nowy gracz (ta przeglądarka jeszcze nie grała) musi najpierw przejść captchę.
+  // Gracz z zapamiętaną przepustką - od razu dalej.
+  const saved = await hasSavedSession();
+  if (currentScreen !== "multiMenu") return;   // gracz zdążył kliknąć WSTECZ
+  if (!saved.ok) {
+    onlineStatus = "error";
+    showOnlineError(saved.error);
+    return;
+  }
+  if (!saved.data && TURNSTILE_SITE_KEY !== "") {
+    onlineStatus = "captcha";
+    showCaptcha();
+    return;
+  }
+  finishConnecting(null);
+}
+
+// Logowanie i pobranie rankingu (captchaToken = "bilet" z captchy albo null)
+async function finishConnecting(captchaToken) {
+  if (currentScreen !== "multiMenu") return;   // gracz zdążył kliknąć WSTECZ
+  onlineStatus = "connecting";
+
+  const connection = await connect(captchaToken);
   if (!connection.ok) {
     onlineStatus = "error";
     showOnlineError(connection.error);
@@ -105,6 +127,60 @@ async function openMultiplayer() {
   }
   onlineProfile = profile.data;
   onlineStatus = "ready";
+}
+
+// =====================================================
+//  CAPTCHA (Cloudflare Turnstile) - "czy jesteś człowiekiem?"
+//  Okienko to prawdziwy element strony (nie rysunek na canvasie),
+//  dlatego leży w "pudełku" #captcha-box nad grą.
+// =====================================================
+
+let captchaWidgetId = null;   // numer okienka captchy (od Cloudflare) albo null
+
+// Pokazuje okienko captchy. Gdy gracz przejdzie - Cloudflare daje "bilet" (token)
+function showCaptcha() {
+  if (typeof turnstile === "undefined") {
+    // Skrypt Cloudflare się nie wczytał (np. brak internetu)
+    onlineStatus = "error";
+    showOnlineError(NO_CONNECTION);
+    return;
+  }
+  hideCaptcha();   // stare okienko wyrzucamy - każdy bilet działa tylko raz
+  const box = document.getElementById("captcha-box");
+  box.hidden = false;
+  captchaWidgetId = turnstile.render(box, {
+    sitekey: TURNSTILE_SITE_KEY,
+    language: "pl",
+    theme: "light",
+    callback: token => {         // przeszedł! logujemy się z biletem
+      hideCaptcha();
+      finishConnecting(token);
+    },
+    "error-callback": code => {  // coś nie wyszło (np. gra otwarta jako plik file:///)
+      hideCaptcha();
+      onlineStatus = "error";
+      showOnlineError(captchaErrorText(code));
+      return true;               // "obsłużyliśmy błąd" - Cloudflare nie krzyczy w konsoli
+    },
+  });
+}
+
+// Chowa i usuwa okienko captchy (woła je też goToScreen z game.js przy zmianie ekranu)
+function hideCaptcha() {
+  const box = document.getElementById("captcha-box");
+  if (box) box.hidden = true;
+  if (captchaWidgetId !== null && typeof turnstile !== "undefined") {
+    turnstile.remove(captchaWidgetId);
+  }
+  captchaWidgetId = null;
+}
+
+// Błąd captchy po polsku. Kody 110200... = "ta strona nie jest na liście dozwolonych"
+function captchaErrorText(code) {
+  if (String(code).startsWith("1102")) {
+    return "Sprawdzanie captchy nie działa tutaj. Otwórz grę przez Live Preview albo ze strony gry.";
+  }
+  return "Nie udało się sprawdzić, czy jesteś człowiekiem. Spróbuj znowu.";
 }
 
 // =====================================================
@@ -647,6 +723,12 @@ function drawMultiMenuScreen() {
 
   if (onlineStatus === "connecting") {
     drawText("Łączę z serwerem gry...", canvas.width / 2, 220, 24, "#000000");
+  }
+
+  if (onlineStatus === "captcha") {
+    // Pod napisem leży okienko captchy z Cloudflare (#captcha-box)
+    drawText("Sprawdzam, czy jesteś człowiekiem", canvas.width / 2, 200, 26, "#000000");
+    drawText("(tylko za pierwszym razem)", canvas.width / 2, 234, 16, "#555555");
   }
 
   if (onlineStatus === "ready") {

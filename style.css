@@ -16,3 +16,12 @@ body {
   border-radius: 8px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
+
+/* Okienko captchy - na środku ekranu, czyli na środku "kartki" z grą */
+#captcha-box {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+}

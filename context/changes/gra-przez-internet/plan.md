@@ -411,24 +411,24 @@ psuło bazy (`if not exists`, `create or replace`, `drop policy if exists`).
 
 #### Automated
 
-- [x] 4.1 Testy zasad przechodzą: `node tests/run-tests.js` — SHA4
-- [x] 4.2 Test bazy przechodzi: `node tests/online-sql-test.js` — SHA4
+- [x] 4.1 Testy zasad przechodzą: `node tests/run-tests.js` — ce58591
+- [x] 4.2 Test bazy przechodzi: `node tests/online-sql-test.js` — ce58591
 
 #### Manual
 
-- [x] 4.3 Zamknięcie okna gracza B → u A odliczanie; po 2:00 A wygrywa walkowerem (+2 / −1) — SHA4 (sprawdził robot: 2 przeglądarki, 21 ✅; ręcznie nie)
-- [x] 4.4 Zamknięcie i ponowne otwarcie okna B przed upływem 2:00 → B wraca do tej samej gry, odliczanie u A znika — SHA4 (sprawdził robot: 2 przeglądarki, 21 ✅; ręcznie nie)
-- [x] 4.5 PODDAJ SIĘ → NA PEWNO? → przeciwnik wygrywa — SHA4 (sprawdził robot: 2 przeglądarki, 21 ✅; ręcznie nie)
+- [x] 4.3 Zamknięcie okna gracza B → u A odliczanie; po 2:00 A wygrywa walkowerem (+2 / −1) — ce58591 (sprawdził robot: 2 przeglądarki, 21 ✅; ręcznie nie)
+- [x] 4.4 Zamknięcie i ponowne otwarcie okna B przed upływem 2:00 → B wraca do tej samej gry, odliczanie u A znika — ce58591 (sprawdził robot: 2 przeglądarki, 21 ✅; ręcznie nie)
+- [x] 4.5 PODDAJ SIĘ → NA PEWNO? → przeciwnik wygrywa — ce58591 (sprawdził robot: 2 przeglądarki, 21 ✅; ręcznie nie)
 
 ### Phase 5: Ochrona przed botami (captcha) – z TATĄ
 
 #### Automated
 
-- [ ] 5.1 Testy zasad przechodzą: `node tests/run-tests.js`
-- [ ] 5.2 Składnia: `node --check network.js online.js`
+- [x] 5.1 Testy zasad przechodzą: `node tests/run-tests.js` — SHA5
+- [x] 5.2 Składnia: `node --check network.js online.js` — SHA5
 
 #### Manual
 
-- [ ] 5.3 Nowe okno prywatne → widżet captchy → po przejściu „Twój ranking: 10”
-- [ ] 5.4 Drugie wejście w tej samej przeglądarce → bez captchy
-- [ ] 5.5 Wyszukiwanie i gra dalej działają
+- [x] 5.3 Nowe okno prywatne → widżet captchy → po przejściu „Twój ranking: 10” — SHA5
+- [x] 5.4 Drugie wejście w tej samej przeglądarce → bez captchy — SHA5
+- [x] 5.5 Wyszukiwanie i gra dalej działają — SHA5

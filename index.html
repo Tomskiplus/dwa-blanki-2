@@ -11,6 +11,9 @@
   <!-- Canvas = nasza "kartka w kratkę", na której rysujemy całą grę -->
   <canvas id="game" width="800" height="600"></canvas>
 
+  <!-- "Pudełko" na captchę (okienko z Cloudflare leży NA grze). Schowane, dopóki nie jest potrzebne -->
+  <div id="captcha-box" hidden></div>
+
   <!-- Podpinamy pliki gry (na końcu, żeby canvas już istniał).
        Kolejność jest ważna: najpierw dane, potem zasady, na końcu ekrany. -->
   <script src="data.js"></script>
@@ -20,6 +23,8 @@
   <!-- Gra przez internet: biblioteka Supabase (przypięta wersja - zgoda TATY),
        adres naszej bazy, "kabel" do bazy i ekrany trybu online -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
+  <!-- Captcha Cloudflare Turnstile (sprawdza, czy nowy gracz to człowiek, a nie bot) -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"></script>
   <script src="supabase-config.js"></script>
   <script src="network.js"></script>
   <script src="online.js"></script>

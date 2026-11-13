@@ -86,6 +86,7 @@ const DRAG_MIN_PIXELS = 6;      // o ile trzeba przesunąć myszkę, żeby to by
 function goToScreen(screenName) {
   currentScreen = screenName;
   message = "";
+  if (screenName !== "multiMenu") hideCaptcha();   // okienko captchy tylko w MULTIPLAYER
 }
 
 // =====================================================

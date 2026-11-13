@@ -56,7 +56,8 @@ async function callDatabase(functionName, args) {
 // Łączy się z bazą i loguje anonimowo (bez e-maila i hasła).
 // Przepustkę (sesję) biblioteka sama pamięta w przeglądarce,
 // więc następnym razem jesteśmy tym samym graczem.
-async function connect() {
+// captchaToken = "bilet" z captchy (potrzebny tylko nowemu graczowi) albo null
+async function connect(captchaToken) {
   try {
     if (!supabaseClient) {
       // "supabase" to biblioteka wczytana w index.html. Gdy jej nie ma - nie ma internetu
@@ -72,7 +73,8 @@ async function connect() {
     }
 
     // Nie - loguję się anonimowo jako nowy gracz
-    const result = await supabaseClient.auth.signInAnonymously();
+    const credentials = captchaToken ? { options: { captchaToken: captchaToken } } : undefined;
+    const result = await supabaseClient.auth.signInAnonymously(credentials);
     if (result.error) return { ok: false, data: null, error: NO_CONNECTION };
     myUserId = result.data.user.id;
     return { ok: true, data: myUserId, error: null };

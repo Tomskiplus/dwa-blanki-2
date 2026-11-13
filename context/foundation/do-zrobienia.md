@@ -68,7 +68,8 @@ Wszystkie liczby są już w `zasady-gry.md` → „Kolory (kraje)”.
 - Gra z botem (1 vs bot).
 - Multiplayer przez internet – **w toku** (2026-11-11). TATA wybrał Supabase
   (anonimowe logowanie, baza w `supabase/schema.sql`, dane w `supabase-config.js`).
-  - Przy lobby (gra dla obcych): włączyć captchę (Cloudflare Turnstile) – zalecenie Supabase.
+  - ✅ Captcha (Cloudflare Turnstile) włączona 2026-11-13 – widżet na koncie Cloudflare TATY,
+    Secret key tylko w Supabase → Attack Protection. Test `tests/online-sql-test.js` już się nie loguje.
   - Później: uczciwy ranking = logika gry na serwerze (Edge Function z `rules.js`).
   - Opcjonalnie: wyłączyć dostawcę Email w Supabase (nie używamy).
 - Prawdziwy edytor map.
