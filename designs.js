@@ -27,15 +27,16 @@ const DESIGNS = {
 let boardDesign = null;       // które tło jest teraz włączone (albo null)
 let designPicture = null;     // gotowa "naklejka": { key, canvas }
 
-// Czy ten tekst to kod tła? (wielkość liter i spacje nie mają znaczenia)
+// Czy ten tekst to kod tła? Wielkość liter ma znaczenie ("Design:Space" to NIE kod),
+// spacje na brzegach - nie
 function isDesignCode(text) {
-  const code = String(text).trim().toLowerCase();
+  const code = String(text).trim();
   return Object.prototype.hasOwnProperty.call(DESIGN_CODES, code);
 }
 
 // Włącza tło z kodu. Zwraca napis dla gracza, np. "Tło: Góry"
 function useDesignCode(text) {
-  boardDesign = DESIGN_CODES[String(text).trim().toLowerCase()];
+  boardDesign = DESIGN_CODES[String(text).trim()];
   return boardDesign ? "Tło: " + DESIGNS[boardDesign].name : "Tło wyłączone";
 }
 

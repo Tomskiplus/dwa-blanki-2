@@ -231,3 +231,7 @@ Zamiast proponowanego „design:starwars” jest `design:space` (cudzy znak towa
 #### Manual
 
 - [x] 5.1 Każdy z 3 kodów zmienia tło planszy, `design:off` je wyłącza
+
+### Poprawka (2026-11-14): wielkość liter w kodach ma znaczenie
+
+Decyzja autora gry: kody działają tylko dokładnie tak, jak są zapisane (`IAmNotTusk`, `AK-47_cat`, `ILLfroggy`, `design:mountain`…), a `iamnottusk` to zwykła wiadomość. Spacje na brzegach dalej nie przeszkadzają. Przy okazji: kod sprawdzany przez `hasOwnProperty` (np. „constructor” nie jest kodem).

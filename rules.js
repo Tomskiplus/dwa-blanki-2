@@ -357,10 +357,13 @@ function placeUnit(game, unitKey, building, cells, rotation) {
 // =====================================================
 
 // Czy ten tekst to tajny kod? Zwraca klucz jednostki (np. "jez") albo null.
-// Wielkość liter nie ma znaczenia: "IAmNotTusk" = "iamnottusk"
+// Wielkość liter ma znaczenie ("iamnottusk" to NIE kod), spacje na brzegach - nie.
+// hasOwnProperty = tylko kody z NASZEJ listy (bez ukrytych pól, które ma każdy obiekt,
+// np. "constructor" - inaczej to też "byłby" kod)
 function cheatCodeUnit(text) {
-  const code = String(text).trim().toLowerCase();
-  return CHEAT_CODES[code] || null;
+  const code = String(text).trim();
+  if (!Object.prototype.hasOwnProperty.call(CHEAT_CODES, code)) return null;
+  return CHEAT_CODES[code];
 }
 
 // Gracz, który ma turę, wpisał kod. Zwraca { ok, reason, unit }:

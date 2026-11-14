@@ -232,11 +232,12 @@ const UNIT_TYPES = {
 };
 
 // --- Tajne kody (tylko w EDYTORZE, wpisywane w okienko czatu) ---
-// kod (małymi literami) -> jaka jednostka się pojawia
+// kod -> jaka jednostka się pojawia.
+// Wielkość liter MA znaczenie: działa "IAmNotTusk", a "iamnottusk" już nie (zasada autora gry)
 const CHEAT_CODES = {
-  "iamnottusk": "jez",
-  "ak-47_cat": "kotAk",
-  "illfroggy": "zaba",
+  "IAmNotTusk": "jez",
+  "AK-47_cat": "kotAk",
+  "ILLfroggy": "zaba",
 };
 
 // --- Ulepszenia jednostek ---

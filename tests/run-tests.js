@@ -833,8 +833,11 @@ function hasCell(obj, x, y) {
   check("Drugi kod w tej samej turze odrzucony", !second.ok && second.reason === "Kod już użyty w tej turze.");
 
   endTurn(game);   // tura gracza 1
-  const cat = useCheatCode(game, "  ak-47_CAT ");
-  check("Po zmianie tury kod znowu działa (wielkość liter i spacje bez znaczenia)", cat.ok && cat.unit.type === "kotAk");
+  check("Wielkość liter ma znaczenie: ak-47_CAT to nie kod", !useCheatCode(game, "ak-47_CAT").ok);
+  check("iamnottusk (małymi literami) to nie kod", cheatCodeUnit("iamnottusk") === null);
+  check("constructor to nie kod (ukryte pole obiektu)", cheatCodeUnit("constructor") === null);
+  const cat = useCheatCode(game, "  AK-47_cat ");
+  check("Po zmianie tury kod znowu działa (spacje na brzegach bez znaczenia)", cat.ok && cat.unit.type === "kotAk");
   check("Kot należy do gracza, który ma turę (1)", cat.unit.owner === 1);
   check("Kot: 2 pola, 20 życia", cat.unit.cells.length === 2 && cat.unit.hp === 20);
 }
