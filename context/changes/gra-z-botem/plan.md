@@ -347,10 +347,10 @@ kilku jednostek – na dużej planszy (36×27) to wciąż ułamek sekundy. Nie l
 
 #### Automated
 
-- [x] 3.1 Testy przechodzą: `node tests/run-tests.js`
+- [x] 3.1 Testy przechodzą: `node tests/run-tests.js` — c215cbb
 
 #### Manual
 
-- [x] 3.2 W turze bota widać podświetlenie i napis o ostatniej akcji
-- [x] 3.3 „WYGRAŁEŚ!” / „BOT WYGRAŁ”; NOWA GRA wraca do ustawień 1 VS BOT
-- [x] 3.4 README opisuje grę z botem
+- [x] 3.2 W turze bota widać podświetlenie i napis o ostatniej akcji — c215cbb
+- [x] 3.3 „WYGRAŁEŚ!” / „BOT WYGRAŁ”; NOWA GRA wraca do ustawień 1 VS BOT — c215cbb
+- [x] 3.4 README opisuje grę z botem — c215cbb

@@ -1,7 +1,7 @@
 ---
 change_id: gra-z-botem
 title: Tryb 1 VS BOT – gra z prostym botem
-status: implementing
+status: implemented
 created: 2026-11-14
 updated: 2026-11-14
 archived_at: null
