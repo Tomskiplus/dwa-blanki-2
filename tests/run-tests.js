@@ -812,6 +812,73 @@ function hasCell(obj, x, y) {
 }
 
 // =====================================================
+//  ZMIANA "kody-w-edytorze": jeż i kot z tajnych kodów
+//  Gracz 0 na małej planszy: ratusz (2,2)-(3,4), chłopi na (2,5) i (3,5)
+// =====================================================
+
+{
+  // Kod IAmNotTusk -> jeż obok ratusza
+  const game = createGame(2, "mala");
+  const townHall = game.objects.find(o => o.type === "ratusz" && o.owner === 0);
+  check("Zwykły tekst to nie kod", (() => { const r = useCheatCode(game, "hej"); return !r.ok && r.reason === ""; })());
+
+  const hedgehog = useCheatCode(game, "IAmNotTusk");
+  check("Kod IAmNotTusk tworzy jeża", hedgehog.ok && hedgehog.unit.type === "jez");
+  check("Jeż stoi tuż obok ratusza", distance(townHall.cells, hedgehog.unit.cells) === 1);
+  check("Jeż: 4 pola, 5 życia, gracza 0", hedgehog.unit.cells.length === 4 && hedgehog.unit.hp === 5 && hedgehog.unit.owner === 0);
+  check("Jeż działa dopiero od następnej tury", hedgehog.unit.isNew === true);
+  check("Kod jest darmowy (8 punktów zostaje)", game.buildPoints === 8);
+
+  const second = useCheatCode(game, "AK-47_cat");
+  check("Drugi kod w tej samej turze odrzucony", !second.ok && second.reason === "Kod już użyty w tej turze.");
+
+  endTurn(game);   // tura gracza 1
+  const cat = useCheatCode(game, "  ak-47_CAT ");
+  check("Po zmianie tury kod znowu działa (wielkość liter i spacje bez znaczenia)", cat.ok && cat.unit.type === "kotAk");
+  check("Kot należy do gracza, który ma turę (1)", cat.unit.owner === 1);
+  check("Kot: 2 pola, 20 życia", cat.unit.cells.length === 2 && cat.unit.hp === 20);
+}
+
+{
+  // Jeż atakuje 15 razy w jednej turze, a 16. raz już nie
+  const game = createGame(2, "mala");
+  const hedgehog = unitAt(game, "jez", 10, 6);
+  const target = unitAt(game, "kotAk", 12, 6, 0, 1);   // kot przeciwnika (20 życia) tuż obok
+  let hits = 0;
+  for (let i = 0; i < 15; i++) {
+    if (attack(game, hedgehog, target).ok) hits++;
+  }
+  check("Jeż trafia 15 razy w jednej turze", hits === 15 && target.hp === 5);
+  check("16. atak jeża w tej turze się nie udaje", !attack(game, hedgehog, target).ok);
+}
+
+{
+  // Kot strzela przez całą planszę, ale tylko w jednostki
+  const game = createGame(2, "mala");
+  const enemyPeasant = game.objects.find(o => o.owner === 1 && o.type === "chlop");
+  const enemyTownHall = game.objects.find(o => o.owner === 1 && o.type === "ratusz");
+  const cat = unitAt(game, "kotAk", 0, 13);
+  check("Kot widzi wrogiego chłopa na drugim końcu planszy",
+    getAttackTargets(game, cat).includes(enemyPeasant));
+  check("Kot nie celuje w budynki", !getAttackTargets(game, cat).some(o => o.kind === "building"));
+  const shot = attack(game, cat, enemyPeasant);
+  check("Kot zadaje 10 obrażeń", shot.ok && shot.damage === 10 && shot.destroyed);
+  const cat2 = unitAt(game, "kotAk", 1, 13);
+  const onBuilding = attack(game, cat2, enemyTownHall);
+  check("Kot nie może zaatakować ratusza", !onBuilding.ok && onBuilding.reason === "Kot z AK-47 atakuje tylko jednostki.");
+}
+
+{
+  // Jeża i kota nie da się zrobić w żadnym budynku (nawet w erze 4)
+  const game = createGame(2, "mala");
+  game.players[0].era = 4;
+  const secret = Object.keys(BUILDING_TYPES).some(key =>
+    getRecruitOptions(game, { type: key, owner: 0 }).some(unitKey => UNIT_TYPES[unitKey].cheatOnly)
+  );
+  check("Jeża i kota nie ma w menu żadnego budynku", !secret);
+}
+
+// =====================================================
 //  WYNIK
 // =====================================================
 console.log("");

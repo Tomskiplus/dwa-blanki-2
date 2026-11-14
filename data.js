@@ -218,6 +218,21 @@ const UNIT_TYPES = {
   ciezkaKawaleria:   { name: "Ciężka kawaleria",      shape: SHAPE_SQUARE4, hp: 6, attack: 3, range: 1, era: 4, building: "stajnia", cavalry: true },
   paladyn:           { name: "Paladyn",               shape: SHAPE_L3,      hp: 9, attack: 4, range: 1, era: 4, building: "stajnia", cavalry: true },
   ulan:              { name: "Ułan",                  shape: SHAPE_LANCER,  hp: 6, attack: 4, range: 1, era: 4, building: "stajnia", cavalry: true },
+
+  // ----- TAJNE: tylko z kodu w EDYTORZE (patrz CHEAT_CODES niżej) -----
+  // Nie mają "building", więc żaden budynek ich nie robi.
+  // attacksPerTurn = ile razy atakuje w jednej turze
+  // onlyVsUnits = atakuje tylko jednostki (budynków nie)
+  // range: 999 = "nieskończoność" (Infinity nie przeżyłoby zapisu gry jako JSON - zmieniłoby się w null)
+  jez:               { name: "Jeż",                   shape: SHAPE_SQUARE4, hp: 5,  attack: 1,  range: 1,   era: 1, cheatOnly: true, attacksPerTurn: 15 },
+  kotAk:             { name: "Kot z AK-47",           shape: SHAPE_1x2,     hp: 20, attack: 10, range: 999, era: 1, cheatOnly: true, onlyVsUnits: true },
+};
+
+// --- Tajne kody (tylko w EDYTORZE, wpisywane w okienko czatu) ---
+// kod (małymi literami) -> jaka jednostka się pojawia
+const CHEAT_CODES = {
+  "iamnottusk": "jez",
+  "ak-47_cat": "kotAk",
 };
 
 // --- Ulepszenia jednostek ---

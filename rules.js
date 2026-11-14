@@ -353,6 +353,64 @@ function placeUnit(game, unitKey, building, cells, rotation) {
 }
 
 // =====================================================
+//  TAJNE KODY (tylko EDYTOR - pilnuje tego chat.js)
+// =====================================================
+
+// Czy ten tekst to tajny kod? Zwraca klucz jednostki (np. "jez") albo null.
+// Wielkość liter nie ma znaczenia: "IAmNotTusk" = "iamnottusk"
+function cheatCodeUnit(text) {
+  const code = String(text).trim().toLowerCase();
+  return CHEAT_CODES[code] || null;
+}
+
+// Gracz, który ma turę, wpisał kod. Zwraca { ok, reason, unit }:
+//  - to nie kod             -> ok: false, reason: ""  (to po prostu wiadomość czatu)
+//  - kod, ale nie wolno     -> ok: false, reason: dlaczego
+//  - udało się              -> ok: true, unit: nowa jednostka
+function useCheatCode(game, text) {
+  const unitKey = cheatCodeUnit(text);
+  if (!unitKey) return { ok: false, reason: "", unit: null };
+  if (game.codeUsedThisTurn) return { ok: false, reason: "Kod już użyty w tej turze.", unit: null };
+
+  const townHall = game.objects.find(obj =>
+    obj.kind === "building" && obj.type === "ratusz" && obj.owner === game.current
+  );
+  if (!townHall) return { ok: false, reason: "Nie masz ratusza.", unit: null };
+
+  const spot = findSpotNear(game, UNIT_TYPES[unitKey].shape, townHall.cells);
+  if (!spot) return { ok: false, reason: "Brak miejsca obok ratusza.", unit: null };
+
+  // Jednostka za darmo, ale jak każda nowa - działa od następnej tury
+  const unit = addUnit(game, unitKey, game.current, spot.cells, spot.rotation);
+  unit.isNew = true;
+  game.codeUsedThisTurn = true;
+  return { ok: true, reason: "", unit: unit };
+}
+
+// Szuka wolnego miejsca na kształt jak najbliżej podanych kratek (np. ratusza).
+// Sprawdza całą planszę: najpierw bez obrotu, potem obrócony o 90°.
+// Przy remisie wygrywa pierwsze znalezione (od lewej górnej kratki).
+// Zwraca { cells, rotation } albo null.
+function findSpotNear(game, shape, targetCells) {
+  let best = null;
+  let bestDistance = Infinity;
+  for (const rotation of [0, 1]) {
+    for (let y = 0; y < game.rows; y++) {
+      for (let x = 0; x < game.cols; x++) {
+        const cells = shapeCells(shape, x, y, rotation);
+        if (!checkCellsFree(game, cells).ok) continue;
+        const d = distance(targetCells, cells);
+        if (d < bestDistance) {
+          best = { cells: cells, rotation: rotation };
+          bestDistance = d;
+        }
+      }
+    }
+  }
+  return best;
+}
+
+// =====================================================
 //  TURY
 // =====================================================
 
@@ -370,6 +428,7 @@ function endTurn(game) {
   game.buildPoints = BUILD_POINTS;
   game.barracksBonus = BARRACKS_BONUS;
   game.squads = [];   // oddziały z ramki trzymają się tylko do końca tury
+  game.codeUsedThisTurn = false;   // nowy gracz może znowu użyć tajnego kodu (EDYTOR)
 
   // Jednostki gracza, który zaczyna turę, są już gotowe do działania
   for (const obj of game.objects) {
@@ -611,10 +670,11 @@ function getAttackTargets(game, attacker) {
   if (attacker.isNew || attacker.hasAttacked) return [];
   if (!canFight(attacker)) return [];
 
-  const range = typeOf(attacker).range;
+  const type = typeOf(attacker);
   return game.objects.filter(obj =>
-    obj.owner !== attacker.owner && distance(attacker.cells, obj.cells) <= range &&
-    !tooCloseForBuilding(game, attacker, obj)
+    obj.owner !== attacker.owner && distance(attacker.cells, obj.cells) <= type.range &&
+    !tooCloseForBuilding(game, attacker, obj) &&
+    !(type.onlyVsUnits && obj.kind !== "unit")   // kot z AK-47 nie strzela w budynki
   );
 }
 
@@ -625,9 +685,13 @@ function tooCloseForBuilding(game, attacker, target) {
   return distance(attacker.cells, target.cells) === 1;
 }
 
-// Ile razy w turze może atakować ten obiekt: kawaleria z Szarżą - 2 razy, reszta - raz
+// Ile razy w turze może atakować ten obiekt: kawaleria z Szarżą - 2 razy,
+// jednostki z attacksPerTurn (np. jeż) - tyle, ile tam wpisano, reszta - raz
 function maxAttacks(game, obj) {
-  if (obj.kind === "unit" && UNIT_TYPES[obj.type].cavalry && game.players[obj.owner].research.szarza) return 2;
+  if (obj.kind !== "unit") return 1;
+  const type = UNIT_TYPES[obj.type];
+  if (type.attacksPerTurn) return type.attacksPerTurn;
+  if (type.cavalry && game.players[obj.owner].research.szarza) return 2;
   return 1;
 }
 
@@ -655,6 +719,7 @@ function canAttack(game, attacker, target) {
   if (!canFight(attacker)) return { ok: false, reason: type.name + " nie umie walczyć." };
   if (attacker.isNew) return { ok: false, reason: "Nowa jednostka zaatakuje w następnej turze." };
   if (attacker.hasAttacked) return { ok: false, reason: "Ta jednostka już atakowała w tej turze." };
+  if (type.onlyVsUnits && target.kind !== "unit") return { ok: false, reason: type.name + " atakuje tylko jednostki." };
   if (distance(attacker.cells, target.cells) > type.range) return { ok: false, reason: "Cel jest za daleko." };
   if (tooCloseForBuilding(game, attacker, target)) return { ok: false, reason: "Wróg jest za blisko - potrzebna Mordownia." };
   return { ok: true, reason: "" };
