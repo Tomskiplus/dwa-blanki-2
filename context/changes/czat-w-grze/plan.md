@@ -280,8 +280,8 @@ Brak. Baza i SQL bez zmian, nie ma nowego serwisu.
 
 #### Automated
 
-- [x] 2.1 `node tests/run-tests.js` nadal przechodzi
-- [x] 2.2 Brak błędów w konsoli przy wczytaniu strony
+- [x] 2.1 `node tests/run-tests.js` nadal przechodzi — 7ab91dc
+- [x] 2.2 Brak błędów w konsoli przy wczytaniu strony — 7ab91dc
 
 #### Manual
 
@@ -296,7 +296,7 @@ Brak. Baza i SQL bez zmian, nie ma nowego serwisu.
 
 #### Automated
 
-- [ ] 3.1 `node tests/run-tests.js` nadal przechodzi
+- [x] 3.1 `node tests/run-tests.js` nadal przechodzi
 
 #### Manual
 

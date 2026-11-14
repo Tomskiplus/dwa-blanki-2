@@ -23,6 +23,8 @@ let chatMessages = [];         // wiadomości: { name, color, text, at, fromRiva
 let chatLastSentAt = 0;        // kiedy JA wysłałem ostatnią wiadomość (Date.now())
 let chatLastReceivedAt = 0;    // kiedy przyszła ostatnia wiadomość od przeciwnika
 let chatNotice = null;         // czerwony napis dla mnie: { text, at } albo null
+let chatMuted = false;         // czy wyciszyłem przeciwnika (do końca meczu)
+let chatRivalSpoke = false;    // czy przeciwnik już coś napisał (wtedy pokazujemy przycisk WYCISZ)
 
 // =====================================================
 //  KIEDY CZAT DZIAŁA
@@ -60,6 +62,8 @@ function clearChat() {
   chatMessages = [];
   chatLastReceivedAt = 0;
   chatNotice = null;
+  chatMuted = false;        // nowy mecz = czat znowu włączony
+  chatRivalSpoke = false;
   chatInput.value = "";
   closeChat();
 }
@@ -197,6 +201,9 @@ function receiveChat(text) {
   const checked = filterChatMessage(text);
   if (!checked.ok) return;
 
+  chatRivalSpoke = true;     // od teraz widać przycisk WYCISZ CZAT
+  if (chatMuted) return;     // wyciszony - wiadomość nawet nie trafia na listę
+
   const rival = game.players[1 - online.mySlot];
   addChatMessage(rival.colorName, rival.color, checked.text, true);
 }
@@ -209,14 +216,32 @@ function addChatMessage(name, color, text, fromRival) {
 }
 
 // =====================================================
+//  WYCISZANIE
+// =====================================================
+
+// Przycisk WYCISZ CZAT / WŁĄCZ CZAT (dołącza go getGameButtons z game.js).
+// Pokazujemy go dopiero, gdy przeciwnik coś napisał - wcześniej nie ma czego wyciszać.
+function getChatButtons() {
+  if (!online || !chatRivalSpoke || !chatAvailable()) return [];
+  return [{
+    label: chatMuted ? "WŁĄCZ CZAT" : "WYCISZ CZAT",
+    x: 468, y: 560, w: 118, h: 26, fontSize: 12,
+    selected: chatMuted,
+    onClick: () => { chatMuted = !chatMuted; },
+  }];
+}
+
+// =====================================================
 //  RYSOWANIE (woła je drawGameScreen z game.js)
 // =====================================================
 
-// Linijki do narysowania: ostatnie wiadomości sprzed < 15 s (+ czerwony napis)
+// Linijki do narysowania: ostatnie wiadomości sprzed < 15 s (+ czerwony napis).
+// Po wyciszeniu wiadomości przeciwnika znikają z ekranu.
 function getChatLines() {
   const now = Date.now();
   const lines = chatMessages
     .filter(msg => now - msg.at < CHAT_SHOW_MS)
+    .filter(msg => !(chatMuted && msg.fromRival))
     .slice(-CHAT_VISIBLE_COUNT);
   if (chatNotice && now - chatNotice.at < CHAT_NOTICE_MS) {
     lines.push({ name: "", color: "#c0392b", text: chatNotice.text });
@@ -226,8 +251,17 @@ function getChatLines() {
 
 // Wiadomości w lewym dolnym rogu planszy, na półprzezroczystej "karteczce"
 function drawChat() {
+  if (!chatAvailable()) return;
   const lines = getChatLines();
-  if (lines.length === 0) return;
+
+  // Pole zamknięte i nic do pokazania - mała szara podpowiedź
+  if (lines.length === 0) {
+    if (chatInput.hidden) {
+      const hint = chatMuted ? "Enter = czat (przeciwnik wyciszony)" : "Enter = czat";
+      drawText(hint, 18, 576, 13, "#888888", "left");
+    }
+    return;
+  }
 
   ctx.font = "bold 14px Arial, sans-serif";
   // Jak szeroka ma być karteczka? Tak jak najdłuższa linijka
@@ -244,7 +278,17 @@ function drawChat() {
   lines.forEach((line, index) => {
     const y = top + 4 + CHAT_LINE_HEIGHT / 2 + index * CHAT_LINE_HEIGHT;
     const label = chatLineLabel(line);
-    // Najpierw podpis w kolorze gracza, zaraz za nim tekst na czarno
+    // Najpierw podpis w kolorze gracza (z ciemnym obrysem - żeby np. żółty był czytelny),
+    // zaraz za nim tekst na czarno
+    if (label !== "") {
+      ctx.font = "bold 14px Arial, sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.strokeStyle = "#333333";
+      ctx.lineWidth = 2.5;
+      ctx.lineJoin = "round";
+      ctx.strokeText(label, 18, y);
+    }
     drawText(label, 18, y, 14, line.color, "left");
     ctx.font = "bold 14px Arial, sans-serif";
     const labelWidth = ctx.measureText(label).width;

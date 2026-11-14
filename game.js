@@ -346,7 +346,8 @@ function getGameButtons() {
   if (online) menuButton = getSurrenderButton(PANEL_X + PANEL_WIDTH - 74, 12, 66, 26);   // online.js
 
   // Przez internet, w turze przeciwnika: tylko PODDAJ SIĘ (patrzymy, nic nie zmieniamy)
-  if (!isMyTurn()) return [menuButton];
+  // (+ przycisk WYCISZ CZAT z chat.js, gdy przeciwnik coś napisał)
+  if (!isMyTurn()) return [menuButton, ...getChatButtons()];
 
   const buttons = [];
   const x = PANEL_X + 15;
@@ -395,6 +396,7 @@ function getGameButtons() {
   buttons.push({ label: "KONIEC TURY", x: x, y: 530, w: w, h: 52, fontSize: 20,
     onClick: finishTurn });
   buttons.push(menuButton);
+  buttons.push(...getChatButtons());   // WYCISZ CZAT (chat.js)
 
   return buttons;
 }
