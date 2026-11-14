@@ -1,7 +1,7 @@
 ---
 change_id: kody-w-edytorze
 title: Tajne kody w edytorze - jeż i kot wpisywani w okienko czatu
-status: implementing
+status: implemented
 created: 2026-11-14
 updated: 2026-11-14
 archived_at: null

@@ -195,11 +195,11 @@ Trzeci kod dopisany przez autora gry: `ILLfroggy` → **Żaba**: 4 pola (2×2, w
 
 #### Manual
 
-- [ ] 2.2 `IAmNotTusk` → jeż obok ratusza, ładnie narysowany
-- [ ] 2.3 Drugi kod w tej samej turze odrzucony, po zmianie tury działa
-- [ ] 2.4 Kot strzela przez całą planszę w jednostkę, w budynek nie
-- [ ] 2.5 Jeż atakuje wiele razy w jednej turze
-- [ ] 2.6 Kod w meczu przez internet nie dochodzi do przeciwnika
+- [x] 2.2 `IAmNotTusk` → jeż obok ratusza, ładnie narysowany
+- [x] 2.3 Drugi kod w tej samej turze odrzucony, po zmianie tury działa
+- [x] 2.4 Kot strzela przez całą planszę w jednostkę, w budynek nie
+- [x] 2.5 Jeż atakuje wiele razy w jednej turze
+- [x] 2.6 Kod w meczu przez internet nie dochodzi do przeciwnika
 
 ### Phase 3: Żaba (dodatek z 2026-11-14)
 
@@ -209,7 +209,7 @@ Trzeci kod dopisany przez autora gry: `ILLfroggy` → **Żaba**: 4 pola (2×2, w
 
 #### Manual
 
-- [ ] 3.2 `ILLfroggy` → żaba obok ratusza; w następnej turze skacze przez całą planszę
+- [x] 3.2 `ILLfroggy` → żaba obok ratusza; w następnej turze skacze przez całą planszę
 
 ### Phase 4: Animacja języka żaby (dodatek z 2026-11-14)
 
@@ -219,7 +219,7 @@ Zniszczony cel jest rysowany jako „duch”, dopóki język go nie trafi.
 
 #### Manual
 
-- [ ] 4.1 Żaba atakuje: język leci do celu, „PLASK!”, cel znika w chwili trafienia
+- [x] 4.1 Żaba atakuje: język leci do celu, „PLASK!”, cel znika w chwili trafienia
 
 ### Phase 5: Tła planszy z kodów (dodatek z 2026-11-14)
 
@@ -230,4 +230,4 @@ Zamiast proponowanego „design:starwars” jest `design:space` (cudzy znak towa
 
 #### Manual
 
-- [ ] 5.1 Każdy z 3 kodów zmienia tło planszy, `design:off` je wyłącza
+- [x] 5.1 Każdy z 3 kodów zmienia tło planszy, `design:off` je wyłącza

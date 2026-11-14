@@ -1,7 +1,7 @@
 ---
 change_id: czat-w-grze
 title: Czat z wolnym tekstem w meczu przez internet (Enter = pisz i wyślij)
-status: implementing
+status: implemented
 created: 2026-11-14
 updated: 2026-11-14
 archived_at: null

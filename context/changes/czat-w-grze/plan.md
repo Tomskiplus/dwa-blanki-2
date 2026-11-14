@@ -285,23 +285,23 @@ Brak. Baza i SQL bez zmian, nie ma nowego serwisu.
 
 #### Manual
 
-- [ ] 2.3 Wiadomość z okna A pojawia się w oknie B jako „<Kolor>: …”, a w A jako „Ty: …”
-- [ ] 2.4 Numer telefonu nie wychodzi i pokazuje komunikat
-- [ ] 2.5 Brzydkie słowo dochodzi jako `***`
-- [ ] 2.6 Dwie wiadomości szybciej niż co 2 s → druga zablokowana
-- [ ] 2.7 „r” i Esc w czacie nie sterują grą
-- [ ] 2.8 W EDYTORZE Enter otwiera czat, a wiadomość pokazuje się tylko lokalnie (nic nie idzie do internetu)
+- [x] 2.3 Wiadomość z okna A pojawia się w oknie B jako „<Kolor>: …”, a w A jako „Ty: …”
+- [x] 2.4 Numer telefonu nie wychodzi i pokazuje komunikat
+- [x] 2.5 Brzydkie słowo dochodzi jako `***`
+- [x] 2.6 Dwie wiadomości szybciej niż co 2 s → druga zablokowana
+- [x] 2.7 „r” i Esc w czacie nie sterują grą
+- [x] 2.8 W EDYTORZE Enter otwiera czat, a wiadomość pokazuje się tylko lokalnie (nic nie idzie do internetu)
 
 ### Phase 3: Wyciszanie i szlif
 
 #### Automated
 
-- [x] 3.1 `node tests/run-tests.js` nadal przechodzi
+- [x] 3.1 `node tests/run-tests.js` nadal przechodzi — dfb3cb1
 
 #### Manual
 
-- [ ] 3.2 WYCISZ CZAT / WŁĄCZ CZAT działa
-- [ ] 3.3 Nowy mecz po wyciszeniu → czat włączony
-- [ ] 3.4 Po końcu meczu pole znika, stare wiadomości nie wracają
-- [ ] 3.5 Żółty kraj czytelny w czacie
-- [ ] 3.6 Przycisk wyciszania nie przeszkadza w klikaniu planszy
+- [x] 3.2 WYCISZ CZAT / WŁĄCZ CZAT działa
+- [x] 3.3 Nowy mecz po wyciszeniu → czat włączony
+- [x] 3.4 Po końcu meczu pole znika, stare wiadomości nie wracają
+- [x] 3.5 Żółty kraj czytelny w czacie
+- [x] 3.6 Przycisk wyciszania nie przeszkadza w klikaniu planszy
