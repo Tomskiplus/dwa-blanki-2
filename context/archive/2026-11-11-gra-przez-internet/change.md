@@ -1,10 +1,10 @@
 ---
 change_id: gra-przez-internet
 title: Gra DWA BLANKI II przez internet dla 2–8 graczy (Supabase)
-status: implemented
+status: archived
 created: 2026-11-11
 updated: 2026-11-14
-archived_at: null
+archived_at: 2026-11-14T14:14:47Z
 ---
 
 ## Notes
