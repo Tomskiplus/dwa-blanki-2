@@ -36,7 +36,7 @@ Tryb EDYTOR (gra na jednym komputerze) działa jak dotąd.
 - Supabase Free: funkcje Postgres (`security definer`) są darmowe – w nich robimy dobieranie, ranking,
   walkower i pilnowanie tury, bez Edge Functions.
 
-## Ustalone zasady (od Tomka, 2026-11-11)
+## Ustalone zasady (od autora gry, 2026-11-11)
 | Sprawa | Ustalenie |
 |---|---|
 | Szukanie | Przycisk WYSZUKAJ GRĘ, zawsze 1 na 1 (bez kodów pokoju na razie) |

@@ -7,16 +7,16 @@
 
 // --- Ustawienia (zmieniaj śmiało!) ---
 const SEARCH_POLL_MS = 2000;       // co ile milisekund pytamy bazę "jest przeciwnik?"
-const ANYONE_AFTER_SECONDS = 30;   // po tylu sekundach baza dobiera każdego (zasada Tomka)
+const ANYONE_AFTER_SECONDS = 30;   // po tylu sekundach baza dobiera każdego (zasada autora gry)
 const RATING_RANGE = 5;            // na początku: przeciwnik z rankingiem ± tyle
 const COUNTRY_STORAGE_KEY = "dwaBlanki.onlineCountry";  // gdzie przeglądarka pamięta mój kraj
-const TURN_SECONDS = 5 * 60;       // czas na turę (zasada Tomka: 5 minut)
+const TURN_SECONDS = 5 * 60;       // czas na turę (zasada autora gry: 5 minut)
 const TIMEOUT_GRACE_SECONDS = 15;  // zapas, zanim przeciwnik może zakończyć moją turę (tak samo w bazie)
 const SYNC_EVERY_TICKS = 5;        // co ile sekund sprawdzamy bazę "na wszelki wypadek"
 const FIRST_STATE_WAIT_MS = 5000;  // gracz z miejsca 1 czeka tyle na planszę od gracza z miejsca 0
 const HEARTBEAT_EVERY_TICKS = 10;  // co ile sekund wysyłamy "bicie serca" (jestem w grze)
 const DISCONNECT_NOTICE_SECONDS = 30;  // po tylu sekundach ciszy pokazujemy "przeciwnik się rozłączył"
-const WALKOVER_SECONDS = 2 * 60;   // po tylu sekundach ciszy przeciwnika - walkower (zasada Tomka: 2 minuty)
+const WALKOVER_SECONDS = 2 * 60;   // po tylu sekundach ciszy przeciwnika - walkower (zasada autora gry: 2 minuty)
 const SURRENDER_CONFIRM_MS = 4000; // tyle czasu jest na drugie kliknięcie "NA PEWNO?"
 
 // --- Stan trybu online ---

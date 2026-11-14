@@ -4,7 +4,7 @@
 
 ## What & Why
 Tryb MULTIPLAYER w DWA BLANKI II: przycisk **WYSZUKAJ GRĘ** dobiera przeciwnika o podobnym rankingu
-i gracie 1 na 1 przez internet. Tomek chce grać z innymi na różnych komputerach, z rankingiem
+i gracie 1 na 1 przez internet. Autor gry chce grać z innymi na różnych komputerach, z rankingiem
 (+2 za wygraną, −1 za przegraną).
 
 ## Starting Point
@@ -21,7 +21,7 @@ kończy się walkowerem po 2 minutach.
 | Decision | Choice | Why (1 sentence) |
 | --- | --- | --- |
 | Backend | Supabase (TATA) | SQL do rankingu, darmowe funkcje serwerowe, open source – bez migracji później |
-| Znajdowanie gry | WYSZUKAJ GRĘ, 1 na 1 | Pomysł Tomka; prosty ranking: jeden wygrywa, drugi przegrywa |
+| Znajdowanie gry | WYSZUKAJ GRĘ, 1 na 1 | Pomysł autora gry; prosty ranking: jeden wygrywa, drugi przegrywa |
 | Ranking | Start 10, +2 / −1, min. 0 | Nowy gracz ma zapas, nikt nie ma minusów |
 | Dobieranie | ±5, po 30 s każdy | Gra znajdzie się nawet przy małej liczbie graczy |
 | Kraj / plansza | Kraj przed szukaniem, plansza MAŁA | Szybko i bez dzielenia graczy na grupy |
