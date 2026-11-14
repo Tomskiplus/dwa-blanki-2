@@ -389,25 +389,38 @@ function useCheatCode(game, text) {
 
 // Szuka wolnego miejsca na kształt jak najbliżej podanych kratek (np. ratusza).
 // Sprawdza całą planszę: najpierw bez obrotu, potem obrócony o 90°.
-// Przy remisie wygrywa pierwsze znalezione (od lewej górnej kratki).
+// Przy remisie wygrywa miejsce, którego środek jest najbliżej środka celu
+// (żeby jeż nie wciskał się w róg, tylko stał "przy drzwiach").
 // Zwraca { cells, rotation } albo null.
 function findSpotNear(game, shape, targetCells) {
+  const target = cellsCenter(targetCells);
   let best = null;
   let bestDistance = Infinity;
+  let bestCenter = Infinity;
   for (const rotation of [0, 1]) {
     for (let y = 0; y < game.rows; y++) {
       for (let x = 0; x < game.cols; x++) {
         const cells = shapeCells(shape, x, y, rotation);
         if (!checkCellsFree(game, cells).ok) continue;
         const d = distance(targetCells, cells);
-        if (d < bestDistance) {
+        const center = cellsCenter(cells);
+        const centerD = (center.x - target.x) ** 2 + (center.y - target.y) ** 2;
+        if (d < bestDistance || (d === bestDistance && centerD < bestCenter)) {
           best = { cells: cells, rotation: rotation };
           bestDistance = d;
+          bestCenter = centerD;
         }
       }
     }
   }
   return best;
+}
+
+// Środek grupy kratek (średnia x i y)
+function cellsCenter(cells) {
+  const x = cells.reduce((sum, c) => sum + c.x, 0) / cells.length;
+  const y = cells.reduce((sum, c) => sum + c.y, 0) / cells.length;
+  return { x: x, y: y };
 }
 
 // =====================================================

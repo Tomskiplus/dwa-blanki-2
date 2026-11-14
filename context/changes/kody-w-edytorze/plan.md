@@ -160,13 +160,13 @@ Zasady (etap 1) w node, wygląd i czat (etap 2) ręcznie w EDYTORZE.
 
 #### Automated
 
-- [x] 1.1 `node tests/run-tests.js` – wszystko ✅
+- [x] 1.1 `node tests/run-tests.js` – wszystko ✅ — 1c2451e
 
 ### Phase 2: Rysunki i kody w okienku czatu
 
 #### Automated
 
-- [ ] 2.1 `node tests/run-tests.js` – wszystko ✅
+- [x] 2.1 `node tests/run-tests.js` – wszystko ✅
 
 #### Manual
 

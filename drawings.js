@@ -255,6 +255,59 @@ const UNIT_DRAWINGS = {
     // włócznia po skosie - grot wystaje w pusty prawy górny róg (to pole jest wolne)
     penArrow(ctx, s, 0.25, 1.75, 1.75, 0.25);
   },
+
+  // ----- TAJNE (tylko z kodu w EDYTORZE) -----
+  // Jeż 2×2: brązowe kolce, brzuszek w kolorze gracza, pyszczek w prawo
+  // i żółta tabliczka trzymana przed sobą
+  jez: (ctx, s) => {
+    const playerColor = ctx.fillStyle;
+    // Kolce - brązowy zygzak na plecach
+    ctx.fillStyle = "#6d4c41";
+    colorPolygon(ctx, s, [
+      [0.1, 1.7], [0.02, 1.3], [0.22, 1.22], [0.08, 0.85], [0.38, 0.82], [0.32, 0.45],
+      [0.62, 0.58], [0.72, 0.18], [0.98, 0.48], [1.2, 0.15], [1.3, 0.58], [1.58, 0.45],
+      [1.45, 0.95], [1.3, 1.7],
+    ]);
+    // Brzuszek w kolorze gracza
+    ctx.fillStyle = playerColor;
+    ctx.beginPath();
+    ctx.ellipse(0.85 * s, 1.4 * s, 0.68 * s, 0.42 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    // Pyszczek, nosek i oczko
+    ctx.fillStyle = "#f3d9b1";
+    colorPolygon(ctx, s, [[1.28, 0.95], [1.9, 1.32], [1.28, 1.62]]);
+    inkDot(ctx, s, 1.88, 1.32, 0.08);
+    inkDot(ctx, s, 1.45, 1.16, 0.06);
+    // Tabliczka: patyk + żółta kartka z "napisem" (kreski)
+    penLine(ctx, s, 0.75, 1.95, 0.75, 1.55);
+    ctx.fillStyle = "#ffe066";
+    colorRect(ctx, s, 0.35, 1.05, 0.8, 0.5);
+    penLine(ctx, s, 0.45, 1.2, 1.05, 1.2);
+    penLine(ctx, s, 0.45, 1.38, 0.9, 1.38);
+    ctx.fillStyle = playerColor;
+  },
+
+  // Kot 1×2: głowa z uszami na górze, tułów w kolorze gracza na dole
+  // i czarny rysunkowy karabin w łapach
+  kotAk: (ctx, s) => {
+    // Głowa z uszami
+    colorPolygon(ctx, s, [
+      [0.15, 0.95], [0.15, 0.32], [0.08, 0.05], [0.38, 0.2], [0.62, 0.2],
+      [0.92, 0.05], [0.85, 0.32], [0.85, 0.95],
+    ]);
+    inkDot(ctx, s, 0.36, 0.5, 0.07);                         // oczy
+    inkDot(ctx, s, 0.64, 0.5, 0.07);
+    inkPolygon(ctx, s, [[0.44, 0.66], [0.56, 0.66], [0.5, 0.74]]);  // nosek
+    penLine(ctx, s, 0.3, 0.72, 0.02, 0.66);                  // wąsy
+    penLine(ctx, s, 0.7, 0.72, 0.98, 0.66);
+    // Tułów
+    colorRect(ctx, s, 0.2, 1.0, 0.6, 0.95);
+    // Karabin po skosie: kolba + korpus, magazynek i lufa
+    inkPolygon(ctx, s, [[0.08, 1.62], [0.58, 1.36], [0.64, 1.47], [0.14, 1.74]]);
+    inkPolygon(ctx, s, [[0.42, 1.5], [0.5, 1.46], [0.58, 1.66], [0.49, 1.7]]);
+    penLine(ctx, s, 0.6, 1.4, 0.96, 1.21);
+  },
 };
 
 // =====================================================

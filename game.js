@@ -1425,10 +1425,14 @@ function drawUnitInfo(unit, left) {
   drawText("Życie: " + unit.hp + "/" + unit.maxHp + "   Atak: " + type.attack, left, 195, 13, "#333333", "left");
   // Czy jednostka może jeszcze zaatakować w tej turze
   let attackState = "atak gotowy";
+  const attacks = maxAttacks(game, unit);   // np. jeż: 15 na turę
   if (type.attack <= 0) attackState = "nie walczy";
   else if (unit.isNew) attackState = "nowa - czeka";
   else if (unit.hasAttacked) attackState = "atak użyty";
-  drawText("Zasięg: " + type.range + "   (" + attackState + ")", left, 213, 13, "#333333", "left");
+  else if (attacks > 1) attackState = "ataki: " + (attacks - (unit.attacksUsed || 0)) + "/" + attacks;
+  // Zasięg 999 (kot z AK-47) to "nieskończoność" - pokazujemy znaczek ∞
+  const range = type.range >= 999 ? "∞" : type.range;
+  drawText("Zasięg: " + range + "   (" + attackState + ")", left, 213, 13, "#333333", "left");
 
   if (squad) {
     // Ruch = darmowe kroki (najsłabszej jednostki w oddziale) + wspólne punkty budowy

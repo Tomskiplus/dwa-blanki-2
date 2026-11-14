@@ -115,6 +115,13 @@ function submitChat() {
     return;
   }
 
+  // Tajne kody sprawdzamy PRZED strażnikiem - "AK-47_cat" ma cyfry,
+  // więc strażnik by go zablokował. Kod nigdy nie trafia do czatu.
+  if (cheatCodeUnit(typed)) {
+    handleCheatCode(typed);
+    return;
+  }
+
   // Strażnik: kontakty -> stop, brzydkie słowa -> ***
   const checked = filterChatMessage(typed);
   if (!checked.ok) {
@@ -142,6 +149,26 @@ function submitChat() {
   }
 
   chatInput.value = "";
+  closeChat();
+}
+
+// Gracz wpisał tajny kod (zasady są w rules.js: useCheatCode)
+function handleCheatCode(typed) {
+  chatInput.value = "";   // kodu nie zostawiamy w polu (i nigdzie go nie pokazujemy)
+
+  // Przez internet kody nie działają - i NIE wysyłamy ich przeciwnikowi
+  if (online) {
+    showChatNotice("Kody działają tylko w edytorze.");
+    return;
+  }
+
+  const result = useCheatCode(game, typed);
+  if (!result.ok) {
+    showChatNotice(result.reason);   // np. "Kod już użyty w tej turze."
+    return;
+  }
+  // Zielony napis bez podpisu, np. "Jeż przybył!"
+  addChatMessage("", "#1e8449", UNIT_TYPES[result.unit.type].name + " przybył!", false);
   closeChat();
 }
 
