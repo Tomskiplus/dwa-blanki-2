@@ -424,11 +424,11 @@ psuło bazy (`if not exists`, `create or replace`, `drop policy if exists`).
 
 #### Automated
 
-- [x] 5.1 Testy zasad przechodzą: `node tests/run-tests.js` — SHA5
-- [x] 5.2 Składnia: `node --check network.js online.js` — SHA5
+- [x] 5.1 Testy zasad przechodzą: `node tests/run-tests.js` — 3038f35
+- [x] 5.2 Składnia: `node --check network.js online.js` — 3038f35
 
 #### Manual
 
-- [x] 5.3 Nowe okno prywatne → widżet captchy → po przejściu „Twój ranking: 10” — SHA5
-- [x] 5.4 Drugie wejście w tej samej przeglądarce → bez captchy — SHA5
-- [x] 5.5 Wyszukiwanie i gra dalej działają — SHA5
+- [x] 5.3 Nowe okno prywatne → widżet captchy → po przejściu „Twój ranking: 10” — 3038f35
+- [x] 5.4 Drugie wejście w tej samej przeglądarce → bez captchy — 3038f35
+- [x] 5.5 Wyszukiwanie i gra dalej działają — 3038f35
