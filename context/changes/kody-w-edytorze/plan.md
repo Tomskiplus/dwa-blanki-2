@@ -205,7 +205,7 @@ Trzeci kod dopisany przez autora gry: `ILLfroggy` → **Żaba**: 4 pola (2×2, w
 
 #### Automated
 
-- [x] 3.1 `node tests/run-tests.js` – wszystko ✅
+- [x] 3.1 `node tests/run-tests.js` – wszystko ✅ — a8410e7
 
 #### Manual
 

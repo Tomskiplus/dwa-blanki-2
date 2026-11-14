@@ -309,8 +309,8 @@ const UNIT_DRAWINGS = {
     penLine(ctx, s, 0.6, 1.4, 0.96, 1.21);
   },
 
-  // Żaba 2×2 widziana z góry: zielone nogi i ciało, wyłupiaste oczy,
-  // a na plecach pasek w kolorze gracza (żeby było widać, czyja to żaba)
+  // Żaba 2×2 widziana z góry: zielone nogi i ciało w ciemnozielone kropki
+  // i wyłupiaste oczy
   zaba: (ctx, s) => {
     const playerColor = ctx.fillStyle;
     ctx.fillStyle = "#7cb342";   // zielony
@@ -324,16 +324,19 @@ const UNIT_DRAWINGS = {
     ctx.ellipse(1 * s, 1.08 * s, 0.48 * s, 0.68 * s, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
-    // Ciemniejsze kropki na skórze
+    // Ciemnozielone kropki na plecach (różne rozmiary - jak prawdziwe cętki)
     ctx.fillStyle = "#33691e";
-    colorCircle(ctx, s, 0.72, 1.25, 0.07);
-    colorCircle(ctx, s, 1.28, 1.3, 0.07);
-    // Pasek na plecach w kolorze gracza
-    ctx.fillStyle = playerColor;
-    ctx.beginPath();
-    ctx.ellipse(1 * s, 1.25 * s, 0.17 * s, 0.38 * s, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
+    const spots = [
+      [1.0, 0.9, 0.09], [0.78, 1.05, 0.07], [1.22, 1.08, 0.08], [0.95, 1.25, 0.1],
+      [0.72, 1.35, 0.06], [1.25, 1.38, 0.07], [1.05, 1.52, 0.08], [0.82, 1.6, 0.06],
+      [1.18, 0.75, 0.05], [0.8, 0.78, 0.05],
+    ];
+    for (const [x, y, r] of spots) {
+      // Samo wypełnienie, BEZ czarnej obwódki - inaczej kropki wyglądają na czarne
+      ctx.beginPath();
+      ctx.arc(x * s, y * s, r * s, 0, Math.PI * 2);
+      ctx.fill();
+    }
     // Wyłupiaste oczy
     ctx.fillStyle = "#ffffff";
     colorCircle(ctx, s, 0.8, 0.5, 0.13);
