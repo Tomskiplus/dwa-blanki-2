@@ -719,6 +719,9 @@ function attackTarget(unit, target) {
     return;
   }
 
+  // Żaba wali językiem! (sama animacja - obrażenia już się policzyły)
+  if (unit.kind === "unit" && UNIT_TYPES[unit.type].tongueAttack) startTongueAttack(unit, target, result.destroyed);
+
   const targetName = target.kind === "unit" ? UNIT_TYPES[target.type].name : BUILDING_TYPES[target.type].name;
   attackInfo = "Trafienie! " + targetName + ": -" + result.damage + " życia.";
   if (result.destroyed) attackInfo = "Trafienie! Zniszczono: " + targetName + "!";
@@ -1601,10 +1604,93 @@ function drawVictoryScreen() {
   getButtons().forEach(drawButton);
 }
 
+// =====================================================
+//  ANIMACJA: JĘZYK ŻABY
+//  Język wyciąga się do celu, wali go ("PLASK!") i wraca.
+//  To tylko obrazek - obrażenia liczy attack() z rules.js od razu.
+// =====================================================
+
+const TONGUE_MS = 600;          // ile trwa cała animacja (w milisekundach)
+const TONGUE_COLOR = "#ec6f8e"; // różowy język
+let tongueAttacks = [];         // trwające animacje: { from, to, ghost, startedAt } (from/to = środek w kratkach)
+
+// Zaczyna animację języka od atakującego do celu.
+// destroyed = cel już zniknął z planszy - rysujemy go jeszcze jako "ducha",
+// aż język w niego trafi (inaczej żaba waliłaby w puste miejsce)
+function startTongueAttack(attacker, target, destroyed) {
+  tongueAttacks.push({
+    from: cellsCenter(attacker.cells),   // cellsCenter jest w rules.js
+    to: cellsCenter(target.cells),
+    ghost: destroyed ? target : null,
+    startedAt: Date.now(),
+  });
+}
+
+// Środek (w kratkach, np. x: 3.5) -> piksele na canvasie
+function centerToPixel(center) {
+  return {
+    x: board.offsetX + (center.x + 0.5) * board.cell,
+    y: board.offsetY + (center.y + 0.5) * board.cell,
+  };
+}
+
+// Rysuje wszystkie trwające animacje języka (co klatkę, z drawGameScreen)
+function drawTongueAttacks() {
+  const now = Date.now();
+  tongueAttacks = tongueAttacks.filter(t => now - t.startedAt < TONGUE_MS);   // skończone wyrzucamy
+
+  for (const tongue of tongueAttacks) {
+    const progress = (now - tongue.startedAt) / TONGUE_MS;   // od 0 (start) do 1 (koniec)
+    // Pierwsza połowa: język się wyciąga (0 -> 1), druga: wraca (1 -> 0)
+    const reach = progress < 0.5 ? progress * 2 : (1 - progress) * 2;
+
+    // Zniszczony cel stoi jeszcze, dopóki język go nie trafi (połowa animacji)
+    if (tongue.ghost && progress < 0.5) {
+      if (tongue.ghost.kind === "unit") drawUnit(tongue.ghost);
+      else drawBuilding(tongue.ghost);
+    }
+
+    const from = centerToPixel(tongue.from);
+    const to = centerToPixel(tongue.to);
+    const length = Math.hypot(to.x - from.x, to.y - from.y);
+    // Język wychodzi z brzegu żaby (a nie z jej środka)
+    const startX = from.x + (to.x - from.x) / length * board.cell * 0.7;
+    const startY = from.y + (to.y - from.y) / length * board.cell * 0.7;
+    const tipX = startX + (to.x - startX) * reach;
+    const tipY = startY + (to.y - startY) * reach;
+
+    // Język: gruba czarna kreska, a na niej trochę cieńsza różowa (czyli różowy z obwódką)
+    ctx.lineCap = "round";
+    for (const [color, width] of [["#1a1a1a", 0.26], [TONGUE_COLOR, 0.16]]) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = board.cell * width;
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(tipX, tipY);
+      ctx.stroke();
+    }
+    // Kulka na końcu języka
+    ctx.fillStyle = TONGUE_COLOR;
+    ctx.strokeStyle = "#1a1a1a";
+    ctx.lineWidth = Math.max(1.5, board.cell * 0.06);
+    ctx.beginPath();
+    ctx.arc(tipX, tipY, board.cell * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.lineCap = "butt";
+
+    // Trafienie (środek animacji): napis "PLASK!" nad celem
+    if (progress > 0.4 && progress < 0.85) {
+      drawText("PLASK!", to.x, to.y - board.cell * 0.8, Math.max(14, board.cell * 0.55), "#c0392b");
+    }
+  }
+}
+
 function drawGameScreen() {
   drawPaper();
   drawBoardGrid();
   drawObjects();
+  drawTongueAttacks();               // język żaby (nad jednostkami, pod panelem)
   drawGhost();
   drawFrame();
   drawPanel();

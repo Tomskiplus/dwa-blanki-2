@@ -210,3 +210,13 @@ Trzeci kod dopisany przez autora gry: `ILLfroggy` → **Żaba**: 4 pola (2×2, w
 #### Manual
 
 - [ ] 3.2 `ILLfroggy` → żaba obok ratusza; w następnej turze skacze przez całą planszę
+
+### Phase 4: Animacja języka żaby (dodatek z 2026-11-14)
+
+Żaba przy ataku wyciąga różowy język do celu, wali go („PLASK!”) i chowa język (0,6 s).
+Zniszczony cel jest rysowany jako „duch”, dopóki język go nie trafi.
+`data.js`: `tongueAttack: true`; `game.js`: `startTongueAttack` / `drawTongueAttacks` (sama animacja – obrażenia liczy `attack()` od razu).
+
+#### Manual
+
+- [ ] 4.1 Żaba atakuje: język leci do celu, „PLASK!”, cel znika w chwili trafienia
