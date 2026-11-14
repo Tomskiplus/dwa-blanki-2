@@ -147,6 +147,31 @@ Jeż i kot wyglądają jak z zeszytu, a kody działają po wpisaniu w okienko cz
 
 Zasady (etap 1) w node, wygląd i czat (etap 2) ręcznie w EDYTORZE.
 
+## Phase 3: Żaba (dodatek z 2026-11-14)
+
+### Overview
+
+Trzeci kod dopisany przez autora gry: `ILLfroggy` → **Żaba**: 4 pola (2×2, widziana z góry), 21 życia, 5 ataku, zasięg 4, **ruch „bez końca”**.
+
+### Changes Required:
+
+- `data.js`: `UNIT_TYPES.zaba` z `unlimitedMove: true`, kod `"illfroggy": "zaba"`.
+- `rules.js`: `freeStepsFor(game, owner, unitKey)` → `UNLIMITED_STEPS` (999) dla `unlimitedMove`, a dla reszty `movePointsFor`. Używane w `addUnit` i `endTurn`.
+- `game.js`: „Ruch: ∞” w panelu, gdy punkty ≥ 999.
+- `drawings.js`: `UNIT_DRAWINGS.zaba` (zielona, wyłupiaste oczy, pasek w kolorze gracza).
+- `chat.js`: napis „<nazwa> wkracza do gry!” (pasuje też do żaby).
+- Testy: kod, 999 kroków, daleki skok bez punktów budowy, zasięg 4.
+
+### Success Criteria:
+
+#### Automated Verification:
+
+- `node tests/run-tests.js` – wszystko ✅
+
+#### Manual Verification:
+
+- `ILLfroggy` → żaba obok ratusza; w następnej turze skacze przez całą planszę
+
 ## References
 
 - Okienko czatu: `context/changes/czat-w-grze/plan.md` (etap 2)
@@ -166,7 +191,7 @@ Zasady (etap 1) w node, wygląd i czat (etap 2) ręcznie w EDYTORZE.
 
 #### Automated
 
-- [x] 2.1 `node tests/run-tests.js` – wszystko ✅
+- [x] 2.1 `node tests/run-tests.js` – wszystko ✅ — 4b151ca
 
 #### Manual
 
@@ -175,3 +200,13 @@ Zasady (etap 1) w node, wygląd i czat (etap 2) ręcznie w EDYTORZE.
 - [ ] 2.4 Kot strzela przez całą planszę w jednostkę, w budynek nie
 - [ ] 2.5 Jeż atakuje wiele razy w jednej turze
 - [ ] 2.6 Kod w meczu przez internet nie dochodzi do przeciwnika
+
+### Phase 3: Żaba (dodatek z 2026-11-14)
+
+#### Automated
+
+- [x] 3.1 `node tests/run-tests.js` – wszystko ✅
+
+#### Manual
+
+- [ ] 3.2 `ILLfroggy` → żaba obok ratusza; w następnej turze skacze przez całą planszę

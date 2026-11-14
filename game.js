@@ -1438,7 +1438,9 @@ function drawUnitInfo(unit, left) {
     // Ruch = darmowe kroki (najsłabszej jednostki w oddziale) + wspólne punkty budowy
     const size = squad.unitIds.length;
     const squadText = size === 1 ? "Sam" : "Oddział: " + size + " jedn.";
-    drawText(squadText + "   Ruch: " + squad.points, left, 236, 13, "#000000", "left");
+    // Żaba ma ruch "bez końca" (999 kroków) - pokazujemy ∞
+    const movePoints = squad.points >= UNLIMITED_STEPS ? "∞" : squad.points;
+    drawText(squadText + "   Ruch: " + movePoints, left, 236, 13, "#000000", "left");
   }
 }
 

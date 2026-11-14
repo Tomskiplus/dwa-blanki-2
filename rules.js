@@ -105,7 +105,7 @@ function addUnit(game, typeKey, owner, cells, rotation) {
     attacksUsed: 0,      // ile razy już atakowała w tej turze (kawaleria z Szarżą może 2 razy)
     hasAttacked: false,  // czy już atakowała w tej turze
     isNew: false,        // czy dopiero powstała (wtedy nie rusza się i nie atakuje)
-    freeSteps: movePointsFor(game, owner),  // darmowe kroki w tej turze (dalsze kroki biorą punkty budowy)
+    freeSteps: freeStepsFor(game, owner, typeKey),  // darmowe kroki w tej turze (dalsze kroki biorą punkty budowy)
   };
   game.objects.push(unit);
   return unit;
@@ -449,7 +449,7 @@ function endTurn(game) {
       obj.isNew = false;
       obj.hasAttacked = false;
       obj.attacksUsed = 0;
-      obj.freeSteps = movePointsFor(game, next);  // świeże darmowe kroki
+      obj.freeSteps = freeStepsFor(game, next, obj.type);  // świeże darmowe kroki
     }
   }
 
@@ -838,6 +838,15 @@ function buildingMaxHp(game, owner, typeKey, cellCount) {
 // Punkty ruchu każdego oddziału (Pancerz łuskowy: +2)
 function movePointsFor(game, owner) {
   return MOVE_POINTS + (game.players[owner].research.pancerzLuskowy ? 2 : 0);
+}
+
+// Ruch "bez końca" (żaba z kodu): tyle kroków, że nigdy się nie skończą
+const UNLIMITED_STEPS = 999;
+
+// Darmowe kroki jednostki na początku tury
+function freeStepsFor(game, owner, unitKey) {
+  if (UNIT_TYPES[unitKey].unlimitedMove) return UNLIMITED_STEPS;
+  return movePointsFor(game, owner);
 }
 
 // =====================================================

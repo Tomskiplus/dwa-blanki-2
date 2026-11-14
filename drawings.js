@@ -308,6 +308,40 @@ const UNIT_DRAWINGS = {
     inkPolygon(ctx, s, [[0.42, 1.5], [0.5, 1.46], [0.58, 1.66], [0.49, 1.7]]);
     penLine(ctx, s, 0.6, 1.4, 0.96, 1.21);
   },
+
+  // Żaba 2×2 widziana z góry: zielone nogi i ciało, wyłupiaste oczy,
+  // a na plecach pasek w kolorze gracza (żeby było widać, czyja to żaba)
+  zaba: (ctx, s) => {
+    const playerColor = ctx.fillStyle;
+    ctx.fillStyle = "#7cb342";   // zielony
+    // Przednie łapki (w górę i na boki) i duże tylne nogi (w dół, zgięte)
+    colorPolygon(ctx, s, [[0.75, 0.75], [0.3, 0.55], [0.15, 0.2], [0.35, 0.25], [0.45, 0.5], [0.8, 0.6]]);
+    colorPolygon(ctx, s, [[1.25, 0.75], [1.7, 0.55], [1.85, 0.2], [1.65, 0.25], [1.55, 0.5], [1.2, 0.6]]);
+    colorPolygon(ctx, s, [[0.7, 1.4], [0.2, 1.2], [0.1, 1.9], [0.45, 1.75], [0.35, 1.45], [0.75, 1.6]]);
+    colorPolygon(ctx, s, [[1.3, 1.4], [1.8, 1.2], [1.9, 1.9], [1.55, 1.75], [1.65, 1.45], [1.25, 1.6]]);
+    // Ciało (owal)
+    ctx.beginPath();
+    ctx.ellipse(1 * s, 1.08 * s, 0.48 * s, 0.68 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    // Ciemniejsze kropki na skórze
+    ctx.fillStyle = "#33691e";
+    colorCircle(ctx, s, 0.72, 1.25, 0.07);
+    colorCircle(ctx, s, 1.28, 1.3, 0.07);
+    // Pasek na plecach w kolorze gracza
+    ctx.fillStyle = playerColor;
+    ctx.beginPath();
+    ctx.ellipse(1 * s, 1.25 * s, 0.17 * s, 0.38 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    // Wyłupiaste oczy
+    ctx.fillStyle = "#ffffff";
+    colorCircle(ctx, s, 0.8, 0.5, 0.13);
+    colorCircle(ctx, s, 1.2, 0.5, 0.13);
+    inkDot(ctx, s, 0.8, 0.48, 0.06);
+    inkDot(ctx, s, 1.2, 0.48, 0.06);
+    ctx.fillStyle = playerColor;
+  },
 };
 
 // =====================================================

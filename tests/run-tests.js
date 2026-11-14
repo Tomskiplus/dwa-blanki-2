@@ -869,6 +869,28 @@ function hasCell(obj, x, y) {
 }
 
 {
+  // Kod ILLfroggy -> żaba: 21 życia, 5 ataku, zasięg 4, ruch "bez końca"
+  const game = createGame(2, "mala");
+  const frog = useCheatCode(game, "ILLfroggy");
+  check("Kod ILLfroggy tworzy żabę (4 pola, 21 życia)",
+    frog.ok && frog.unit.type === "zaba" && frog.unit.cells.length === 4 && frog.unit.hp === 21);
+  endTurn(game);
+  endTurn(game);   // znowu tura gracza 0 - żaba już nie jest nowa
+  const squad = getSquadOfUnit(game, frog.unit);
+  check("Żaba ma 999 darmowych kroków na turę", squad && squad.minFree === UNLIMITED_STEPS);
+  // Najdalsze miejsce, do którego żaba może dojść
+  const farthest = Math.max(...[...getReachableMoves(game, squad).keys()]
+    .map(key => Math.max(...key.split(",").map(n => Math.abs(Number(n))))));
+  check("Żaba skacze przez prawie całą planszę (dalej niż 13 pól)", farthest > 13);
+  const move = moveSquad(game, frog.unit, 15, 0);
+  check("Długi skok żaby nie zabiera punktów budowy", move.ok && game.buildPoints === 8);
+  check("Po długim skoku żaba dalej może skakać", getSquadOfUnit(game, frog.unit).minFree > 900);
+  const enemy = unitAt(game, "piechur", frog.unit.cells[0].x, frog.unit.cells[0].y + 6, 0, 1);
+  check("Zasięg żaby: 4 (cel 5 pól dalej jest za daleko)",
+    distance(frog.unit.cells, enemy.cells) === 5 && !getAttackTargets(game, frog.unit).includes(enemy));
+}
+
+{
   // Jeża i kota nie da się zrobić w żadnym budynku (nawet w erze 4)
   const game = createGame(2, "mala");
   game.players[0].era = 4;

@@ -167,8 +167,9 @@ function handleCheatCode(typed) {
     showChatNotice(result.reason);   // np. "Kod już użyty w tej turze."
     return;
   }
-  // Zielony napis bez podpisu, np. "Jeż przybył!"
-  addChatMessage("", "#1e8449", UNIT_TYPES[result.unit.type].name + " przybył!", false);
+  // Zielony napis bez podpisu, np. "Żaba wkracza do gry!"
+  // ("wkracza" pasuje do jeża, kota i żaby - "przybył" nie pasowało do żaby)
+  addChatMessage("", "#1e8449", UNIT_TYPES[result.unit.type].name + " wkracza do gry!", false);
   closeChat();
 }
 

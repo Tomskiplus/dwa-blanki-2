@@ -226,6 +226,8 @@ const UNIT_TYPES = {
   // range: 999 = "nieskończoność" (Infinity nie przeżyłoby zapisu gry jako JSON - zmieniłoby się w null)
   jez:               { name: "Jeż",                   shape: SHAPE_SQUARE4, hp: 5,  attack: 1,  range: 1,   era: 1, cheatOnly: true, attacksPerTurn: 15 },
   kotAk:             { name: "Kot z AK-47",           shape: SHAPE_1x2,     hp: 20, attack: 10, range: 999, era: 1, cheatOnly: true, onlyVsUnits: true },
+  // unlimitedMove = "nieskończony" ruch (999 darmowych kroków na turę)
+  zaba:              { name: "Żaba",                  shape: SHAPE_SQUARE4, hp: 21, attack: 5,  range: 4,   era: 1, cheatOnly: true, unlimitedMove: true },
 };
 
 // --- Tajne kody (tylko w EDYTORZE, wpisywane w okienko czatu) ---
@@ -233,6 +235,7 @@ const UNIT_TYPES = {
 const CHEAT_CODES = {
   "iamnottusk": "jez",
   "ak-47_cat": "kotAk",
+  "illfroggy": "zaba",
 };
 
 // --- Ulepszenia jednostek ---
