@@ -510,9 +510,11 @@ function getBuildableKeys() {
 }
 
 function getVictoryButtons() {
+  // Po grze z botem NOWA GRA wraca do ustawień 1 VS BOT, a po EDYTORZE - do EDYTORA
+  const newGameScreen = isBotGame() ? "botSetup" : "editorSetup";
   return [
     { label: "NOWA GRA", x: 260, y: 400, w: 280, h: 60,
-      onClick: () => goToScreen("editorSetup") },
+      onClick: () => goToScreen(newGameScreen) },
     { label: "MENU", x: 260, y: 480, w: 280, h: 60,
       onClick: () => goToScreen("title") },
   ];
@@ -677,11 +679,16 @@ function startBotGame() {
 
 let botStepsThisTurn = 0;   // ile kroków bot zrobił w tej turze (do przyspieszenia i bezpiecznika)
 let botLastStepAt = 0;      // kiedy bot zrobił ostatni krok (w milisekundach)
+let botLastObjectId = null; // obiekt bota z ostatniego kroku (dostaje pomarańczową ramkę)
+let botStepInfo = "";       // napis w panelu, np. "Bot stawia: Koszary"
 
-// Zeruje zegar bota - pierwszy krok będzie dopiero za BOT_STEP_MS
+// Zeruje zegar bota - pierwszy krok będzie dopiero za BOT_STEP_MS.
+// Czyści też ramkę i napis z poprzedniej tury bota.
 function resetBotClock() {
   botStepsThisTurn = 0;
   botLastStepAt = Date.now();
+  botLastObjectId = null;
+  botStepInfo = "";
 }
 
 // Czy bot ma teraz grać? Tylko na ekranie gry, w jego turze, gdy nikt nie wygrał i nie ma banera
@@ -704,8 +711,19 @@ function runBotStep() {
 
   let step = getBotStep(game, vsBot.mode);
   if (botStepsThisTurn >= BOT_MAX_STEPS) step = { type: "endTurn" };   // bezpiecznik (bot.js)
+  // Cel ataku zapamiętujemy PRZED krokiem - zniszczony zniknie z planszy
+  const target = step.type === "attack" ? findObjectById(game, step.targetId) : null;
   const result = doBotStep(game, step);
   if (!result.ok) console.warn("Bot: nieudany krok", step, result.reason);
+
+  // Co bot zrobił? Ramka na planszy + napis w panelu (bot.js)
+  botLastObjectId = getBotStepObjectId(game, step);
+  botStepInfo = describeBotStep(game, step, result, target);
+  // Żaba bota też wali językiem (tak jak twoja w attackTarget)
+  if (step.type === "attack" && result.ok) {
+    const attacker = findObjectById(game, step.attackerId);
+    if (attacker.kind === "unit" && UNIT_TYPES[attacker.type].tongueAttack) startTongueAttack(attacker, target, result.destroyed);
+  }
 
   // Bot wygrał? Od razu ekran końca. (Nie kończymy tury - po wygranej
   // endTurn oddałby turę z powrotem botowi, bo nie ma już innego żywego gracza)
@@ -716,6 +734,7 @@ function runBotStep() {
   if (step.type === "endTurn") {
     // Bot skończył - teraz twoja tura
     botStepsThisTurn = 0;
+    botLastObjectId = null;
     clearSelection();
     message = "";
     turnBannerNote = "";
@@ -1376,6 +1395,15 @@ function drawObjects() {
   }
 
   drawUnitSelection();
+  drawBotHighlight();
+}
+
+// Gra z botem, w turze bota: gruba pomarańczowa ramka wokół obiektu, który właśnie działał
+const BOT_HIGHLIGHT_COLOR = "#ff8c00";
+function drawBotHighlight() {
+  if (!isBotGame() || isMyTurn() || botLastObjectId === null) return;
+  const obj = game.objects.find(o => o.id === botLastObjectId);
+  if (obj) drawShapeOutline(obj.cells, 5, BOT_HIGHLIGHT_COLOR);
 }
 
 // Wybrana jednostka: żółte ramki wokół całego oddziału, niebieskie kropki tam,
@@ -1753,8 +1781,17 @@ function drawTurnBanner() {
 function drawVictoryScreen() {
   const winner = game.players[game.winner];
 
+  // Napisy: w EDYTORZE "Wygrywa gracz X", z botem - "WYGRAŁEŚ!" albo "BOT WYGRAŁ"
+  let title = "ZWYCIĘSTWO!";
+  let subtitle = "Wygrywa gracz";
+  if (isBotGame()) {
+    const humanWon = game.winner === vsBot.humanSlot;
+    title = humanWon ? "WYGRAŁEŚ!" : "BOT WYGRAŁ";
+    subtitle = humanWon ? "Pokonałeś bota!" : "Wygrywa bot";
+  }
+
   drawPaper();
-  drawBigTitle("ZWYCIĘSTWO!", 100, 64);
+  drawBigTitle(title, 100, 64);
 
   ctx.fillStyle = winner.color;
   ctx.fillRect(200, 180, 400, 170);
@@ -1762,7 +1799,7 @@ function drawVictoryScreen() {
   ctx.lineWidth = LINE_WIDTH;
   ctx.strokeRect(200, 180, 400, 170);
 
-  drawText("Wygrywa gracz", 400, 220, 22, "#ffffff");
+  drawText(subtitle, 400, 220, 22, "#ffffff");
   drawText(winner.colorName, 400, 270, 46, "#ffffff");
   drawText("w turze " + game.turn, 400, 318, 20, "#ffffff");
 

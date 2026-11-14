@@ -511,7 +511,13 @@ function drawOpponentTurnPanel(left) {
     }
   }
 
-  if (message !== "") drawWrappedText(message, left, 400, PANEL_WIDTH - 30, 17, 13, "#c0392b");
+  // Gra z botem: co bot zrobił przed chwilą (niebieski napis, np. "Bot stawia: Koszary")
+  let messageY = 400;
+  if (isBotGame() && botStepInfo !== "") {
+    drawWrappedText(botStepInfo, left, 380, PANEL_WIDTH - 30, 17, 14, "#1f5fa8");
+    messageY = 440;   // czerwony komunikat niżej, żeby się nie nakładały
+  }
+  if (message !== "") drawWrappedText(message, left, messageY, PANEL_WIDTH - 30, 17, 13, "#c0392b");
 }
 
 // Zegar tury w panelu (czerwony, gdy zostało mniej niż 30 sekund)

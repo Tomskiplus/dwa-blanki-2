@@ -1099,6 +1099,63 @@ function matchResult(summary) {
     match3.game.winner === 1 && match3.game.turn <= 40);
 }
 
+// --- Co bot właśnie zrobił: napis w panelu (describeBotStep) i ramka (getBotStepObjectId) ---
+
+// Robi jeden krok bota i zwraca: krok, napis i obiekt, który działał
+function botStepWithInfo(game) {
+  const step = getBotStep(game, "offensive");
+  const target = step.type === "attack" ? findObjectById(game, step.targetId) : null;
+  const result = doBotStep(game, step);
+  const objectId = getBotStepObjectId(game, step);
+  return { step: step, text: describeBotStep(game, step, result, target), object: findObjectById(game, objectId) };
+}
+
+{
+  // Budowa i rekrutacja
+  const game = createGame(2, "mala");
+  endTurn(game);
+  const build = botStepWithInfo(game);
+  check("Opis bota: \"Bot stawia: Koszary\"", build.text === "Bot stawia: Koszary");
+  check("Ramka bota: na nowych koszarach",
+    build.object !== null && build.object.type === "koszary" && build.object.owner === 1);
+
+  playBotTurn(game, "offensive");   // reszta 1. tury
+  endTurn(game);                    // gracz 0 nic nie robi
+  const recruit = botStepWithInfo(game);
+  check("Opis bota: \"Bot robi: Piechur\"", recruit.text === "Bot robi: Piechur");
+  check("Ramka bota: na nowym piechurze",
+    recruit.object !== null && recruit.object.type === "piechur" && recruit.object.owner === 1);
+}
+
+{
+  // Atak, który niszczy cel (chłop ma 1 życie) - cel znika, a napis i tak zna jego nazwę
+  const game = createGame(2, "srednia");
+  endTurn(game);
+  const botUnit = addUnit(game, "piechur", 1, [{ x: 14, y: 10 }, { x: 14, y: 11 }]);
+  addUnit(game, "chlop", 0, [{ x: 15, y: 10 }]);
+  const info = botStepWithInfo(game);
+  check("Opis bota: \"Bot: Piechur niszczy: Chłop!\"", info.text === "Bot: Piechur niszczy: Chłop!");
+  check("Ramka bota: na atakującym piechurze", info.object === botUnit);
+}
+
+{
+  // Atak bez zniszczenia: piechur (3 życia) dostaje 1
+  const game = createGame(2, "srednia");
+  endTurn(game);
+  addUnit(game, "piechur", 1, [{ x: 14, y: 10 }, { x: 14, y: 11 }]);
+  addUnit(game, "piechur", 0, [{ x: 15, y: 10 }, { x: 15, y: 11 }]);
+  const info = botStepWithInfo(game);
+  check("Opis bota: atak z obrażeniami (" + info.text + ")", info.text === "Bot: Piechur atakuje: Piechur (-1 życia)");
+}
+
+{
+  // Koniec tury i nieudany krok
+  const game = createGame(2, "mala");
+  check("Opis bota: koniec tury", describeBotStep(game, { type: "endTurn" }, { ok: true }, null) === "Bot kończy turę.");
+  check("Opis bota: nieudany krok = brak napisu",
+    describeBotStep(game, { type: "build", key: "koszary" }, { ok: false, reason: "x" }, null) === "");
+}
+
 // =====================================================
 //  WYNIK
 // =====================================================

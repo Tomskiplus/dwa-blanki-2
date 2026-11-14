@@ -330,27 +330,27 @@ kilku jednostek – na dużej planszy (36×27) to wciąż ułamek sekundy. Nie l
 
 #### Automated
 
-- [x] 2.1 Testy dalej przechodzą: `node tests/run-tests.js`
-- [x] 2.2 Brak błędów w konsoli przeglądarki przy starcie gry z botem
+- [x] 2.1 Testy dalej przechodzą: `node tests/run-tests.js` — 1a86a3c
+- [x] 2.2 Brak błędów w konsoli przeglądarki przy starcie gry z botem — 1a86a3c
 
 #### Manual
 
-- [x] 2.3 Ekran ustawień 1 VS BOT: kraje, tryb, plansza, WSTECZ działają
-- [x] 2.4 START: gracz zaczyna w lewym górnym rogu, widzi baner swojej tury
-- [x] 2.5 Bot co 0,5 s robi akcje (koszary w 1. turze), potem baner „TWOJA TURA”
-- [x] 2.6 W turze bota: brak przycisków budowy, statystyki po kliknięciu, MENU wychodzi
-- [x] 2.7 Ofensywny atakuje po 4 wojakach; defensywny czeka, aż gracz podejdzie
-- [x] 2.8 Tajny kod w grze z botem nie działa
-- [x] 2.9 EDYTOR po grze z botem działa jak dawniej
+- [x] 2.3 Ekran ustawień 1 VS BOT: kraje, tryb, plansza, WSTECZ działają — 1a86a3c
+- [x] 2.4 START: gracz zaczyna w lewym górnym rogu, widzi baner swojej tury — 1a86a3c
+- [x] 2.5 Bot co 0,5 s robi akcje (koszary w 1. turze), potem baner „TWOJA TURA” — 1a86a3c
+- [x] 2.6 W turze bota: brak przycisków budowy, statystyki po kliknięciu, MENU wychodzi — 1a86a3c
+- [x] 2.7 Ofensywny atakuje po 4 wojakach; defensywny czeka, aż gracz podejdzie — 1a86a3c
+- [x] 2.8 Tajny kod w grze z botem nie działa — 1a86a3c
+- [x] 2.9 EDYTOR po grze z botem działa jak dawniej — 1a86a3c
 
 ### Phase 3: Szlif – widać, co robi bot, i ekran końca
 
 #### Automated
 
-- [ ] 3.1 Testy przechodzą: `node tests/run-tests.js`
+- [x] 3.1 Testy przechodzą: `node tests/run-tests.js`
 
 #### Manual
 
-- [ ] 3.2 W turze bota widać podświetlenie i napis o ostatniej akcji
-- [ ] 3.3 „WYGRAŁEŚ!” / „BOT WYGRAŁ”; NOWA GRA wraca do ustawień 1 VS BOT
-- [ ] 3.4 README opisuje grę z botem
+- [x] 3.2 W turze bota widać podświetlenie i napis o ostatniej akcji
+- [x] 3.3 „WYGRAŁEŚ!” / „BOT WYGRAŁ”; NOWA GRA wraca do ustawień 1 VS BOT
+- [x] 3.4 README opisuje grę z botem

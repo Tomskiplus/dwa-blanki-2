@@ -333,3 +333,46 @@ function doBotStep(game, step) {
   }
   return { ok: false, reason: "Nieznana akcja bota: " + step.type };
 }
+
+// =====================================================
+//  CO BOT WŁAŚNIE ZROBIŁ (napis w panelu i ramka na planszy)
+// =====================================================
+
+// Nazwa obiektu po polsku, np. "Koszary" albo "Piechur"
+function getObjectName(obj) {
+  return obj.kind === "unit" ? UNIT_TYPES[obj.type].name : BUILDING_TYPES[obj.type].name;
+}
+
+// Krótki napis o kroku bota, np. "Bot stawia: Koszary".
+// Wołamy PO kroku. target = cel ataku zapamiętany PRZED krokiem,
+// bo zniszczony cel znika z planszy (a my chcemy znać jego nazwę).
+function describeBotStep(game, step, result, target) {
+  if (!result.ok) return "";
+  if (step.type === "endTurn") return "Bot kończy turę.";
+  if (step.type === "build") return "Bot stawia: " + BUILDING_TYPES[step.key].name;
+  if (step.type === "recruit") return "Bot robi: " + UNIT_TYPES[step.key].name;
+
+  if (step.type === "move") {
+    const unit = findObjectById(game, step.unitId);
+    return unit ? "Bot idzie: " + getObjectName(unit) : "";
+  }
+  if (step.type === "attack") {
+    const attacker = findObjectById(game, step.attackerId);
+    const who = attacker ? getObjectName(attacker) : "Bot";
+    if (result.destroyed) return "Bot: " + who + " niszczy: " + getObjectName(target) + "!";
+    return "Bot: " + who + " atakuje: " + getObjectName(target) + " (-" + result.damage + " życia)";
+  }
+  return "";
+}
+
+// Który obiekt bota działał w tym kroku? Zwraca jego numer (albo null).
+// Wołamy PO kroku - nowy budynek/jednostka już stoi na planszy.
+function getBotStepObjectId(game, step) {
+  if (step.type === "attack") return step.attackerId;
+  if (step.type === "move") return step.unitId;
+  if (step.type === "build" || step.type === "recruit") {
+    const obj = getObjectAt(game, step.cells[0].x, step.cells[0].y);   // to, co stoi na 1. kratce
+    return obj ? obj.id : null;
+  }
+  return null;
+}

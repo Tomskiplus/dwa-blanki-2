@@ -16,6 +16,19 @@ Gracze grają po kolei przy jednym komputerze.
 - Każda jednostka atakuje **raz na turę**.
 - Wygrywa ostatni gracz, któremu zostały jednostki.
 
+## Gra z botem
+
+**SINGLEPLAYER → 1 VS BOT** → wybierz swój kraj, kraj bota, tryb bota i rozmiar planszy → **START**.
+
+- Ty zaczynasz (lewy górny róg), bot gra drugi.
+- Bot gra według tych samych zasad co ty: stawia koszary, robi piechurów i włóczników, chodzi i atakuje.
+- Turę bota widać krok po kroku (ruch co pół sekundy). Pomarańczowa ramka pokazuje,
+  co bot właśnie zrobił, a napis w panelu mówi, jaka to była akcja.
+- **Tryb ofensywny ⚔️**: bot zbiera 4 wojaków i idzie na ciebie.
+- **Tryb defensywny 🛡️**: bot pilnuje bazy i walczy, gdy podejdziesz na 6 pól do jego budynków.
+- Bot atakuje najsłabszy cel w zasięgu (najmniej życia).
+- Uczciwa gra: tajne kody jednostek działają tylko w EDYTORZE.
+
 ## Sterowanie
 
 - **Myszka**: kliknij przycisk w panelu, budynek albo jednostkę na planszy.

@@ -65,7 +65,12 @@ po ruchu nadal można budować i robić jednostki.
 Wszystkie liczby są już w `zasady-gry.md` → „Kolory (kraje)”.
 
 ## Później (po MVP)
-- Gra z botem (1 vs bot).
+- ✅ Gra z botem (1 vs bot) – zrobiona 2026-11-14 (`bot.js`, ekran SINGLEPLAYER → 1 VS BOT,
+  tryby ofensywny i defensywny). Pomysły na później:
+  - bot przechodzi do kolejnych er i robi ulepszenia/badania,
+  - bot stawia inne budynki (strzelnica, stajnia, palisada, wieże),
+  - poziomy trudności (np. łatwy = mniej punktów, trudny = mądrzejszy wybór celu),
+  - więcej botów naraz (1 vs 2 boty, boty między sobą).
 - Multiplayer przez internet – **w toku** (2026-11-11). TATA wybrał Supabase
   (anonimowe logowanie, baza w `supabase/schema.sql`, dane w `supabase-config.js`).
   - ✅ Captcha (Cloudflare Turnstile) włączona 2026-11-13 – widżet na koncie Cloudflare TATY,
