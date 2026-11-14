@@ -270,8 +270,9 @@ async function startOnlineGame(code) {
     surrenderAskedAt: 0,           // kiedy kliknięto PODDAJ SIĘ (czekamy na "NA PEWNO?")
   };
 
-  // Słuchamy zmian na żywo i włączamy zegarek
-  watchRoom(code, room => receiveRoom(room, false), receivePlayer);
+  // Słuchamy zmian na żywo (ruchy, gracze, czat) i włączamy zegarek
+  clearChat();
+  watchRoom(code, room => receiveRoom(room, false), receivePlayer, receiveChat);
   startOnlineTick();
   heartbeat(code);   // od razu mówimy "jestem" (ważne po powrocie do gry)
 
@@ -309,6 +310,7 @@ async function createFirstState() {
 function leaveOnlineGame() {
   stopOnlineTick();
   unwatchRoom();
+  clearChat();
   online = null;
   inspectedId = null;
 }

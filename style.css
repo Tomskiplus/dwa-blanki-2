@@ -8,13 +8,35 @@ body {
   background: #2b2d42; /* ciemne tło wokół "kartki" */
 }
 
+/* "Pudełko" z grą - pole czatu ustawiamy względem niego */
+#game-wrap {
+  position: relative;
+  max-width: 100%;
+}
+
 /* Ramka wokół canvasu - wygląda jak kartka położona na biurku */
 #game {
+  display: block;    /* bez dziwnej szparki pod canvasem */
   max-width: 100%;   /* na małym ekranie kartka się zmniejszy */
   height: auto;
   border: 6px solid #1a1a1a;
   border-radius: 8px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Pole czatu - lewy dolny róg planszy. Pozycja w procentach,
+   więc zmniejsza się razem z kartką */
+#chat-input {
+  position: absolute;
+  left: 2%;
+  bottom: 2.5%;
+  width: 55%;
+  box-sizing: border-box;
+  padding: 4px 8px;
+  font: bold 15px Arial, sans-serif;
+  border: 3px solid #000000;
+  background: #fffbe6;
+  outline: none;
 }
 
 /* Okienko captchy - na środku ekranu, czyli na środku "kartki" z grą */

@@ -8,8 +8,16 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Canvas = nasza "kartka w kratkę", na której rysujemy całą grę -->
-  <canvas id="game" width="800" height="600"></canvas>
+  <!-- "Pudełko" na grę: canvas i pole czatu leżą w nim razem,
+       więc pole zawsze jest na rogu planszy (nawet gdy kartka się zmniejszy) -->
+  <div id="game-wrap">
+    <!-- Canvas = nasza "kartka w kratkę", na której rysujemy całą grę -->
+    <canvas id="game" width="800" height="600"></canvas>
+
+    <!-- Pole do pisania na czacie (Enter). Schowane, dopóki go nie otworzysz -->
+    <input id="chat-input" type="text" maxlength="60" autocomplete="off" spellcheck="false"
+           placeholder="Napisz i wciśnij Enter (Esc = zamknij)" hidden>
+  </div>
 
   <!-- "Pudełko" na captchę (okienko z Cloudflare leży NA grze). Schowane, dopóki nie jest potrzebne -->
   <div id="captcha-box" hidden></div>
@@ -28,6 +36,10 @@
   <script src="supabase-config.js"></script>
   <script src="network.js"></script>
   <script src="online.js"></script>
+
+  <!-- Czat: strażnik (filtr) i okienko czatu -->
+  <script src="chat-filter.js"></script>
+  <script src="chat.js"></script>
 
   <script src="game.js"></script>
 </body>

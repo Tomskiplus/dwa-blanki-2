@@ -87,6 +87,7 @@ function goToScreen(screenName) {
   currentScreen = screenName;
   message = "";
   if (screenName !== "multiMenu") hideCaptcha();   // okienko captchy tylko w MULTIPLAYER
+  if (screenName !== "game") clearChat();          // czat jest tylko w grze (chat.js)
 }
 
 // =====================================================
@@ -535,6 +536,7 @@ function startGame() {
   game = createGame(setup.playerCount, setup.sizeKey, setup.countries);
   setupBoard();
   clearSelection();
+  clearChat();             // nowa gra = pusty czat
   showTurnBanner = true;   // na start pokazujemy, kto zaczyna
   goToScreen("game");
 }
@@ -1601,6 +1603,7 @@ function drawGameScreen() {
   drawFrame();
   drawPanel();
   if (online) drawOnlineOverlay();   // czerwony pasek "przeciwnik się rozłączył" (online.js)
+  drawChat();                        // wiadomości czatu w lewym dolnym rogu (chat.js)
   if (showTurnBanner) drawTurnBanner();
 }
 
@@ -1687,8 +1690,10 @@ canvas.addEventListener("contextmenu", function (event) {
   action = null;
 });
 
-// Klawiatura: R = obróć kształt, Esc = anuluj
+// Klawiatura: R = obróć kształt, Esc = anuluj.
+// (Enter = czat - to obsługuje chat.js)
 document.addEventListener("keydown", function (event) {
+  if (isTypingInChat()) return;   // piszę na czacie - litera "r" to litera, a nie obrót!
   if (currentScreen !== "game" || !action) return;
 
   if (event.key === "r" || event.key === "R") {

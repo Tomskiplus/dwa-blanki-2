@@ -30,7 +30,7 @@ Jak sprawdzić: testy filtra w `node tests/run-tests.js` i mecz na dwóch oknach
 ## What We're NOT Doing
 
 - Nie zapisujemy historii czatu w bazie. Nie ma zgłaszania graczy ani moderacji (decyzja TATY: tylko broadcast).
-- Brak czatu w menu, podczas szukania gry, na ekranie końca meczu i w EDYTORZE (tylko w trakcie meczu).
+- Brak czatu w menu, podczas szukania gry i na ekranie końca meczu. (W EDYTORZE czat jest, ale tylko lokalny – bez internetu, więc zgoda TATY go nie dotyczy.)
 - Nie ma prywatnych kanałów Realtime (z RLS). Wymagałyby SQL po stronie TATY. Ryzyko obcych wiadomości zamyka filtr u odbiorcy.
 - Bez dźwięku nowej wiadomości.
 - Bez wyciszania „na zawsze”. Wyciszenie trwa tylko do końca meczu (decyzja autora gry).
@@ -143,7 +143,8 @@ Enter → pisanie → wysłanie przez broadcast → wiadomość u przeciwnika w 
 
 **Contract**:
 - Stan: `chatMessages` (lista `{ fromMe, text, at }`, rysujemy ostatnie 4 sprzed < 15 s), `chatLastSentAt`, `chatOpen`.
-- `chatAvailable()` – prawda tylko, gdy `online && !online.ended && currentScreen === "game" && game`.
+- `chatAvailable()` – prawda, gdy `currentScreen === "game" && game` i (`!online` albo `!online.ended`). Czyli w meczu przez internet **i w EDYTORZE** (zmiana z 2026-11-14 – w EDYTORZE wpisuje się kody, patrz `context/changes/kody-w-edytorze/`).
+- W EDYTORZE nic nie idzie do internetu: wysłana wiadomość pokazuje się tylko lokalnie jako „<Kolor gracza, który ma turę>: …” (oboje gracze siedzą przy jednym komputerze). Filtr działa tak samo. Przed filtrem jest miejsce na sprawdzenie kodu (dopisze je zmiana `kody-w-edytorze`).
 - Enter (gdy czat dostępny i zamknięty) → pokaż pole i daj mu fokus.
 - W polu: Enter → `filterChatMessage`. Jeśli wynik jest zły, pokaż `reason` (w `message`) i zostaw tekst do poprawy. Jeśli od ostatniej wiadomości minęło < 2 s → „Zwolnij! Jedna wiadomość co 2 sekundy.” Jeśli wszystko gra → `sendChat`, dopisz „Ty: …” (przefiltrowany tekst), wyczyść i zamknij pole. Esc → zamknij pole. Utrata fokusu → zamknij (tekst zostaje na później).
 - `receiveChat(text)`: przepuszcza przez `filterChatMessage`. Odrzucone wiadomości nie są pokazywane. Wiadomości przychodzące szybciej niż co 1,5 s są pomijane. Reszta zostaje dopisana jako wiadomość przeciwnika.
@@ -175,7 +176,7 @@ Enter → pisanie → wysłanie przez broadcast → wiadomość u przeciwnika w 
 - Brzydkie słowo dochodzi jako `***`
 - Dwie wiadomości szybciej niż co 2 s → druga zablokowana z komunikatem
 - Litera „r” wpisana w czacie podczas stawiania budynku nie obraca kształtu, a Esc w czacie nie anuluje stawiania
-- W EDYTORZE Enter nic nie robi
+- W EDYTORZE Enter otwiera czat, a wiadomość pokazuje się tylko lokalnie (nic nie idzie do internetu)
 
 **Implementation Note**: Po etapie – pauza na test na dwóch oknach.
 
@@ -268,8 +269,8 @@ Brak. Baza i SQL bez zmian, nie ma nowego serwisu.
 
 #### Automated
 
-- [x] 1.1 Wszystkie testy przechodzą: `node tests/run-tests.js` (także stare)
-- [x] 1.2 Testy filtra pokrywają każdą regułę blokady z listy wyżej
+- [x] 1.1 Wszystkie testy przechodzą: `node tests/run-tests.js` (także stare) — 423af92
+- [x] 1.2 Testy filtra pokrywają każdą regułę blokady z listy wyżej — 423af92
 
 #### Manual
 
@@ -279,8 +280,8 @@ Brak. Baza i SQL bez zmian, nie ma nowego serwisu.
 
 #### Automated
 
-- [ ] 2.1 `node tests/run-tests.js` nadal przechodzi
-- [ ] 2.2 Brak błędów w konsoli przy wczytaniu strony
+- [x] 2.1 `node tests/run-tests.js` nadal przechodzi
+- [x] 2.2 Brak błędów w konsoli przy wczytaniu strony
 
 #### Manual
 
@@ -289,7 +290,7 @@ Brak. Baza i SQL bez zmian, nie ma nowego serwisu.
 - [ ] 2.5 Brzydkie słowo dochodzi jako `***`
 - [ ] 2.6 Dwie wiadomości szybciej niż co 2 s → druga zablokowana
 - [ ] 2.7 „r” i Esc w czacie nie sterują grą
-- [ ] 2.8 W EDYTORZE Enter nic nie robi
+- [ ] 2.8 W EDYTORZE Enter otwiera czat, a wiadomość pokazuje się tylko lokalnie (nic nie idzie do internetu)
 
 ### Phase 3: Wyciszanie i szlif
 

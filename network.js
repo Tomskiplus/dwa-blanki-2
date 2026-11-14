@@ -200,7 +200,9 @@ function surrender(code) {
 // Zaczyna oglądać pokój na żywo:
 //  onRoom(room)       - gdy zmieni się pokój (nowy ruch, koniec gry)
 //  onPlayer(player)   - gdy zmieni się gracz (np. jego "bicie serca")
-function watchRoom(code, onRoom, onPlayer) {
+//  onChat(text)       - gdy przeciwnik napisze na czacie (text może być czymkolwiek -
+//                       sprawdza go dopiero strażnik w chat.js!)
+function watchRoom(code, onRoom, onPlayer, onChat) {
   unwatchRoom();
   roomChannel = supabaseClient.channel("room-" + code)
     .on("postgres_changes",
@@ -209,7 +211,24 @@ function watchRoom(code, onRoom, onPlayer) {
     .on("postgres_changes",
       { event: "UPDATE", schema: "public", table: "room_players", filter: "room_code=eq." + code },
       payload => onPlayer(payload.new))
+    // Czat: "broadcast" = krótkofalówka. Wiadomość leci prosto do drugiego gracza
+    // i NIGDZIE się nie zapisuje (zasada TATY: bez historii w bazie)
+    .on("broadcast", { event: "chat" },
+      message => onChat(message.payload ? message.payload.text : null))
     .subscribe();
+}
+
+// Wysyła wiadomość czatu do przeciwnika (tym samym kanałem co ruchy).
+// Nadawca nie dostaje jej z powrotem - sam dopisuje ją u siebie jako "Ty: ..."
+async function sendChat(text) {
+  if (!roomChannel) return { ok: false, data: null, error: NO_CONNECTION };
+  try {
+    const result = await roomChannel.send({ type: "broadcast", event: "chat", payload: { text: text } });
+    if (result !== "ok") return { ok: false, data: null, error: NO_CONNECTION };
+    return { ok: true, data: null, error: null };
+  } catch (problem) {
+    return { ok: false, data: null, error: NO_CONNECTION };
+  }
 }
 
 // Przestaje oglądać pokój
