@@ -87,7 +87,10 @@ function goToScreen(screenName) {
   currentScreen = screenName;
   message = "";
   if (screenName !== "multiMenu") hideCaptcha();   // okienko captchy tylko w MULTIPLAYER
-  if (screenName !== "game") clearChat();          // czat jest tylko w grze (chat.js)
+  if (screenName !== "game") {
+    clearChat();          // czat jest tylko w grze (chat.js)
+    boardDesign = null;   // tło z kodu trwa do końca gry (designs.js)
+  }
 }
 
 // =====================================================
@@ -909,6 +912,7 @@ function drawBoardGrid() {
 
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(board.offsetX, board.offsetY, width, height);
+  drawBoardDesign(board.offsetX, board.offsetY, width, height);   // tło z kodu, np. góry (designs.js)
 
   ctx.strokeStyle = "#cfdcea";
   ctx.lineWidth = 1;

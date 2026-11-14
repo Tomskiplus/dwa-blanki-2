@@ -220,3 +220,14 @@ Zniszczony cel jest rysowany jako „duch”, dopóki język go nie trafi.
 #### Manual
 
 - [ ] 4.1 Żaba atakuje: język leci do celu, „PLASK!”, cel znika w chwili trafienia
+
+### Phase 5: Tła planszy z kodów (dodatek z 2026-11-14)
+
+Kody `design:mountain` (góry), `design:meadow` (łąka), `design:space` (kosmos) i `design:off` (bez tła).
+Tło rysowane w kodzie (`designs.js`), półprzezroczyste pod kratkami, malowane raz na ukrytym canvasie.
+Tylko wygląd: bez limitu „raz na turę”, tylko w EDYTORZE, znika po wyjściu z gry.
+Zamiast proponowanego „design:starwars” jest `design:space` (cudzy znak towarowy – tworzymy własne).
+
+#### Manual
+
+- [ ] 5.1 Każdy z 3 kodów zmienia tło planszy, `design:off` je wyłącza

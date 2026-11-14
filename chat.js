@@ -117,7 +117,7 @@ function submitChat() {
 
   // Tajne kody sprawdzamy PRZED strażnikiem - "AK-47_cat" ma cyfry,
   // więc strażnik by go zablokował. Kod nigdy nie trafia do czatu.
-  if (cheatCodeUnit(typed)) {
+  if (cheatCodeUnit(typed) || isDesignCode(typed)) {
     handleCheatCode(typed);
     return;
   }
@@ -159,6 +159,13 @@ function handleCheatCode(typed) {
   // Przez internet kody nie działają - i NIE wysyłamy ich przeciwnikowi
   if (online) {
     showChatNotice("Kody działają tylko w edytorze.");
+    return;
+  }
+
+  // Kod tła (designs.js) - tylko wygląd, więc bez limitu "raz na turę"
+  if (isDesignCode(typed)) {
+    addChatMessage("", "#1e8449", useDesignCode(typed), false);
+    closeChat();
     return;
   }
 
