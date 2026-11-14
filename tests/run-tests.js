@@ -15,6 +15,7 @@ function loadGameFile(fileName) {
 }
 loadGameFile("data.js");
 loadGameFile("rules.js");
+loadGameFile("chat-filter.js");
 
 // --- Mini-tester ---
 let passed = 0;
@@ -746,6 +747,68 @@ function hasCell(obj, x, y) {
   check("Sparing nie dotyczy łuczników", unitAt(game, "lucznik", 12, 10).hp === 2);
   buyResearch(game, uni, "wypalanie");
   check("Wypalanie: koszary 9 pól × (2 + 1) = 27 życia i wyleczone", barracks.maxHp === 27 && barracks.hp === 27);
+}
+
+// =====================================================
+//  ZMIANA "czat-w-grze": FILTR CZATU (strażnik)
+//  Zasady TATY: brzydkie słowa -> ***, kontakty/cyfry/linki -> stop
+// =====================================================
+
+{
+  // Pomocnicze: co strażnik zrobi z wiadomością?
+  const passesAs = (text, expected) => {
+    const result = filterChatMessage(text);
+    return result.ok && result.text === expected;
+  };
+  const isBlocked = text => {
+    const result = filterChatMessage(text);
+    return !result.ok && result.reason === CHAT_BLOCKED_TEXT;
+  };
+
+  // Zwykłe wiadomości przechodzą bez zmian
+  check("Czat: zwykła wiadomość przechodzi", passesAs("hej, powodzenia!", "hej, powodzenia!"));
+  check("Czat: polskie litery przechodzą", passesAs("Zażółć gęślą jaźń", "Zażółć gęślą jaźń"));
+  check("Czat: dozwolona emotka przechodzi", passesAs("dobra gra 👍", "dobra gra 👍"));
+  check("Czat: GG (dobra gra) przechodzi", passesAs("dobra gra, gg", "dobra gra, gg"));
+
+  // Długość i puste wiadomości
+  check("Czat: 80 znaków -> przycięte do 60", filterChatMessage("a".repeat(80)).text.length === 60);
+  check("Czat: pusta wiadomość nie przechodzi", !filterChatMessage("").ok);
+  check("Czat: same spacje nie przechodzą", !filterChatMessage("    ").ok);
+  check("Czat: nie-napis (od przerobionej gry) nie przechodzi", !filterChatMessage({ text: "hej" }).ok);
+  check("Czat: niedozwolone znaki znikają, podwójne spacje też", passesAs("hej   <b>#ziomek", "hej bziomek"));
+
+  // Kontakty, cyfry, linki -> cała wiadomość stop
+  check("Czat: numer telefonu zablokowany", isBlocked("mój nr 600 123 456"));
+  check("Czat: e-mail zablokowany", isBlocked("pisz na ab@cd.pl"));
+  check("Czat: strona www zablokowana", isBlocked("wejdź na www.strona.pl"));
+  check("Czat: domena bez www zablokowana", isBlocked("wejdź na strona . com"));
+  check("Czat: @nick zablokowany", isBlocked("mój nick @kowal"));
+  check("Czat: Discord zablokowany", isBlocked("mam discorda"));
+  check("Czat: d i s c o r d ze spacjami zablokowany", isBlocked("d i s c o r d"));
+  check("Czat: d.i.s.c.o.r.d z kropkami zablokowany", isBlocked("d.i.s.c.o.r.d"));
+  check("Czat: Insta zablokowane", isBlocked("insta: kowal"));
+  check("Czat: numer słowami zablokowany", isBlocked("pięć sześć siedem osiem"));
+  check("Czat: cyfry pełnej szerokości zablokowane", isBlocked("１２３"));
+  check("Czat: pytanie o wiek zablokowane", isBlocked("ile masz lat?"));
+  check("Czat: pytanie o miejsce zablokowane", isBlocked("gdzie mieszkasz"));
+
+  // Brzydkie słowa -> ***
+  check("Czat: brzydkie słowo -> ***", passesAs("ty debilu", "ty ***"));
+  check("Czat: WIELKIE LITERY też", passesAs("KURWA", "***"));
+  check("Czat: z ogonkiem też (gówno)", passesAs("gówno", "***"));
+  check("Czat: rozciągnięte litery też (kuuurwa)", passesAs("kuuurwa", "***"));
+  check("Czat: rozbite na litery też (k u r w a)", passesAs("no k u r w a", "no ***"));
+  check("Czat: po angielsku też", passesAs("what the fuck", "what the ***"));
+
+  // Bez fałszywych alarmów
+  check("Czat: Szczecin to nie brzydkie słowo", passesAs("Szczecin", "Szczecin"));
+  check("Czat: kurczak to nie brzydkie słowo", passesAs("kurczak", "kurczak"));
+  check("Czat: skubany to nie brzydkie słowo", passesAs("skubany", "skubany"));
+  check("Czat: szach mat przechodzi", passesAs("szach mat", "szach mat"));
+  check("Czat: nigdy to nie brzydkie słowo", passesAs("nigdy", "nigdy"));
+  check("Czat: las na prawo to nie Snap", passesAs("idę przez las na prawo", "idę przez las na prawo"));
+  check("Czat: ten zamek to nie liczby", passesAs("ten zamek, one dwa", "ten zamek, one dwa"));
 }
 
 // =====================================================
