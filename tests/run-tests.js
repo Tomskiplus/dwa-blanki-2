@@ -15,6 +15,7 @@ function loadGameFile(fileName) {
 }
 loadGameFile("data.js");
 loadGameFile("rules.js");
+loadGameFile("bot.js");
 loadGameFile("chat-filter.js");
 
 // --- Mini-tester ---
@@ -901,6 +902,201 @@ function hasCell(obj, x, y) {
     getRecruitOptions(game, { type: key, owner: 0 }).some(unitKey => UNIT_TYPES[unitKey].cheatOnly)
   );
   check("Jeża i kota nie ma w menu żadnego budynku", !secret);
+}
+
+// =====================================================
+//  BOT (bot.js)
+// =====================================================
+
+// Rozgrywa całą turę bota od razu (bez czekania pół sekundy) i zapisuje, co się działo:
+//  allOk = każdy krok był dozwolony, hitLimit = tura dobiła do bezpiecznika,
+//  pointsSpentOnMoves = ile punktów budowy poszło na ruch, movedPeasant = czy ruszył się chłop
+function playBotTurn(game, mode) {
+  const report = { allOk: true, hitLimit: false, pointsSpentOnMoves: 0, movedPeasant: false };
+  const botPlayer = game.current;
+  for (let i = 0; i < BOT_MAX_STEPS; i++) {
+    const step = getBotStep(game, mode);
+    if (step.type === "move") {
+      const unit = game.objects.find(obj => obj.id === step.unitId);
+      if (UNIT_TYPES[unit.type].builder) report.movedPeasant = true;
+    }
+    const pointsBefore = game.buildPoints;
+    const result = doBotStep(game, step);
+    if (!result.ok) report.allOk = false;
+    if (step.type === "move") report.pointsSpentOnMoves += pointsBefore - game.buildPoints;
+    // Tura się skończyła albo ktoś wygrał (wtedy endTurn wraca do tego samego gracza,
+    // bo innych żywych już nie ma - bez tego warunku pętla kręciłaby się do bezpiecznika)
+    if (game.current !== botPlayer || game.winner !== null) return report;
+  }
+  report.hitLimit = true;
+  endTurn(game);
+  return report;
+}
+
+// Robi botowi (gracz 1) "count" piechurów w rzędzie na środku średniej planszy (co 2 kratki)
+function makeBotArmy(game, count) {
+  const army = [];
+  for (let i = 0; i < count; i++) {
+    const x = 14 + 2 * i;
+    army.push(addUnit(game, "piechur", 1, [{ x: x, y: 10 }, { x: x, y: 11 }]));
+  }
+  return army;
+}
+
+// Odległość jednostki do najbliższego obiektu wroga
+function distanceToEnemy(game, unit) {
+  const enemies = game.objects.filter(obj => obj.owner !== unit.owner);
+  return Math.min(...enemies.map(obj => distance(unit.cells, obj.cells)));
+}
+
+// Zapisuje, gdzie stoją jednostki (żeby potem sprawdzić, czy się ruszyły)
+function cellsSnapshot(units) {
+  return units.map(unit => JSON.stringify(unit.cells));
+}
+
+{
+  // 1. i 2. tura bota: koszary, potem wojsko
+  const game = createGame(2, "mala");
+  endTurn(game);   // gracz 0 nic nie robi - teraz tura bota (gracz 1)
+  const report = playBotTurn(game, "offensive");
+  const barracks = objectsOf(game, 1, "koszary");
+  const peasants = objectsOf(game, 1, "chlop");
+  check("Bot: w 1. turze stawia koszary", barracks.length === 1);
+  check("Bot: koszary stoją obok jego chłopa",
+    barracks.length === 1 && peasants.some(p => distance(p.cells, barracks[0].cells) === 1));
+  check("Bot: wszystkie kroki 1. tury są dozwolone", report.allOk && !report.hitLimit);
+
+  endTurn(game);
+  const report2 = playBotTurn(game, "offensive");
+  check("Bot: w 2. turze robi 4 piechurów za 8 punktów",
+    objectsOf(game, 1, "piechur").length === 4 && report2.allOk);
+}
+
+{
+  // Ostatni 1 punkt bot wydaje na włócznika
+  const game = createGame(2, "mala");
+  endTurn(game);
+  playBotTurn(game, "offensive");   // koszary
+  endTurn(game);
+  game.buildPoints = 7;
+  playBotTurn(game, "offensive");
+  check("Bot: za 7 punktów robi 3 piechurów i 1 włócznika",
+    objectsOf(game, 1, "piechur").length === 3 && objectsOf(game, 1, "wlocznik").length === 1);
+}
+
+{
+  // Najsłabszy cel: chłop (1 życie) zamiast piechura (3 życia)
+  const game = createGame(2, "srednia");
+  endTurn(game);
+  const botUnit = addUnit(game, "piechur", 1, [{ x: 14, y: 10 }, { x: 14, y: 11 }]);
+  addUnit(game, "piechur", 0, [{ x: 13, y: 10 }, { x: 13, y: 11 }]);
+  const weak = addUnit(game, "chlop", 0, [{ x: 15, y: 10 }]);
+  const step = getBotStep(game, "offensive");
+  check("Bot: atakuje najsłabszy cel (chłop 1 ❤️ zamiast piechura 3 ❤️)",
+    step.type === "attack" && step.attackerId === botUnit.id && step.targetId === weak.id);
+}
+
+{
+  // Remis życia: jednostka przed budynkiem
+  const game = createGame(2, "srednia");
+  endTurn(game);
+  addUnit(game, "piechur", 1, [{ x: 14, y: 10 }, { x: 14, y: 11 }]);
+  addBuilding(game, "palisada", 0, [{ x: 13, y: 10 }]);           // 1 życie
+  const peasant = addUnit(game, "chlop", 0, [{ x: 15, y: 11 }]);  // 1 życie
+  const step = getBotStep(game, "offensive");
+  check("Bot: przy równym życiu atakuje jednostkę, a nie budynek",
+    step.type === "attack" && step.targetId === peasant.id);
+}
+
+{
+  // Ofensywny z 3 wojakami czeka
+  const game = createGame(2, "srednia");
+  endTurn(game);
+  const army = makeBotArmy(game, 3);
+  const before = cellsSnapshot(army);
+  const report = playBotTurn(game, "offensive");
+  check("Bot ofensywny: z 3 wojakami czeka przy bazie",
+    JSON.stringify(cellsSnapshot(army)) === JSON.stringify(before) && report.allOk);
+}
+
+{
+  // Ofensywny z 4 wojakami rusza na wroga
+  const game = createGame(2, "srednia");
+  endTurn(game);
+  const army = makeBotArmy(game, 4);
+  const before = army.map(unit => distanceToEnemy(game, unit));
+  const report = playBotTurn(game, "offensive");
+  check("Bot ofensywny: z 4 wojakami każdy jest bliżej wroga",
+    army.every((unit, i) => distanceToEnemy(game, unit) < before[i]) && report.allOk);
+  check("Bot: ruch nie zabiera punktów budowy (tylko darmowe kroki)", report.pointsSpentOnMoves === 0);
+}
+
+{
+  // Defensywny: wróg daleko - wojsko stoi
+  const game = createGame(2, "srednia");
+  endTurn(game);
+  const army = makeBotArmy(game, 4);
+  const before = cellsSnapshot(army);
+  const report = playBotTurn(game, "defensive");
+  check("Bot defensywny: gdy wróg jest daleko, wojsko stoi",
+    JSON.stringify(cellsSnapshot(army)) === JSON.stringify(before) && report.allOk);
+}
+
+{
+  // Defensywny: wróg 3 pola od ratusza bota - wojsko idzie i bije
+  const game = createGame(2, "srednia");
+  endTurn(game);
+  makeBotArmy(game, 4);
+  // Ratusz bota stoi na x 24-25, y 16-18, więc piechur na x = 21 jest 3 pola od niego
+  const intruder = addUnit(game, "piechur", 0, [{ x: 21, y: 16 }, { x: 21, y: 17 }]);
+  const report = playBotTurn(game, "defensive");
+  const destroyed = !game.objects.includes(intruder);
+  check("Bot defensywny: atakuje wroga, który podszedł do bazy",
+    (destroyed || intruder.hp < intruder.maxHp) && report.allOk);
+}
+
+// Cały mecz: modes[gracz] = "offensive", "defensive" albo "passive" (gracz, który tylko kończy turę)
+function playMatch(sizeKey, modes, maxTurns) {
+  const game = createGame(2, sizeKey);
+  const summary = { game: game, allOk: true, hitLimit: false, pointsSpentOnMoves: 0, movedPeasant: false };
+  while (game.winner === null && game.turn <= maxTurns) {
+    const mode = modes[game.current];
+    if (mode === "passive") {
+      endTurn(game);
+      continue;
+    }
+    const report = playBotTurn(game, mode);
+    if (!report.allOk) summary.allOk = false;
+    if (report.hitLimit) summary.hitLimit = true;
+    if (report.movedPeasant) summary.movedPeasant = true;
+    summary.pointsSpentOnMoves += report.pointsSpentOnMoves;
+  }
+  return summary;
+}
+
+// Krótki opis wyniku meczu (do konsoli)
+function matchResult(summary) {
+  const game = summary.game;
+  if (game.winner === null) return "remis po " + (game.turn - 1) + " turach";
+  return "wygrał gracz " + game.winner + " w turze " + game.turn;
+}
+
+{
+  const fair = (summary) => summary.allOk && !summary.hitLimit && !summary.movedPeasant && summary.pointsSpentOnMoves === 0;
+
+  // 30-40 tur wystarczy - potem boty mają po kilkadziesiąt jednostek i test robi się wolny
+  const match1 = playMatch("mala", ["offensive", "defensive"], 30);
+  console.log("   (mecz ⚔️ kontra 🛡️ na małej planszy: " + matchResult(match1) + ")");
+  check("Mecz bot ⚔️ kontra bot 🛡️: każdy krok dozwolony, bez bezpiecznika, chłopi w domu", fair(match1));
+
+  const match2 = playMatch("mala", ["offensive", "offensive"], 40);
+  console.log("   (mecz ⚔️ kontra ⚔️ na małej planszy: " + matchResult(match2) + ")");
+  check("Mecz bot ⚔️ kontra bot ⚔️: każdy krok dozwolony, bez bezpiecznika, chłopi w domu", fair(match2));
+
+  const match3 = playMatch("mala", ["passive", "offensive"], 40);
+  console.log("   (bot ⚔️ kontra gracz, który nic nie robi: " + matchResult(match3) + ")");
+  check("Bot ofensywny wygrywa z graczem, który nic nie robi (w 40 turach)",
+    match3.game.winner === 1 && match3.game.turn <= 40);
 }
 
 // =====================================================
