@@ -18,6 +18,10 @@ const RECRUIT_STEP = 28;    // odstęp między przyciskami jednostek (8 jednoste
 const BUILD_LIST_TOP = 194; // gdzie zaczyna się lista budowli w zakładce
 const BUILD_LIST_STEP = 31; // odstęp między przyciskami budowli
 
+const BOT_STEP_MS = 500;        // co ile milisekund bot robi jeden krok (500 = pół sekundy)
+const BOT_FAST_AFTER = 20;      // po tylu krokach w jednej turze bot przyspiesza (duża armia)...
+const BOT_FAST_STEP_MS = 150;   // ...i robi krok co tyle milisekund
+
 const BOARD_AREA = 600;     // plansza zajmuje kwadrat 600×600 po lewej
 const PANEL_X = 600;        // panel z informacjami zaczyna się tu
 const PANEL_WIDTH = 200;    // szerokość panelu
@@ -32,7 +36,7 @@ const mouse = { x: -1, y: -1 };  // gdzie jest myszka
 let message = "";                // napis pokazywany po kliknięciu
 let time = 0;                    // licznik czasu do animacji
 
-// Na którym ekranie jesteśmy: "title", "singleMenu", "editorSetup", "game", "victory",
+// Na którym ekranie jesteśmy: "title", "singleMenu", "editorSetup", "botSetup", "game", "victory",
 // a w grze przez internet (online.js) także "multiMenu", "searching" i "onlineEnd"
 let currentScreen = "title";
 
@@ -44,6 +48,17 @@ const setup = {
   countries: [0, 1, 2, 3, 4, 5, 6, 7],
 };
 
+// Ustawienia wybrane na ekranie 1 VS BOT (osobne od EDYTORA)
+const botSetup = {
+  countries: [0, 8],     // [twój kraj, kraj bota] - na start czerwony kontra niebieski
+  mode: "offensive",     // "offensive" (ofensywny) albo "defensive" (defensywny)
+  sizeKey: "mala",
+};
+
+// Gra z botem: null = nie (EDYTOR albo gra przez internet),
+// albo { humanSlot: 0, botSlot: 1, mode } - gracz 0 to ty, gracz 1 to bot
+let vsBot = null;
+
 // Wiersze wyboru kraju na ekranie EDYTOR: 2 kolumny po 4 graczy
 const COUNTRY_ROW_TOP = 140;
 const COUNTRY_ROW_STEP = 44;
@@ -54,10 +69,16 @@ function countryRowPos(index) {
   return { x: column === 0 ? 60 : 420, y: COUNTRY_ROW_TOP + (index % 4) * COUNTRY_ROW_STEP };
 }
 
-// Zmienia kraj gracza o krok w lewo (-1) albo w prawo (+1); po ostatnim jest znowu pierwszy
-function changeCountry(index, step) {
+// Wiersze wyboru kraju na ekranie 1 VS BOT: "Ty" i "Bot", jeden pod drugim na środku
+function botCountryRowPos(index) {
+  return { x: 236, y: 100 + index * 48 };
+}
+
+// Zmienia kraj gracza "index" w liście "countries" o krok w lewo (-1) albo w prawo (+1);
+// po ostatnim jest znowu pierwszy
+function changeCountry(countries, index, step) {
   const count = COUNTRIES.length;
-  setup.countries[index] = (setup.countries[index] + step + count) % count;
+  countries[index] = (countries[index] + step + count) % count;
 }
 
 let game = null;   // stan gry (tworzy go createGame z rules.js)
@@ -289,7 +310,7 @@ function getTitleButtons() {
 function getSingleMenuButtons() {
   return [
     { label: "1 VS BOT", x: 260, y: 200, w: 280, h: 60,
-      onClick: () => { message = "Gra z botem - wkrótce!"; } },
+      onClick: () => goToScreen("botSetup") },
     { label: "EDYTOR", x: 260, y: 280, w: 280, h: 60,
       onClick: () => goToScreen("editorSetup") },
     { label: "WSTECZ", x: 20, y: 530, w: 160, h: 50, fontSize: 22,
@@ -311,27 +332,59 @@ function getEditorSetupButtons() {
       onClick: () => goToScreen("singleMenu") },
   ];
 
-  // Po jednym przycisku dla każdego rozmiaru planszy (pętla po BOARD_SIZES z data.js)
-  const sizeKeys = Object.keys(BOARD_SIZES);
-  sizeKeys.forEach((key, index) => {
-    const size = BOARD_SIZES[key];
-    buttons.push({
-      label: size.name + " " + size.cols + "×" + size.rows,
-      x: 115 + index * 195, y: 360, w: 180, h: 50, fontSize: 18,
-      selected: setup.sizeKey === key,
-      onClick: () => { setup.sizeKey = key; },
-    });
-  });
+  buttons.push(...getSizeButtons(setup, 360));
 
   // Strzałki ◀ ▶ przy każdym graczu - zmieniają jego kraj
   for (let i = 0; i < setup.playerCount; i++) {
-    const pos = countryRowPos(i);
-    buttons.push({ label: "◀", x: pos.x + 110, y: pos.y, w: 34, h: 34, fontSize: 16,
-      onClick: () => changeCountry(i, -1) });
-    buttons.push({ label: "▶", x: pos.x + 294, y: pos.y, w: 34, h: 34, fontSize: 16,
-      onClick: () => changeCountry(i, 1) });
+    buttons.push(...getCountryArrows(setup.countries, i, countryRowPos(i)));
   }
 
+  return buttons;
+}
+
+// Po jednym przycisku dla każdego rozmiaru planszy (pętla po BOARD_SIZES z data.js).
+// settings = ustawienia ekranu (setup albo botSetup), y = wysokość przycisków
+function getSizeButtons(settings, y) {
+  return Object.keys(BOARD_SIZES).map((key, index) => {
+    const size = BOARD_SIZES[key];
+    return {
+      label: size.name + " " + size.cols + "×" + size.rows,
+      x: 115 + index * 195, y: y, w: 180, h: 50, fontSize: 18,
+      selected: settings.sizeKey === key,
+      onClick: () => { settings.sizeKey = key; },
+    };
+  });
+}
+
+// Strzałki ◀ ▶ zmieniające kraj gracza "index" (wiersz stoi w miejscu "pos")
+function getCountryArrows(countries, index, pos) {
+  return [
+    { label: "◀", x: pos.x + 110, y: pos.y, w: 34, h: 34, fontSize: 16,
+      onClick: () => changeCountry(countries, index, -1) },
+    { label: "▶", x: pos.x + 294, y: pos.y, w: 34, h: 34, fontSize: 16,
+      onClick: () => changeCountry(countries, index, 1) },
+  ];
+}
+
+// Przyciski ekranu 1 VS BOT: kraje, tryb bota, plansza, START i WSTECZ
+function getBotSetupButtons() {
+  const buttons = [
+    { label: "OFENSYWNY", x: 205, y: 236, w: 185, h: 46, fontSize: 20,
+      selected: botSetup.mode === "offensive",
+      onClick: () => { botSetup.mode = "offensive"; } },
+    { label: "DEFENSYWNY", x: 410, y: 236, w: 185, h: 46, fontSize: 20,
+      selected: botSetup.mode === "defensive",
+      onClick: () => { botSetup.mode = "defensive"; } },
+    { label: "START", x: 260, y: 455, w: 280, h: 60,
+      onClick: startBotGame },
+    { label: "WSTECZ", x: 20, y: 530, w: 160, h: 50, fontSize: 22,
+      onClick: () => goToScreen("singleMenu") },
+  ];
+  buttons.push(...getSizeButtons(botSetup, 375));
+  // Strzałki krajów: wiersz 0 = ty, wiersz 1 = bot
+  for (let i = 0; i < 2; i++) {
+    buttons.push(...getCountryArrows(botSetup.countries, i, botCountryRowPos(i)));
+  }
   return buttons;
 }
 
@@ -470,6 +523,7 @@ function getButtons() {
   if (currentScreen === "title") return getTitleButtons();
   if (currentScreen === "singleMenu") return getSingleMenuButtons();
   if (currentScreen === "editorSetup") return getEditorSetupButtons();
+  if (currentScreen === "botSetup") return getBotSetupButtons();
   if (currentScreen === "game") return getGameButtons();
   if (currentScreen === "victory") return getVictoryButtons();
   if (currentScreen === "multiMenu") return getMultiMenuButtons();   // online.js
@@ -507,26 +561,53 @@ function drawEditorSetupScreen() {
 
   // Wiersz dla każdego gracza: kwadracik w kolorze kraju, "Gracz N", ◀ nazwa kraju ▶
   for (let i = 0; i < setup.playerCount; i++) {
-    const pos = countryRowPos(i);
-    const country = COUNTRIES[setup.countries[i]];
-    ctx.fillStyle = country.color;
-    ctx.fillRect(pos.x, pos.y + 5, 24, 24);
-    ctx.strokeStyle = "#000000";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(pos.x, pos.y + 5, 24, 24);
-    drawText("Gracz " + (i + 1), pos.x + 32, pos.y + 17, 16, "#000000", "left");
-    // Długie nazwy (np. "Ciemnopomarańczowy") pomniejszamy, żeby zmieściły się między strzałkami
-    let nameSize = 14;
-    ctx.font = "bold " + nameSize + "px Arial, sans-serif";
-    while (ctx.measureText(country.name).width > 140 && nameSize > 9) {
-      nameSize--;
-      ctx.font = "bold " + nameSize + "px Arial, sans-serif";
-    }
-    drawText(country.name, pos.x + 219, pos.y + 17, nameSize, "#000000");
+    drawCountryRow(countryRowPos(i), "Gracz " + (i + 1), setup.countries[i]);
   }
 
   // Rozmiar planszy
   drawText("Plansza", canvas.width / 2, 340, 24, "#000000");
+
+  getButtons().forEach(drawButton);
+}
+
+// Jeden wiersz wyboru kraju: kwadracik w kolorze kraju, podpis (np. "Gracz 1") i nazwa kraju
+// (strzałki ◀ ▶ to przyciski - rysuje je drawButton)
+function drawCountryRow(pos, label, countryIndex) {
+  const country = COUNTRIES[countryIndex];
+  ctx.fillStyle = country.color;
+  ctx.fillRect(pos.x, pos.y + 5, 24, 24);
+  ctx.strokeStyle = "#000000";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(pos.x, pos.y + 5, 24, 24);
+  drawText(label, pos.x + 32, pos.y + 17, 16, "#000000", "left");
+  // Długie nazwy (np. "Ciemnopomarańczowy") pomniejszamy, żeby zmieściły się między strzałkami
+  let nameSize = 14;
+  ctx.font = "bold " + nameSize + "px Arial, sans-serif";
+  while (ctx.measureText(country.name).width > 140 && nameSize > 9) {
+    nameSize--;
+    ctx.font = "bold " + nameSize + "px Arial, sans-serif";
+  }
+  drawText(country.name, pos.x + 219, pos.y + 17, nameSize, "#000000");
+}
+
+// Krótki opis, jak gra bot w danym trybie
+function botModeInfo(mode) {
+  if (mode === "offensive") return "Zbiera " + BOT_ARMY_TO_ATTACK + " wojaków i rusza do ataku.";
+  return "Broni bazy. Walczy, gdy podejdziesz na " + BOT_DEFEND_RADIUS + " pól.";
+}
+
+function drawBotSetupScreen() {
+  drawPaper();
+  drawBigTitle("1 VS BOT", 50, 46);
+
+  drawCountryRow(botCountryRowPos(0), "Ty", botSetup.countries[0]);
+  drawCountryRow(botCountryRowPos(1), "Bot", botSetup.countries[1]);
+
+  // Tryb bota: przyciski OFENSYWNY / DEFENSYWNY i opis pod nimi
+  drawText("Tryb bota", canvas.width / 2, 220, 24, "#000000");
+  drawText(botModeInfo(botSetup.mode), canvas.width / 2, 305, 16, "#555555");
+
+  drawText("Plansza", canvas.width / 2, 355, 24, "#000000");
 
   getButtons().forEach(drawButton);
 }
@@ -538,6 +619,7 @@ function drawEditorSetupScreen() {
 // Tworzy nową grę z ustawień edytora i przechodzi na ekran gry
 function startGame() {
   if (online) leaveOnlineGame();   // na wszelki wypadek: EDYTOR to nie gra przez internet
+  vsBot = null;                    // ...i nie gra z botem
   game = createGame(setup.playerCount, setup.sizeKey, setup.countries);
   setupBoard();
   clearSelection();
@@ -563,8 +645,82 @@ function setupBoard() {
 
 // Czy teraz mogę coś robić? W EDYTORZE zawsze tak.
 // Przez internet - tylko w swojej turze (online.mySlot = mój numer gracza).
+// Z botem - tylko w swojej turze (w turze bota patrzymy).
 function isMyTurn() {
-  return !online || game.current === online.mySlot;
+  if (online) return game.current === online.mySlot;
+  if (isBotGame()) return game.current === vsBot.humanSlot;
+  return true;
+}
+
+// =====================================================
+//  GRA Z BOTEM (mózg bota jest w bot.js)
+// =====================================================
+
+// Czy to gra z botem? (gra przez internet nigdy nią nie jest)
+function isBotGame() {
+  return vsBot !== null && !online;
+}
+
+// Tworzy grę 1 VS BOT z ustawień ekranu 1 VS BOT. Ty jesteś graczem 0 i zaczynasz.
+function startBotGame() {
+  if (online) leaveOnlineGame();
+  game = createGame(2, botSetup.sizeKey, botSetup.countries);
+  vsBot = { humanSlot: 0, botSlot: 1, mode: botSetup.mode };
+  resetBotClock();
+  setupBoard();
+  clearSelection();
+  clearChat();
+  turnBannerNote = "";
+  showTurnBanner = true;   // "TWOJA TURA" - kliknij, aby zacząć
+  goToScreen("game");
+}
+
+let botStepsThisTurn = 0;   // ile kroków bot zrobił w tej turze (do przyspieszenia i bezpiecznika)
+let botLastStepAt = 0;      // kiedy bot zrobił ostatni krok (w milisekundach)
+
+// Zeruje zegar bota - pierwszy krok będzie dopiero za BOT_STEP_MS
+function resetBotClock() {
+  botStepsThisTurn = 0;
+  botLastStepAt = Date.now();
+}
+
+// Czy bot ma teraz grać? Tylko na ekranie gry, w jego turze, gdy nikt nie wygrał i nie ma banera
+function isBotTurnNow() {
+  return currentScreen === "game" && isBotGame() && game.winner === null &&
+    game.current === vsBot.botSlot && !showTurnBanner;
+}
+
+// Ile czekać przed następnym krokiem: na początku tury powoli, przy długiej turze szybciej
+function botStepDelay() {
+  return botStepsThisTurn >= BOT_FAST_AFTER ? BOT_FAST_STEP_MS : BOT_STEP_MS;
+}
+
+// Wołane co klatkę: gdy minął czas - bot robi JEDEN krok
+function runBotStep() {
+  if (!isBotTurnNow()) return;
+  if (Date.now() - botLastStepAt < botStepDelay()) return;
+  botLastStepAt = Date.now();
+  botStepsThisTurn++;
+
+  let step = getBotStep(game, vsBot.mode);
+  if (botStepsThisTurn >= BOT_MAX_STEPS) step = { type: "endTurn" };   // bezpiecznik (bot.js)
+  const result = doBotStep(game, step);
+  if (!result.ok) console.warn("Bot: nieudany krok", step, result.reason);
+
+  // Bot wygrał? Od razu ekran końca. (Nie kończymy tury - po wygranej
+  // endTurn oddałby turę z powrotem botowi, bo nie ma już innego żywego gracza)
+  if (game.winner !== null) {
+    goToScreen("victory");
+    return;
+  }
+  if (step.type === "endTurn") {
+    // Bot skończył - teraz twoja tura
+    botStepsThisTurn = 0;
+    clearSelection();
+    message = "";
+    turnBannerNote = "";
+    showTurnBanner = true;
+  }
 }
 
 // Wołamy po KAŻDEJ zmianie stanu gry (budowa, ruch, atak, ulepszenie, era, koniec tury).
@@ -752,8 +908,9 @@ function finishTurn() {
   clearSelection();
   message = "";
   turnBannerNote = "";
-  // Przez internet baneru nie ma - teraz po prostu patrzymy na turę przeciwnika
-  showTurnBanner = !online;
+  // Przez internet i z botem baneru nie ma - teraz po prostu patrzymy na turę przeciwnika
+  showTurnBanner = !online && !isBotGame();
+  if (isBotGame()) resetBotClock();   // bot zacznie za pół sekundy
   afterAction();
 }
 
@@ -768,7 +925,8 @@ function goToNextEra() {
   clearSelection();
   message = "";
   turnBannerNote = player.colorName + " przechodzi do " + ERA_GENITIVE[result.era] + "!";
-  showTurnBanner = !online;   // przez internet: przeciwnik zobaczy to na swoim banerze
+  showTurnBanner = !online && !isBotGame();   // przez internet: przeciwnik zobaczy to na swoim banerze
+  if (isBotGame()) resetBotClock();           // z botem: od razu gra bot
   afterAction();
 }
 
@@ -1578,7 +1736,8 @@ function drawTurnBanner() {
   // Przez internet: "TWOJA TURA" albo czyja tura (w EDYTORZE zawsze "Gracz ...")
   let title = "Gracz " + player.colorName;
   let hint = "Kliknij, aby zacząć";
-  if (online && isMyTurn()) title = "TWOJA TURA (" + player.colorName + ")";
+  // Z botem baner widać tylko w twojej turze
+  if ((online || isBotGame()) && isMyTurn()) title = "TWOJA TURA (" + player.colorName + ")";
   if (online && !isMyTurn()) {
     title = "Zaczyna: " + player.colorName;
     hint = "Kliknij, aby oglądać";
@@ -1813,7 +1972,11 @@ function gameLoop() {
   if (currentScreen === "title") drawTitleScreen();
   else if (currentScreen === "singleMenu") drawSingleMenuScreen();
   else if (currentScreen === "editorSetup") drawEditorSetupScreen();
-  else if (currentScreen === "game") drawGameScreen();
+  else if (currentScreen === "botSetup") drawBotSetupScreen();
+  else if (currentScreen === "game") {
+    runBotStep();      // w turze bota: co pół sekundy jeden krok bota
+    drawGameScreen();
+  }
   else if (currentScreen === "victory") drawVictoryScreen();
   else if (currentScreen === "multiMenu") drawMultiMenuScreen();   // online.js
   else if (currentScreen === "searching") drawSearchingScreen();   // online.js

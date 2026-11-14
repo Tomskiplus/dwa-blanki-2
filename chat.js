@@ -147,8 +147,10 @@ function submitChat() {
     });
     addChatMessage("Ty", "#000000", checked.text, false);
   } else {
-    // EDYTOR: tylko u nas, podpisane kolorem gracza, który ma turę
-    const player = game.players[game.current];
+    // EDYTOR: tylko u nas, podpisane kolorem gracza, który ma turę.
+    // Z botem: zawsze twoim kolorem (żeby w turze bota nie wyglądało, że pisze bot)
+    const slot = isBotGame() ? vsBot.humanSlot : game.current;
+    const player = game.players[slot];
     addChatMessage(player.colorName, player.color, checked.text, false);
   }
 
@@ -170,6 +172,13 @@ function handleCheatCode(typed) {
   if (isDesignCode(typed)) {
     addChatMessage("", "#1e8449", useDesignCode(typed), false);
     closeChat();
+    return;
+  }
+
+  // Z botem kody jednostek nie działają - uczciwa gra
+  // (a w turze bota kod dałby jednostkę... botowi!)
+  if (isBotGame()) {
+    showChatNotice("Kody działają tylko w edytorze.");
     return;
   }
 

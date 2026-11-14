@@ -319,29 +319,29 @@ kilku jednostek – na dużej planszy (36×27) to wciąż ułamek sekundy. Nie l
 
 #### Automated
 
-- [x] 1.1 Wszystkie testy przechodzą (stare i nowe): `node tests/run-tests.js`
-- [x] 1.2 Mecz bot kontra bot (150 tur) kończy się bez błędu i bez przekroczenia `BOT_MAX_STEPS`
+- [x] 1.1 Wszystkie testy przechodzą (stare i nowe): `node tests/run-tests.js` — 3ce7db0
+- [x] 1.2 Mecz bot kontra bot (150 tur) kończy się bez błędu i bez przekroczenia `BOT_MAX_STEPS` — 3ce7db0
 
 #### Manual
 
-- [x] 1.3 Tomek czyta `bot.js` i rozumie główne kroki tury bota (komentarze po polsku)
+- [x] 1.3 Tomek czyta `bot.js` i rozumie główne kroki tury bota (komentarze po polsku) — 3ce7db0
 
 ### Phase 2: Ekran 1 VS BOT i tura bota w grze
 
 #### Automated
 
-- [ ] 2.1 Testy dalej przechodzą: `node tests/run-tests.js`
-- [ ] 2.2 Brak błędów w konsoli przeglądarki przy starcie gry z botem
+- [x] 2.1 Testy dalej przechodzą: `node tests/run-tests.js`
+- [x] 2.2 Brak błędów w konsoli przeglądarki przy starcie gry z botem
 
 #### Manual
 
-- [ ] 2.3 Ekran ustawień 1 VS BOT: kraje, tryb, plansza, WSTECZ działają
-- [ ] 2.4 START: gracz zaczyna w lewym górnym rogu, widzi baner swojej tury
-- [ ] 2.5 Bot co 0,5 s robi akcje (koszary w 1. turze), potem baner „TWOJA TURA”
-- [ ] 2.6 W turze bota: brak przycisków budowy, statystyki po kliknięciu, MENU wychodzi
-- [ ] 2.7 Ofensywny atakuje po 4 wojakach; defensywny czeka, aż gracz podejdzie
-- [ ] 2.8 Tajny kod w grze z botem nie działa
-- [ ] 2.9 EDYTOR po grze z botem działa jak dawniej
+- [x] 2.3 Ekran ustawień 1 VS BOT: kraje, tryb, plansza, WSTECZ działają
+- [x] 2.4 START: gracz zaczyna w lewym górnym rogu, widzi baner swojej tury
+- [x] 2.5 Bot co 0,5 s robi akcje (koszary w 1. turze), potem baner „TWOJA TURA”
+- [x] 2.6 W turze bota: brak przycisków budowy, statystyki po kliknięciu, MENU wychodzi
+- [x] 2.7 Ofensywny atakuje po 4 wojakach; defensywny czeka, aż gracz podejdzie
+- [x] 2.8 Tajny kod w grze z botem nie działa
+- [x] 2.9 EDYTOR po grze z botem działa jak dawniej
 
 ### Phase 3: Szlif – widać, co robi bot, i ekran końca
 

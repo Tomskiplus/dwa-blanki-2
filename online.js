@@ -493,7 +493,9 @@ function inspectObjectAt(cell) {
 
 // Panel w turze przeciwnika: napis i statystyki klikniętego obiektu
 function drawOpponentTurnPanel(left) {
-  drawText("Tura przeciwnika", left, 182, 17, "#000000", "left");
+  // Ten sam panel pokazuje też turę bota (gra z botem - game.js)
+  const title = isBotGame() ? "Tura bota" : "Tura przeciwnika";
+  drawText(title, left, 182, 17, "#000000", "left");
   drawWrappedText("Patrz, co robi. Kliknij budynek albo jednostkę, żeby zobaczyć statystyki.",
     left, 208, PANEL_WIDTH - 30, 17, 13, "#555555");
 
