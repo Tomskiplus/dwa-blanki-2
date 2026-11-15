@@ -388,14 +388,14 @@ W erze 4 bot ma uniwersytet (z fazy 1). Bada Proch, potem robi bombardy. Inne ba
 
 #### Automated
 
-- [x] 1.1 Testy przechodzą: `node tests/run-tests.js`
-- [x] 1.2 Test meczu: bot 🛡️ dochodzi do ery 4 i każdy krok jest dozwolony
-- [x] 1.3 Testy trwają nie dłużej niż ok. 10 s
+- [x] 1.1 Testy przechodzą: `node tests/run-tests.js` — b11c617
+- [x] 1.2 Test meczu: bot 🛡️ dochodzi do ery 4 i każdy krok jest dozwolony — b11c617
+- [x] 1.3 Testy trwają nie dłużej niż ok. 10 s — b11c617
 
 #### Manual
 
-- [x] 1.4 Bot stawia budynki ery 1 i widać baner „⭐ … przechodzi do ery feudalnej!”
-- [x] 1.5 Budowniczy idzie i stawia strzelnicę z tyłu; wieże i mury od strony gracza
+- [x] 1.4 Bot stawia budynki ery 1 i widać baner „⭐ … przechodzi do ery feudalnej!” — b11c617
+- [x] 1.5 Budowniczy idzie i stawia strzelnicę z tyłu; wieże i mury od strony gracza — b11c617
 - [ ] 1.6 Gra przez internet i EDYTOR działają jak dawniej
 
 ### Phase 2: Nowe wojsko i ulepszenia
