@@ -910,19 +910,25 @@ function hasCell(obj, x, y) {
 
 // Rozgrywa całą turę bota od razu (bez czekania pół sekundy) i zapisuje, co się działo:
 //  allOk = każdy krok był dozwolony, hitLimit = tura dobiła do bezpiecznika,
-//  pointsSpentOnMoves = ile punktów budowy poszło na ruch, movedPeasant = czy ruszył się chłop
+//  pointsSpentOnMoves = ile punktów budowy poszło na ruch,
+//  movedPeasant = czy ruszył się chłop ze startu (budowniczy bota może chodzić),
+//  steps = lista kroków (typ + czy się udał)
 function playBotTurn(game, mode) {
-  const report = { allOk: true, hitLimit: false, pointsSpentOnMoves: 0, movedPeasant: false };
+  const report = { allOk: true, hitLimit: false, pointsSpentOnMoves: 0, movedPeasant: false, steps: [], failures: [] };
   const botPlayer = game.current;
   for (let i = 0; i < BOT_MAX_STEPS; i++) {
     const step = getBotStep(game, mode);
     if (step.type === "move") {
       const unit = game.objects.find(obj => obj.id === step.unitId);
-      if (UNIT_TYPES[unit.type].builder) report.movedPeasant = true;
+      if (UNIT_TYPES[unit.type].builder && !unit.botBuilder) report.movedPeasant = true;
     }
+    report.steps.push(step);
     const pointsBefore = game.buildPoints;
     const result = doBotStep(game, step);
-    if (!result.ok) report.allOk = false;
+    if (!result.ok) {
+      report.allOk = false;
+      report.failures.push(step.type + ": " + result.reason);
+    }
     if (step.type === "move") report.pointsSpentOnMoves += pointsBefore - game.buildPoints;
     // Tura się skończyła albo ktoś wygrał (wtedy endTurn wraca do tego samego gracza,
     // bo innych żywych już nie ma - bez tego warunku pętla kręciłaby się do bezpiecznika)
@@ -1058,7 +1064,7 @@ function cellsSnapshot(units) {
 // Cały mecz: modes[gracz] = "offensive", "defensive" albo "passive" (gracz, który tylko kończy turę)
 function playMatch(sizeKey, modes, maxTurns) {
   const game = createGame(2, sizeKey);
-  const summary = { game: game, allOk: true, hitLimit: false, pointsSpentOnMoves: 0, movedPeasant: false };
+  const summary = { game: game, allOk: true, hitLimit: false, pointsSpentOnMoves: 0, movedPeasant: false, failures: [] };
   while (game.winner === null && game.turn <= maxTurns) {
     const mode = modes[game.current];
     if (mode === "passive") {
@@ -1066,6 +1072,7 @@ function playMatch(sizeKey, modes, maxTurns) {
       continue;
     }
     const report = playBotTurn(game, mode);
+    summary.failures.push(...report.failures);
     if (!report.allOk) summary.allOk = false;
     if (report.hitLimit) summary.hitLimit = true;
     if (report.movedPeasant) summary.movedPeasant = true;
@@ -1097,6 +1104,99 @@ function matchResult(summary) {
   console.log("   (bot ⚔️ kontra gracz, który nic nie robi: " + matchResult(match3) + ")");
   check("Bot ofensywny wygrywa z graczem, który nic nie robi (w 40 turach)",
     match3.game.winner === 1 && match3.game.turn <= 40);
+}
+
+// --- Bot idzie przez ery (budynki ery, budowniczy, nowa era) ---
+
+{
+  // Z 3 wojakami bot najpierw robi wojaka, a dopiero potem budynki ery
+  const game = createGame(2, "srednia");
+  endTurn(game);
+  playBotTurn(game, "defensive");   // 1. tura: koszary
+  endTurn(game);                    // gracz 0 nic nie robi
+  makeBotArmy(game, 3);
+  const step = getBotStep(game, "defensive");
+  check("Bot ery: z 3 wojakami najpierw robi wojaka", step.type === "recruit" && step.key !== "chlop");
+}
+
+{
+  // Z 4 wojakami bot wydaje punkty na budynek do następnej ery (a nie na piechura)
+  const game = createGame(2, "mala");
+  endTurn(game);
+  playBotTurn(game, "defensive");   // koszary
+  endTurn(game);
+  playBotTurn(game, "defensive");   // 4 piechurów
+  endTurn(game);
+  const step = getBotStep(game, "defensive");
+  check("Bot ery: z 4 wojakami stawia budynek do następnej ery",
+    step.type === "build" && ["dom", "palisada", "bramaDrewniana"].includes(step.key));
+  check("Bot ery: najpierw obrona (palisada albo brama), dom na końcu",
+    step.type === "build" && step.key !== "dom");
+}
+
+check("Opis bota: \"Bot przechodzi do ery feudalnej!\"",
+  describeBotStep(createGame(2, "mala"), { type: "advanceEra" }, { ok: true, era: 2 }, null) === "Bot przechodzi do ery feudalnej!");
+check("Opis bota: \"Bot robi: Chłop-budowniczy\"",
+  describeBotStep(createGame(2, "mala"), { type: "recruit", key: "chlop" }, { ok: true }, null) === "Bot robi: Chłop-budowniczy");
+
+{
+  // Długi mecz: bot 🛡️ kontra gracz, który nic nie robi. Zapisujemy, jak bot przechodzi przez ery.
+  const game = createGame(2, "mala");
+  // Gdzie stał ratusz wroga na starcie (wieże bota mogą go potem zburzyć)
+  const enemyHallCells = game.objects.find(obj => obj.owner === 0 && obj.type === "ratusz").cells;
+  let fair = true;
+  let eraTurnsOk = true;     // każda nowa era = ostatni krok tury to advanceEra
+  let maxBuilders = 0;
+  let firstEra4 = null;
+  const failures = [];
+  while (game.turn <= 30 && game.winner === null) {
+    endTurn(game);   // gracz 0 nic nie robi
+    const eraBefore = game.players[1].era;
+    const report = playBotTurn(game, "defensive");
+    failures.push(...report.failures);
+    if (!report.allOk || report.hitLimit || report.movedPeasant || report.pointsSpentOnMoves > 0) fair = false;
+    const eraAfter = game.players[1].era;
+    const lastStep = report.steps[report.steps.length - 1];
+    if (eraAfter !== eraBefore && (eraAfter !== eraBefore + 1 || lastStep.type !== "advanceEra")) eraTurnsOk = false;
+    if (eraAfter === 4 && firstEra4 === null) firstEra4 = game.turn;
+    const builders = game.objects.filter(obj => obj.owner === 1 && obj.botBuilder).length;
+    maxBuilders = Math.max(maxBuilders, builders);
+  }
+  const botBuildings = game.objects.filter(obj => obj.owner === 1 && obj.kind === "building");
+  console.log("   (bot 🛡️ kontra bierny gracz: era 4 w turze " + firstEra4 + ", budynków " + botBuildings.length + ")");
+  check("Bot ery: dochodzi do ery 4 w 30 turach (" + firstEra4 + ")", firstEra4 !== null);
+  check("Bot ery: każdy krok dozwolony, bez bezpiecznika, chłopi ze startu w domu" +
+    (failures.length ? " (" + failures.slice(0, 3).join(" | ") + ")" : ""), fair);
+  check("Bot ery: nowa era zawsze jako ostatni krok tury i zawsze o 1", eraTurnsOk);
+  check("Bot ery: w erze 4 stawia uniwersytet", botBuildings.some(obj => obj.type === "uniwersytet"));
+  check("Bot ery: ma najwyżej 1 budowniczego (a był potrzebny)", maxBuilders === 1);
+
+  // Obrona od strony wroga, reszta z tyłu. To "chęć", a nie przymus: gdy z tyłu
+  // zabraknie miejsca (baza w rogu planszy), budynek staje tam, gdzie się zmieści.
+  // Dlatego sprawdzamy ŚREDNIĄ odległość od wroga.
+  const toEnemy = obj => distance(obj.cells, enemyHallCells);
+  const average = list => list.reduce((sum, obj) => sum + toEnemy(obj), 0) / list.length;
+  const defense = botBuildings.filter(obj => isDefenseBuilding(obj.type));
+  const back = botBuildings.filter(obj => ["dom", "strzelnica", "stajnia", "uniwersytet"].includes(obj.type));
+  check("Bot ery: obrona stoi średnio bliżej wroga niż dom, strzelnica, stajnia i uniwersytet (" +
+    average(defense).toFixed(1) + " < " + average(back).toFixed(1) + ")",
+    defense.length === 7 && back.length === 4 && average(defense) < average(back));
+}
+
+{
+  // Era 1 (dużo miejsca): palisada i brama bliżej wroga niż ratusz bota, dom dalej
+  const game = createGame(2, "mala");
+  const enemyHallCells = game.objects.find(obj => obj.owner === 0 && obj.type === "ratusz").cells;
+  while (game.players[1].era === 1 && game.turn <= 10) {
+    endTurn(game);
+    playBotTurn(game, "defensive");
+  }
+  const toEnemy = obj => distance(obj.cells, enemyHallCells);
+  const botBuilding = key => game.objects.find(obj => obj.owner === 1 && obj.type === key);
+  const hall = toEnemy(botBuilding("ratusz"));
+  check("Bot ery: w erze 1 palisada i brama stoją bliżej wroga niż ratusz, a dom dalej",
+    toEnemy(botBuilding("palisada")) < hall && toEnemy(botBuilding("bramaDrewniana")) < hall &&
+    toEnemy(botBuilding("dom")) > hall);
 }
 
 // --- Co bot właśnie zrobił: napis w panelu (describeBotStep) i ramka (getBotStepObjectId) ---

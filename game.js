@@ -713,6 +713,8 @@ function runBotStep() {
   if (botStepsThisTurn >= BOT_MAX_STEPS) step = { type: "endTurn" };   // bezpiecznik (bot.js)
   // Cel ataku zapamiętujemy PRZED krokiem - zniszczony zniknie z planszy
   const target = step.type === "attack" ? findObjectById(game, step.targetId) : null;
+  // Kolor bota też PRZED krokiem - nowa era kończy turę i zmienia game.current
+  const botName = game.players[vsBot.botSlot].colorName;
   const result = doBotStep(game, step);
   if (!result.ok) console.warn("Bot: nieudany krok", step, result.reason);
 
@@ -731,13 +733,16 @@ function runBotStep() {
     goToScreen("victory");
     return;
   }
-  if (step.type === "endTurn") {
-    // Bot skończył - teraz twoja tura
+  // Tura bota się skończyła (koniec tury albo nowa era) - teraz twoja tura
+  if (game.current !== vsBot.botSlot) {
     botStepsThisTurn = 0;
     botLastObjectId = null;
     clearSelection();
     message = "";
-    turnBannerNote = "";
+    // Nowa era bota? Napis na twoim banerze (tak jak przy erze gracza w goToNextEra)
+    turnBannerNote = step.type === "advanceEra" && result.ok
+      ? botName + " przechodzi do " + ERA_GENITIVE[result.era] + "!"
+      : "";
     showTurnBanner = true;
   }
 }

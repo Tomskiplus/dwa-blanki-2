@@ -9,11 +9,14 @@
 //  game.js woła to co pół sekundy (żeby było widać ruchy bota),
 //  a testy - w pętli, bez czekania.
 //
-//  Kolejność w turze bota: atak -> ruch -> budowa koszar -> wojsko -> koniec tury.
+//  Kolejność w turze bota:
+//   atak -> ruch wojska -> ruch budowniczego -> wojsko (gdy ma mniej niż 4)
+//   -> budynek do następnej ery -> wojsko za resztę punktów -> nowa era albo koniec tury.
 //  Bot to zawsze gracz, który ma teraz turę (game.current).
 // =====================================================
 
 // --- Ustawienia bota (skrzynie z liczbami - zmieniaj śmiało!) ---
+const BOT_MIN_ARMY = 4;         // tylu wojaków bot ma mieć, ZANIM wyda punkty na budynki ery
 const BOT_ARMY_TO_ATTACK = 4;   // ofensywny: od tylu wojaków bot rusza do ataku
 const BOT_DEFEND_RADIUS = 6;    // defensywny: wróg tak blisko budynku bota (w polach) = intruz
 // Bezpiecznik: po tylu krokach tura bota kończy się na siłę (łapie tylko pętle bez końca -
@@ -40,6 +43,13 @@ function getBotArmy(game) {
 // Chłopi bota (tylko oni mogą budować)
 function getBotPeasants(game) {
   return getBotObjects(game).filter(obj => obj.kind === "unit" && UNIT_TYPES[obj.type].builder);
+}
+
+// Chłop-budowniczy bota (albo null). To chłop zrobiony przez bota w ratuszu, gdy obok
+// starych chłopów zabrakło miejsca. Ma znaczek botBuilder (stawia go doBotStep).
+// Tylko on chodzi - chłopi ze startu zostają w domu.
+function getBotBuilder(game) {
+  return getBotPeasants(game).find(obj => obj.botBuilder) || null;
 }
 
 // Wszystkie obiekty wrogów bota
@@ -152,6 +162,8 @@ function findBestMove(game, unit, goal) {
     const [dx, dy] = key.split(",").map(Number);
     const moved = unit.cells.map(c => ({ x: c.x + dx, y: c.y + dy }));
     const d = distance(moved, goal.cells);
+    // Na cel się nie wchodzi (budowniczy staje OBOK placu budowy, a nie na nim)
+    if (d === 0) continue;
     // Bliżej celu wygrywa; przy remisie - tańszy (krótszy) ruch
     if (d < bestDistance || (best !== null && d === bestDistance && cost < bestCost)) {
       best = { dx: dx, dy: dy };
@@ -178,9 +190,10 @@ function getTakenCells(game) {
 
 // Szuka miejsca na kształt w pobliżu kratek "aroundCells" (np. chłopa albo koszar).
 // isOk(cells) mówi, czy wolno tam postawić (to sprawdzają zasady z rules.js).
-// Z dobrych miejsc wybiera to, które jest najbliżej wroga.
+// Z dobrych miejsc wybiera to, które jest najbliżej wroga,
+// a gdy farFromEnemy = true - to, które jest NAJDALEJ od wroga (np. dom za ratuszem).
 // Zwraca { cells, rotation } albo null.
-function findSpot(game, shape, aroundCells, isOk) {
+function findSpot(game, shape, aroundCells, isOk, farFromEnemy) {
   const enemyCenter = getEnemyCenter(game);
   const taken = getTakenCells(game);
   const minX = Math.min(...aroundCells.map(c => c.x)) - BOT_SEARCH_MARGIN;
@@ -198,10 +211,12 @@ function findSpot(game, shape, aroundCells, isOk) {
         if (cells.some(c => taken.has(c.x + "," + c.y))) continue;
         if (!isOk(cells)) continue;
         // Wynik = odległość (do kwadratu) od środka wroga. Mniej = lepiej.
+        // "Daleko od wroga" = odwrotnie (minus przed odległością).
         let score = 0;
         if (enemyCenter) {
           const center = cellsCenter(cells);
           score = (center.x - enemyCenter.x) ** 2 + (center.y - enemyCenter.y) ** 2;
+          if (farFromEnemy) score = -score;
         }
         if (score < bestScore) {
           best = { cells: cells, rotation: rotation };
@@ -244,23 +259,116 @@ function findMoveStep(game, mode) {
   return null;
 }
 
-// 3. BUDOWA: nie ma koszar? Stawiamy je obok swojego chłopa
-function findBuildStep(game) {
-  const key = "koszary";
-  const hasBarracks = getBotObjects(game).some(obj => obj.kind === "building" && obj.type === key);
-  if (hasBarracks) return null;
-  // Za mało punktów - nawet nie szukamy miejsca (oszczędzamy liczenie)
-  if (availablePointsFor(game, key) < BUILDING_TYPES[key].shape.length) return null;
+// =====================================================
+//  BUDYNKI DO NASTĘPNEJ ERY
+// =====================================================
 
-  const peasants = getBotPeasants(game);
-  if (peasants.length === 0) return null;
-  const peasantCells = [];
-  for (const peasant of peasants) peasantCells.push(...peasant.cells);
+// Budynek obronny (wieża, mur, palisada, brama, zamek)? Takie bot stawia od strony wroga,
+// a resztę (dom, strzelnica, stajnia, uniwersytet) - z dala od wroga, za ratuszem.
+function isDefenseBuilding(key) {
+  return BUILDING_TYPES[key].group === "obrona";
+}
 
-  const spot = findSpot(game, BUILDING_TYPES[key].shape, peasantCells,
-    cells => canPlaceBuilding(game, key, cells).ok);
+// Czy bot ma już taki budynek? (liczy się też budynek w budowie, np. zamek na 2 tury)
+function botHasBuilding(game, key) {
+  return getBotObjects(game).some(obj => obj.kind === "building" && obj.type === key);
+}
+
+// Jakie budynki bot ma jeszcze postawić? (pusta lista = żadnych)
+//  - era 1-3: wszystkie, których brakuje do następnej ery (zasady z rules.js),
+//  - era 4 (ostatnia): uniwersytet.
+// Kolejność: koszary, potem obrona, potem reszta.
+function getBotBuildGoals(game) {
+  const era = game.players[game.current].era;
+  const wanted = era >= MAX_ERA ? ["uniwersytet"] : getEraRequirements(game, game.current);
+  const order = key => (key === "koszary" ? 0 : isDefenseBuilding(key) ? 1 : 2);
+  return wanted
+    .filter(key => !botHasBuilding(game, key))
+    .sort((a, b) => order(a) - order(b));
+}
+
+// Ile punktów trzeba mieć, żeby ZACZĄĆ budowę.
+// Zamek buduje się 2 tury: teraz wystarczy tyle, żeby reszta zmieściła się w następnej turze.
+function pointsToStart(key) {
+  const type = BUILDING_TYPES[key];
+  if (type.buildTurns) return Math.max(1, type.shape.length - BUILD_POINTS);
+  return type.shape.length;
+}
+
+// Kratki wszystkich chłopów bota (budynek musi dotykać któregoś z nich)
+function getBotPeasantCells(game) {
+  const cells = [];
+  for (const peasant of getBotPeasants(game)) cells.push(...peasant.cells);
+  return cells;
+}
+
+// Czy można by tu postawić budynek, GDYBY były punkty?
+// Kratki wolne + dotyka chłopa bota (albo, dla palisady/muru, muru bota).
+function isRoomForBuilding(game, key, cells) {
+  if (!checkCellsFree(game, cells).ok) return false;
+  const isWall = BUILDING_TYPES[key].wall === true;
+  return game.objects.some(obj => obj.owner === game.current && distance(obj.cells, cells) === 1 &&
+    ((obj.kind === "unit" && UNIT_TYPES[obj.type].builder) ||
+     (isWall && obj.kind === "building" && BUILDING_TYPES[obj.type].wall)));
+}
+
+// Czy obok chłopów bota jest miejsce na ten budynek (bez liczenia punktów)?
+function hasRoomNearPeasants(game, key) {
+  return findSpot(game, BUILDING_TYPES[key].shape, getBotPeasantCells(game),
+    cells => isRoomForBuilding(game, key, cells), !isDefenseBuilding(key)) !== null;
+}
+
+// Plac budowy dla budowniczego: wolne miejsce na budynek "key" w pobliżu budynków bota.
+// Tu NIE sprawdzamy chłopa - budowniczy dopiero tam idzie. Zwraca kratki albo null.
+function findBuildSite(game, key) {
+  const buildingCells = [];
+  for (const obj of getBotObjects(game)) {
+    if (obj.kind === "building") buildingCells.push(...obj.cells);
+  }
+  if (buildingCells.length === 0) return null;
+  const spot = findSpot(game, BUILDING_TYPES[key].shape, buildingCells,
+    cells => cells.every(c => isInsideBoard(game, c.x, c.y)), !isDefenseBuilding(key));
+  return spot ? spot.cells : null;
+}
+
+// Robi chłopa-budowniczego w ratuszu (z dala od wroga, żeby był bezpieczniejszy)
+function findBuilderRecruitStep(game) {
+  const key = "chlop";
+  const townHall = getBotObjects(game).find(obj => obj.kind === "building" && obj.type === "ratusz");
+  if (!townHall) return null;
+  const spot = findSpot(game, UNIT_TYPES[key].shape, townHall.cells,
+    cells => canPlaceUnit(game, key, townHall, cells).ok, true);
   if (!spot) return null;
-  return { type: "build", key: key, cells: spot.cells, rotation: spot.rotation };
+  return { type: "recruit", key: key, buildingId: townHall.id, cells: spot.cells, rotation: spot.rotation };
+}
+
+// 3. RUCH BUDOWNICZEGO: idzie obok placu budowy budynku, który nie mieści się przy chłopach
+function findBuilderMoveStep(game) {
+  const builder = getBotBuilder(game);
+  if (!builder || builder.isNew || builder.freeSteps <= 0) return null;
+  const key = getBotBuildGoals(game).find(goal => !hasRoomNearPeasants(game, goal));
+  if (!key) return null;   // wszystko mieści się przy chłopach - budowniczy stoi
+  const site = findBuildSite(game, key);
+  if (!site) return null;
+  const move = findBestMove(game, builder, { cells: site });
+  if (!move) return null;
+  return { type: "move", unitId: builder.id, dx: move.dx, dy: move.dy };
+}
+
+// 5. BUDOWA: brakujący budynek do następnej ery, obok chłopa.
+//    Nie ma miejsca obok żadnego chłopa? Bot robi chłopa-budowniczego (jednego naraz).
+function findBuildStep(game) {
+  let noRoom = false;
+  for (const key of getBotBuildGoals(game)) {
+    // Za mało punktów - nawet nie szukamy miejsca (oszczędzamy liczenie)
+    if (availablePointsFor(game, key) < pointsToStart(key)) continue;
+    const spot = findSpot(game, BUILDING_TYPES[key].shape, getBotPeasantCells(game),
+      cells => canPlaceBuilding(game, key, cells).ok, !isDefenseBuilding(key));
+    if (spot) return { type: "build", key: key, cells: spot.cells, rotation: spot.rotation };
+    noRoom = true;   // punkty są, ale miejsca nie ma
+  }
+  if (noRoom && !getBotBuilder(game)) return findBuilderRecruitStep(game);
+  return null;
 }
 
 // Jakie jednostki bot zrobi w tym budynku: bez chłopów, tylko na tyle punktów,
@@ -271,7 +379,7 @@ function getBotRecruitChoices(game, building) {
     .sort((a, b) => unitCost(b) - unitCost(a) || UNIT_TYPES[b].hp - UNIT_TYPES[a].hp);
 }
 
-// 4. WOJSKO: robimy jednostkę w budynku, w którym jest na nią miejsce
+// WOJSKO: robimy jednostkę w budynku, w którym jest na nią miejsce
 function findRecruitStep(game) {
   const buildings = getBotObjects(game).filter(obj => obj.kind === "building");
   for (const building of buildings) {
@@ -286,15 +394,28 @@ function findRecruitStep(game) {
   return null;
 }
 
+// 4. WOJSKO NAJPIERW: gdy bot ma mniej niż BOT_MIN_ARMY wojaków, robi wojsko przed budynkami
+function findArmyFirstStep(game) {
+  if (getBotArmy(game).length >= BOT_MIN_ARMY) return null;
+  return findRecruitStep(game);
+}
+
+// 7. KONIEC TURY: są wszystkie budynki ery? To nowa era (ona też kończy turę).
+function findEndStep(game) {
+  return canAdvanceEra(game).ok ? { type: "advanceEra" } : { type: "endTurn" };
+}
+
 // Wybiera NASTĘPNĄ akcję bota. mode = "offensive" (ofensywny) albo "defensive" (defensywny).
-// Gdy nie ma już nic do zrobienia - koniec tury.
+// Pierwszy "szukacz", który coś znajdzie, wygrywa - jak kolejka w redstone'ie.
 function getBotStep(game, mode) {
   if (game.winner !== null) return { type: "endTurn" };
-  return findAttackStep(game)
-    || findMoveStep(game, mode)
-    || findBuildStep(game)
-    || findRecruitStep(game)
-    || { type: "endTurn" };
+  return findAttackStep(game)          // 1. atak
+    || findMoveStep(game, mode)        // 2. ruch wojska
+    || findBuilderMoveStep(game)       // 3. ruch budowniczego
+    || findArmyFirstStep(game)         // 4. wojsko, gdy jest go za mało
+    || findBuildStep(game)             // 5. budynek do następnej ery
+    || findRecruitStep(game)           // 6. wojsko za resztę punktów
+    || findEndStep(game);              // 7. nowa era albo koniec tury
 }
 
 // =====================================================
@@ -311,6 +432,9 @@ function doBotStep(game, step) {
   if (step.type === "endTurn") {
     endTurn(game);
     return { ok: true, reason: "" };
+  }
+  if (step.type === "advanceEra") {
+    return advanceEra(game);   // zwraca też { era } - nową erę bota
   }
   if (step.type === "build") {
     return placeBuilding(game, step.key, step.cells, step.rotation);
@@ -329,7 +453,13 @@ function doBotStep(game, step) {
   if (step.type === "recruit") {
     const building = findObjectById(game, step.buildingId);
     if (!building) return { ok: false, reason: "Nie ma już tego budynku." };
-    return placeUnit(game, step.key, building, step.cells, step.rotation);
+    const result = placeUnit(game, step.key, building, step.cells, step.rotation);
+    // Nowy chłop to budowniczy - dostaje znaczek, żeby bot wiedział, że ON może chodzić
+    if (result.ok && UNIT_TYPES[step.key].builder) {
+      const builder = getObjectAt(game, step.cells[0].x, step.cells[0].y);
+      if (builder) builder.botBuilder = true;
+    }
+    return result;
   }
   return { ok: false, reason: "Nieznana akcja bota: " + step.type };
 }
@@ -349,7 +479,9 @@ function getObjectName(obj) {
 function describeBotStep(game, step, result, target) {
   if (!result.ok) return "";
   if (step.type === "endTurn") return "Bot kończy turę.";
+  if (step.type === "advanceEra") return "Bot przechodzi do " + ERA_GENITIVE[result.era] + "!";
   if (step.type === "build") return "Bot stawia: " + BUILDING_TYPES[step.key].name;
+  if (step.type === "recruit" && UNIT_TYPES[step.key].builder) return "Bot robi: Chłop-budowniczy";
   if (step.type === "recruit") return "Bot robi: " + UNIT_TYPES[step.key].name;
 
   if (step.type === "move") {
