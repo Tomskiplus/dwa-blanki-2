@@ -238,6 +238,24 @@ Ostatni rysunek w 3. wierszu (żółty kwadrat z włócznią) – **nie robimy**
 - **Czarny** – zwiadowca (kwadrat z łukiem), 1 kratka, 6 / 6 / 9, bez UL.
 - **Bordowy** – płonący oszczepnik, taki sam jak jasnoniebieski (4 / 3 / 6), tylko bordowy.
 
+### Jak działają jednostki z zamku (ustalone 2026-11-22)
+- Zamek (gotowy, nie w budowie) robi jednostki **swojego kraju** jak koszary: klik → lista → stawiasz obok.
+- **Koszt = liczba kratek**; gdy brakuje punktów – **dług** jak przy zamku (reszta z następnej tury).
+  Jednostka pojawia się od razu (jak każda nowa – rusza się dopiero w następnej turze).
+- **Ulepszenia** jednostek z zamku: w **uniwersytecie**, 4 punkty; nazwa po ulepszeniu „Ulepszona …”.
+- **Ulepszony paladyn** (zielony): ulepszenie paladyna kupowane **w zamku** (4 pkt) – paladyni zielonego → 9 / 5 / 1.
+- **Kształty:** 1 kratka – mini armatka, łucznik kompozytowy, armatka turbo, podwójny halabardnik, płonący oszczepnik,
+  shurikeniarz, super łucznik, zwiadowca; **skorpion 2 kratki w kolumnie (koszt 2)**; kawaleria z łukiem (1 i 2)
+  jak kawaleria (2); ułan z pancerzem jak ułan; opancerzony/ulepszony paladyn jak paladyn; 4 słonie jak słoń;
+  **mamut = duży słoń „T”** (głowa 1 + ciało 3×3 = 10).
+- **Grupy** (badania i bonusy):
+  - jak kawaleria: kawaleria z łukiem (1 i 2), ułan z pancerzem płytowym, opancerzony paladyn;
+  - jak strzelnica: łucznik kompozytowy, super łucznik, płonący oszczepnik, shurikeniarz, zwiadowca, 4 słonie, mamut;
+  - jak koszary: podwójny halabardnik (**+3 na kawalerię**, jak halabardnik);
+  - żadna: mini armatka, armatka turbo, skorpion.
+- Słoń z taranem: **+3 obrażeń budynkom**.
+- Mnich, magnonella, strzelnica prochowa + armata – później (osobna zmiana).
+
 ❓ Do ustalenia: czy nad 1. wierszem są jeszcze jednostki,
 co który kraj ma/nie ma (X), jak gracz wybiera kraj, kształty jednostek, ile kosztuje ulepszenie w zamku.
 

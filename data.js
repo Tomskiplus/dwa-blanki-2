@@ -176,6 +176,8 @@ const SHAPE_LANCER = [[0, 0], [0, 1], [1, 1]];       // litera L z 3 kratek (uł
 const SHAPE_ELEPHANT = [[1, 0], [0, 1], [1, 1], [2, 1], [0, 2], [1, 2], [2, 2]];
 // Bombarda: 4 kratki w rzędzie + 1 pod trzecią
 const SHAPE_BOMBARD = [[0, 0], [1, 0], [2, 0], [3, 0], [2, 1]];
+// Mamut: duży słoń - 1 kratka na górze + podstawa 3×3 (10 kratek)
+const SHAPE_MAMMOTH = [[1, 0], [0, 1], [1, 1], [2, 1], [0, 2], [1, 2], [2, 2], [0, 3], [1, 3], [2, 3]];
 
 // --- Jednostki ---
 // hp = życie ❤️, attack = atak ⚔️, range = zasięg
@@ -218,6 +220,41 @@ const UNIT_TYPES = {
   ciezkaKawaleria:   { name: "Ciężka kawaleria",      shape: SHAPE_SQUARE4, hp: 6, attack: 3, range: 1, era: 4, building: "stajnia", cavalry: true },
   paladyn:           { name: "Paladyn",               shape: SHAPE_L3,      hp: 9, attack: 4, range: 1, era: 4, building: "stajnia", cavalry: true },
   ulan:              { name: "Ułan",                  shape: SHAPE_LANCER,  hp: 6, attack: 4, range: 1, era: 4, building: "stajnia", cavalry: true },
+  // Ulepszony paladyn - tylko kraj zielony; ulepszenie kupuje się w zamku (patrz UPGRADES)
+  ulepszonyPaladyn:  { name: "Ulepszony paladyn",     shape: SHAPE_L3,      hp: 9, attack: 5, range: 1, era: 4, building: "stajnia", cavalry: true, countries: ["zielony"] },
+
+  // ----- Zamek: jednostki specjalne krajów (era 3 - wtedy da się zbudować zamek) -----
+  // countries = które kraje mogą ją robić
+  // group = do której grupy należy przy badaniach i bonusach ("strzelnica" = Płonący grot,
+  //         "koszary" = Sparing); bez group = badania na nią nie działają
+  // Ulepszone wersje ("Ulepszona ...") kupuje się w uniwersytecie (era 4)
+  miniArmatka:            { name: "Mini armatka",                shape: SHAPE_1x1, hp: 8, attack: 5, range: 7, era: 3, building: "zamek", countries: ["czerwony"] },
+  ulepszonaMiniArmatka:   { name: "Ulepszona mini armatka",      shape: SHAPE_1x1, hp: 8, attack: 6, range: 8, era: 4, building: "zamek", countries: ["czerwony"] },
+  lucznikKompozytowy:     { name: "Łucznik kompozytowy",         shape: SHAPE_1x1, hp: 3, attack: 2, range: 10, era: 3, building: "zamek", countries: ["ciemnopomaranczowy"], group: "strzelnica" },
+  ulepszonyLucznikKomp:   { name: "Ulepszony łucznik kompozytowy", shape: SHAPE_1x1, hp: 3, attack: 3, range: 12, era: 4, building: "zamek", countries: ["ciemnopomaranczowy"], group: "strzelnica" },
+  skorpion:               { name: "Skorpion",                    shape: SHAPE_1x2, hp: 6, attack: 5, range: 6, era: 3, building: "zamek", countries: ["pomaranczowy"] },
+  ulepszonySkorpion:      { name: "Ulepszony skorpion",          shape: SHAPE_1x2, hp: 9, attack: 7, range: 8, era: 4, building: "zamek", countries: ["pomaranczowy"] },
+  armatkaTurbo:           { name: "Armatka turbo",               shape: SHAPE_1x1, hp: 8, attack: 5, range: 4, era: 3, building: "zamek", countries: ["jasnozielony"] },
+  ulepszonaArmatkaTurbo:  { name: "Ulepszona armatka turbo",     shape: SHAPE_1x1, hp: 8, attack: 8, range: 6, era: 4, building: "zamek", countries: ["jasnozielony"] },
+  slonZBalista:           { name: "Słoń z balistą",              shape: SHAPE_ELEPHANT, hp: 10, attack: 8, range: 6, era: 3, building: "zamek", countries: ["ciemnozielony"], group: "strzelnica" },
+  podwojnyHalabardnik:    { name: "Podwójny halabardnik",        shape: SHAPE_1x1, hp: 8, attack: 6, range: 4, era: 3, building: "zamek", countries: ["niebieski"], group: "koszary", bonusVsCavalry: 3 },
+  ulepszonyPodwHalabardnik: { name: "Ulepszony podwójny halabardnik", shape: SHAPE_1x1, hp: 8, attack: 9, range: 4, era: 4, building: "zamek", countries: ["niebieski"], group: "koszary", bonusVsCavalry: 3 },
+  plonacyOszczepnik:      { name: "Płonący oszczepnik",          shape: SHAPE_1x1, hp: 4, attack: 3, range: 6, era: 3, building: "zamek", countries: ["jasnoniebieski", "bordowy"], group: "strzelnica" },
+  // Granatowy ma najwięcej jednostek specjalnych
+  slonTrykacz:            { name: "Opancerzony słoń trykacz",    shape: SHAPE_ELEPHANT, hp: 10, attack: 6, range: 1, era: 3, building: "zamek", countries: ["granatowy"], group: "strzelnica" },
+  shurikeniarz:           { name: "Shurikeniarz",                shape: SHAPE_1x1, hp: 5, attack: 2, range: 3, era: 3, building: "zamek", countries: ["granatowy"], group: "strzelnica" },
+  kawaleriaZLukiem:       { name: "Kawaleria z łukiem",          shape: SHAPE_L3,  hp: 5, attack: 3, range: 5, era: 3, building: "zamek", countries: ["granatowy"], cavalry: true },
+  ulanZPancerzem:         { name: "Ułan z pancerzem płytowym",   shape: SHAPE_LANCER, hp: 5, attack: 2, range: 4, era: 3, building: "zamek", countries: ["granatowy"], cavalry: true },
+  slonZTaranem:           { name: "Słoń z taranem",              shape: SHAPE_ELEPHANT, hp: 9, attack: 8, range: 1, era: 3, building: "zamek", countries: ["granatowy"], group: "strzelnica", bonusVsBuildings: 3 },
+  mamut:                  { name: "Mamut",                       shape: SHAPE_MAMMOTH, hp: 12, attack: 7, range: 8, era: 3, building: "zamek", countries: ["granatowy"], group: "strzelnica" },
+  slonOpancerzony:        { name: "Słoń opancerzony",            shape: SHAPE_ELEPHANT, hp: 10, attack: 5, range: 6, era: 3, building: "zamek", countries: ["granatowy"], group: "strzelnica" },
+  ulepszonySlonOpanc:     { name: "Ulepszony słoń opancerzony",  shape: SHAPE_ELEPHANT, hp: 11, attack: 6, range: 6, era: 4, building: "zamek", countries: ["granatowy"], group: "strzelnica" },
+  superLucznik:           { name: "Super łucznik",               shape: SHAPE_1x1, hp: 3, attack: 2, range: 6, era: 3, building: "zamek", countries: ["fioletowy"], group: "strzelnica" },
+  ulepszonySuperLucznik:  { name: "Ulepszony super łucznik",     shape: SHAPE_1x1, hp: 4, attack: 4, range: 7, era: 4, building: "zamek", countries: ["fioletowy"], group: "strzelnica" },
+  kawaleriaZLukiem2:      { name: "Kawaleria z łukiem 2",        shape: SHAPE_L3,  hp: 5, attack: 3, range: 4, era: 3, building: "zamek", countries: ["rozowy"], cavalry: true },
+  ulepszonaKawaleriaZLukiem2: { name: "Ulepszona kawaleria z łukiem 2", shape: SHAPE_L3, hp: 6, attack: 5, range: 4, era: 4, building: "zamek", countries: ["rozowy"], cavalry: true },
+  opancerzonyPaladyn:     { name: "Opancerzony paladyn",         shape: SHAPE_L3,  hp: 8, attack: 4, range: 1, era: 3, building: "zamek", countries: ["szary"], cavalry: true },
+  zwiadowca:              { name: "Zwiadowca",                   shape: SHAPE_1x1, hp: 6, attack: 6, range: 9, era: 3, building: "zamek", countries: ["czarny"], group: "strzelnica" },
 
   // ----- TAJNE: tylko z kodu w EDYTORZE (patrz CHEAT_CODES niżej) -----
   // Nie mają "building", więc żaden budynek ich nie robi.
@@ -261,6 +298,18 @@ const UPGRADES = [
   { from: "kawaleria2",     to: "paladyn" },
   // ----- Ratusz -----
   { from: "chlop",          to: "chlopUlepszony" },
+  // ----- Zamek i uniwersytet: jednostki specjalne krajów -----
+  // where = gdzie kupuje się ulepszenie (gdy inaczej niż w budynku, który robi jednostkę)
+  // countries = tylko te kraje mogą je kupić
+  { from: "paladyn",             to: "ulepszonyPaladyn",           where: "zamek", countries: ["zielony"] },
+  { from: "miniArmatka",         to: "ulepszonaMiniArmatka",       where: "uniwersytet" },
+  { from: "lucznikKompozytowy",  to: "ulepszonyLucznikKomp",       where: "uniwersytet" },
+  { from: "skorpion",            to: "ulepszonySkorpion",          where: "uniwersytet" },
+  { from: "armatkaTurbo",        to: "ulepszonaArmatkaTurbo",      where: "uniwersytet" },
+  { from: "podwojnyHalabardnik", to: "ulepszonyPodwHalabardnik",   where: "uniwersytet" },
+  { from: "slonOpancerzony",     to: "ulepszonySlonOpanc",         where: "uniwersytet" },
+  { from: "superLucznik",        to: "ulepszonySuperLucznik",      where: "uniwersytet" },
+  { from: "kawaleriaZLukiem2",   to: "ulepszonaKawaleriaZLukiem2", where: "uniwersytet" },
 ];
 
 // --- Badania w uniwersytecie ("Zbadaj...") ---

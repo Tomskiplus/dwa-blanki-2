@@ -1257,6 +1257,107 @@ function botStepWithInfo(game) {
 }
 
 // =====================================================
+//  ZMIANA "jednostki-zamku"
+//  Zamek gracza 0 na (2,6): kratki x 2..5, y 6..8
+// =====================================================
+
+{
+  // Każdy kraj robi w zamku swoje jednostki
+  const game = createGame(4, "srednia", [9, 0, 3, 16]);  // granatowy, czerwony, żółty, bordowy
+  for (const p of game.players) p.era = 3;
+  const navyCastle = addBuilding(game, "zamek", 0, buildingCells("zamek", 8, 8));
+  const redCastle = addBuilding(game, "zamek", 1, buildingCells("zamek", 14, 8));
+  const yellowCastle = addBuilding(game, "zamek", 2, buildingCells("zamek", 8, 14));
+  const maroonCastle = addBuilding(game, "zamek", 3, buildingCells("zamek", 14, 14));
+  const navy = getRecruitOptions(game, navyCastle);
+  check("Zamek granatowego robi 7 jednostek specjalnych (bez armaty, mnicha i magnonelli)",
+    navy.length === 7 && ["mamut", "shurikeniarz", "slonZTaranem", "slonOpancerzony"].every(k => navy.includes(k)));
+  check("Zamek czerwonego robi tylko mini armatkę", getRecruitOptions(game, redCastle).join(",") === "miniArmatka");
+  check("Zamek żółtego nie robi nic specjalnego", getRecruitOptions(game, yellowCastle).length === 0);
+  check("Bordowy robi płonącego oszczepnika (jak jasnoniebieski)", getRecruitOptions(game, maroonCastle).join(",") === "plonacyOszczepnik");
+  check("Mamut ma 10 kratek, skorpion 2", unitCost("mamut") === 10 && unitCost("skorpion") === 2);
+}
+
+{
+  // Mamut na dług; zamek w budowie nic nie robi
+  const game = createGame(2, "mala", [9, 0]);
+  game.players[0].era = 3;
+  const castle = addBuilding(game, "zamek", 0, buildingCells("zamek", 2, 6));
+  const mammothCells = shapeCells(UNIT_TYPES.mamut.shape, 2, 9, 0);   // pod zamkiem: x 2..4, y 9..12
+
+  castle.underConstruction = true;
+  check("Zamek w budowie nie robi jednostek", getRecruitOptions(game, castle).length === 0 && !canPlaceUnit(game, "mamut", castle, mammothCells).ok);
+  castle.underConstruction = false;
+
+  game.buildPoints = 1;
+  check("Przy 1 punkcie mamuta (10) nie da się zrobić nawet na dług", !canPlaceUnit(game, "mamut", castle, mammothCells).ok);
+  game.buildPoints = 8;
+  check("Przy 8 punktach mamut na dług - wolno", placeUnit(game, "mamut", castle, mammothCells, 0).ok);
+  const mammoth = objectsOf(game, 0, "mamut")[0];
+  check("Teraz zapłacone 8, dług 2", game.buildPoints === 0 && mammoth.debt === 2);
+  endTurn(game);
+  endTurn(game);   // znowu gracz 0
+  check("W następnej turze dług spłacony: zostało 6 punktów", mammoth.debt === 0 && game.buildPoints === 6);
+
+  const barracks = addBuilding(game, "koszary", 0, buildingCells("koszary", 12, 0));
+  game.buildPoints = 1;
+  check("Zwykłe jednostki dalej NIE na dług (piechur za 2 przy 1 punkcie)",
+    !canPlaceUnit(game, "piechur", barracks, shapeCells(UNIT_TYPES.piechur.shape, 11, 0, 0)).ok);
+}
+
+{
+  // Ulepszenia jednostek z zamku - w uniwersytecie, tylko swojego kraju
+  const game = createGame(2, "mala", [9, 0]);   // granatowy, czerwony
+  game.players[0].era = 4;
+  game.players[1].era = 4;
+  const uni = addBuilding(game, "uniwersytet", 0, buildingCells("uniwersytet", 10, 10));
+  const elephant = unitAt(game, "slonOpancerzony", 2, 8);
+  const options = getUpgradeOptions(game, uni).map(up => up.from);
+  check("Uniwersytet granatowego: ulepszenie słonia opancerzonego, a mini armatki nie",
+    options.includes("slonOpancerzony") && !options.includes("miniArmatka"));
+  game.buildPoints = 8;
+  check("Ulepszenie w uniwersytecie kosztuje 4", buyUpgrade(game, uni, "slonOpancerzony").ok && game.buildPoints === 4);
+  check("Słoń opancerzony → Ulepszony słoń opancerzony, 11 życia",
+    elephant.type === "ulepszonySlonOpanc" && elephant.hp === 11 && UNIT_TYPES[elephant.type].name === "Ulepszony słoń opancerzony");
+  const castle = addBuilding(game, "zamek", 0, buildingCells("zamek", 14, 0));
+  check("Potem zamek robi już ulepszonego słonia", getRecruitOptions(game, castle).includes("ulepszonySlonOpanc") && !getRecruitOptions(game, castle).includes("slonOpancerzony"));
+}
+
+{
+  // Ulepszony paladyn: tylko zielony, kupuje się w zamku
+  const game = createGame(2, "mala", [5, 0]);   // zielony, czerwony
+  game.players[0].era = 4;
+  game.players[1].era = 4;
+  const greenCastle = addBuilding(game, "zamek", 0, buildingCells("zamek", 2, 8));
+  const redCastle = addBuilding(game, "zamek", 1, buildingCells("zamek", 14, 0));
+  const stable = addBuilding(game, "stajnia", 0, buildingCells("stajnia", 10, 10));
+  game.players[0].upgraded.kawaleria2 = true;   // gracz ma już paladynów
+  const paladin = unitAt(game, "paladyn", 8, 2);
+  check("Zamek zielonego ma ulepszenie paladyna", getUpgradeOptions(game, greenCastle).some(up => up.to === "ulepszonyPaladyn"));
+  check("Zamek czerwonego go nie ma", !getUpgradeOptions(game, redCastle).some(up => up.to === "ulepszonyPaladyn"));
+  game.buildPoints = 8;
+  check("Kupno ulepszenia paladyna w zamku", buyUpgrade(game, greenCastle, "paladyn").ok);
+  check("Paladyn → Ulepszony paladyn 9/5/1", paladin.type === "ulepszonyPaladyn" && paladin.hp === 9 && UNIT_TYPES.ulepszonyPaladyn.attack === 5);
+  check("Stajnia zielonego robi teraz ulepszonego paladyna", getRecruitOptions(game, stable).includes("ulepszonyPaladyn") && !getRecruitOptions(game, stable).includes("paladyn"));
+}
+
+{
+  // Grupy przy badaniach i bonusach
+  const game = createGame(2, "mala", [9, 6]);
+  const ram = unitAt(game, "slonZTaranem", 8, 2);
+  const enemyHut = addBuilding(game, "dom", 1, buildingCells("dom", 12, 2));
+  check("Słoń z taranem: budynkom 8 + 3 = 11", getDamage(game, ram, enemyHut) === 11);
+  game.players[0].research.plonacyGrot = true;
+  check("Płonący grot działa na słonia z taranem (grupa strzelnicy): 13", getDamage(game, ram, enemyHut) === 13);
+  const cannon = unitAt(game, "miniArmatka", 6, 10);
+  check("Płonący grot NIE działa na mini armatkę (bez grupy)", getDamage(game, cannon, enemyHut) === 5);
+  const doubleHal = unitAt(game, "podwojnyHalabardnik", 2, 12);
+  const enemyHorse = unitAt(game, "kawaleriaZLukiem", 4, 12, 0, 1);
+  check("Podwójny halabardnik: kawalerii 6 + 3 = 9 (kawaleria z łukiem to kawaleria)", getDamage(game, doubleHal, enemyHorse) === 9);
+  check("Sparing: podwójny halabardnik +3 życia (grupa koszar)", (() => { game.players[0].research.sparing = true; return unitMaxHp(game, 0, "podwojnyHalabardnik") === 11; })());
+}
+
+// =====================================================
 //  WYNIK
 // =====================================================
 console.log("");

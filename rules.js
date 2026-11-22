@@ -296,17 +296,33 @@ function unitCost(unitKey) {
   return type.shape.length - freeParts;
 }
 
-// Czy gracz może już robić tę jednostkę? Tak, jeśli jest z jego ery albo wcześniejszej.
+// Czy kraj gracza jest na liście "countries"? Brak listy = każdy kraj może.
+function countryAllowed(game, owner, countries) {
+  if (!countries) return true;
+  return countries.includes(game.players[owner].country);
+}
+
+// Grupa jednostki przy badaniach i bonusach: "koszary", "strzelnica", "stajnia"...
+// Jednostki z zamku mają własną "group" (np. słonie liczą się jak strzelnica).
+function unitGroup(unitKey) {
+  const type = UNIT_TYPES[unitKey];
+  return type.group || type.building;
+}
+
+// Czy gracz może już robić tę jednostkę? Tak, jeśli jest z jego ery albo wcześniejszej
+// (i - przy jednostkach specjalnych - z jego kraju).
 function isUnitAvailable(game, unitKey, owner) {
   const type = UNIT_TYPES[unitKey];
   const player = game.players[owner];
+  if (!countryAllowed(game, owner, type.countries)) return false;
   if (type.era > player.era) return false;
   if (type.needsResearch && !player.research[type.needsResearch]) return false;  // np. bombarda po Prochu
   return isCurrentTier(game, owner, unitKey);
 }
 
-// Jakie jednostki może teraz zrobić ten budynek
+// Jakie jednostki może teraz zrobić ten budynek (budynek w budowie - jeszcze żadnych)
 function getRecruitOptions(game, building) {
+  if (building.underConstruction) return [];
   return Object.keys(UNIT_TYPES).filter(key =>
     UNIT_TYPES[key].building === building.type && isUnitAvailable(game, key, building.owner)
   );
@@ -316,6 +332,7 @@ function getRecruitOptions(game, building) {
 function canPlaceUnit(game, unitKey, building, cells) {
   const type = UNIT_TYPES[unitKey];
   if (building.owner !== game.current) return { ok: false, reason: "To nie twój budynek." };
+  if (building.underConstruction) return { ok: false, reason: BUILDING_TYPES[building.type].name + " jest jeszcze w budowie." };
   if (type.building !== building.type) return { ok: false, reason: BUILDING_TYPES[building.type].name + " nie robi tej jednostki." };
   if (type.era > game.players[game.current].era) return { ok: false, reason: type.name + " będzie dostępny w erze " + type.era + "." };
   if (!isUnitAvailable(game, unitKey, game.current)) return { ok: false, reason: "Tej jednostki nie możesz teraz robić (ulepszenie albo badanie)." };
@@ -335,7 +352,12 @@ function canPlaceUnit(game, unitKey, building, cells) {
   }
 
   const cost = unitCost(unitKey);
-  if (cost > game.buildPoints) return { ok: false, reason: "Za mało punktów: potrzeba " + cost + ", masz " + game.buildPoints + "." };
+  if (building.type === "zamek") {
+    // Jednostki z zamku można robić "na dług" (jak sam zamek): resztę zabierze następna tura
+    if (cost - game.buildPoints > BUILD_POINTS) return { ok: false, reason: "Za mało punktów: nawet w 2 tury się nie uda." };
+  } else if (cost > game.buildPoints) {
+    return { ok: false, reason: "Za mało punktów: potrzeba " + cost + ", masz " + game.buildPoints + "." };
+  }
 
   return { ok: true, reason: "" };
 }
@@ -346,9 +368,13 @@ function placeUnit(game, unitKey, building, cells, rotation) {
   const check = canPlaceUnit(game, unitKey, building, cells);
   if (!check.ok) return check;
 
-  game.buildPoints -= unitCost(unitKey);
+  // Płacimy, ile mamy; brakująca reszta (tylko jednostki z zamku) to dług na następną turę
+  const cost = unitCost(unitKey);
+  const paid = Math.min(cost, game.buildPoints);
+  game.buildPoints -= paid;
   const unit = addUnit(game, unitKey, game.current, cells, rotation);
   unit.isNew = true; // w tej turze jeszcze się nie rusza i nie atakuje
+  if (cost > paid) unit.debt = cost - paid;
   return check;
 }
 
@@ -453,6 +479,12 @@ function endTurn(game) {
       obj.hasAttacked = false;
       obj.attacksUsed = 0;
       obj.freeSteps = freeStepsFor(game, next, obj.type);  // świeże darmowe kroki
+      // Jednostka z zamku zrobiona na dług zabiera brakujące punkty z nowej tury
+      if (obj.debt) {
+        const pay = Math.min(obj.debt, game.buildPoints);
+        game.buildPoints -= pay;
+        obj.debt -= pay;
+      }
     }
   }
 
@@ -721,7 +753,7 @@ function getDamage(game, attacker, target) {
   // bonus przeciw budynkom (bombarda)
   if (target.kind === "building" && type.bonusVsBuildings) damage += type.bonusVsBuildings;
   // Płonący grot: jednostki ze strzelnicy +2
-  const fromRange = attacker.kind === "unit" && type.building === "strzelnica";
+  const fromRange = attacker.kind === "unit" && unitGroup(attacker.type) === "strzelnica";
   if (fromRange && game.players[attacker.owner].research.plonacyGrot) damage += 2;
   return damage;
 }
@@ -827,7 +859,7 @@ function advanceEra(game) {
 function unitMaxHp(game, owner, typeKey) {
   const type = UNIT_TYPES[typeKey];
   let hp = type.hp;
-  if (type.building === "koszary" && game.players[owner].research.sparing) hp += 3;
+  if (unitGroup(typeKey) === "koszary" && game.players[owner].research.sparing) hp += 3;
   return hp;
 }
 
@@ -877,11 +909,15 @@ function isCurrentTier(game, owner, unitKey) {
   return true;
 }
 
-// Jakie ulepszenia można teraz kupić w tym budynku
+// Jakie ulepszenia można teraz kupić w tym budynku.
+// Zwykle w budynku, który robi jednostkę; "where" mówi, gdy jest inaczej
+// (np. jednostki z zamku ulepsza się w uniwersytecie). Liczy się też kraj gracza.
 function getUpgradeOptions(game, building) {
   const player = game.players[building.owner];
+  if (building.underConstruction) return [];
   return UPGRADES.filter(up =>
-    UNIT_TYPES[up.from].building === building.type &&
+    (up.where || UNIT_TYPES[up.from].building) === building.type &&
+    countryAllowed(game, building.owner, up.countries || UNIT_TYPES[up.from].countries) &&
     isCurrentTier(game, building.owner, up.from) &&
     UNIT_TYPES[up.to].era <= player.era
   );
@@ -990,7 +1026,7 @@ function buyResearch(game, building, key) {
     if (obj.owner !== game.current) continue;
     // Pancerz łuskowy działa od razu: +2 darmowe kroki już w tej turze
     if (key === "pancerzLuskowy" && obj.kind === "unit") obj.freeSteps += 2;
-    if (key === "sparing" && obj.kind === "unit" && UNIT_TYPES[obj.type].building === "koszary") {
+    if (key === "sparing" && obj.kind === "unit" && unitGroup(obj.type) === "koszary") {
       obj.maxHp = unitMaxHp(game, obj.owner, obj.type);
       obj.hp = obj.maxHp;
     }
