@@ -1382,6 +1382,42 @@ function botStepWithInfo(game) {
 }
 
 // =====================================================
+//  POPRAWKA: dług przy jednostkach z zamku (2026-11-22)
+//  Jak przy zamku: choć 1 punkt i tylko JEDNA rzecz na dług naraz
+// =====================================================
+
+{
+  const game = createGame(2, "mala", [9, 0]);   // gracz 0 = granatowy (ma mamuta i słonie)
+  game.players[0].era = 3;
+  const castle = addBuilding(game, "zamek", 0, buildingCells("zamek", 2, 6));
+  const elephantA = shapeCells(UNIT_TYPES.slonTrykacz.shape, 2, 9, 0);    // słoń: 7 punktów
+  const elephantB = shapeCells(UNIT_TYPES.slonTrykacz.shape, 6, 6, 0);   // obok zamku z prawej
+
+  game.buildPoints = 0;
+  check("Dług: przy 0 punktach nic z zamku na dług", !canPlaceUnit(game, "slonTrykacz", castle, elephantA).ok);
+  game.buildPoints = 2;
+  check("Dług: przy 2 punktach słoń (7) na dług - wolno", placeUnit(game, "slonTrykacz", castle, elephantA, 0).ok);
+  game.buildPoints = 2;
+  const second = canPlaceUnit(game, "slonTrykacz", castle, elephantB);
+  check("Dług: drugi słoń na dług w tej samej turze - NIE wolno",
+    !second.ok && second.reason === "Najpierw spłać dług (w następnej turze).");
+  game.buildPoints = 8;
+  check("Dług: za pełne punkty można dalej robić jednostki", canPlaceUnit(game, "slonTrykacz", castle, elephantB).ok);
+
+  game.buildPoints = 0;
+  let made = 0;
+  for (let x = 0; x < game.cols; x++) {
+    if (placeUnit(game, "shurikeniarz", castle, shapeCells(UNIT_TYPES.shurikeniarz.shape, x, 12, 0), 0).ok) made++;
+  }
+  check("Dług: przy 0 punktach nie da się zrobić mnóstwa jednostek (było 29!)", made === 0);
+
+  endTurn(game);
+  endTurn(game);   // znowu gracz 0 - dług spłacony
+  check("Dług: po spłacie w następnej turze znowu można na dług", !hasDebt(game, 0) &&
+    (() => { game.buildPoints = 2; return canPlaceUnit(game, "slonTrykacz", castle, elephantB).ok; })());
+}
+
+// =====================================================
 //  WYNIK
 // =====================================================
 console.log("");

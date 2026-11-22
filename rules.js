@@ -352,14 +352,23 @@ function canPlaceUnit(game, unitKey, building, cells) {
   }
 
   const cost = unitCost(unitKey);
-  if (building.type === "zamek") {
-    // Jednostki z zamku można robić "na dług" (jak sam zamek): resztę zabierze następna tura
+  if (building.type === "zamek" && cost > game.buildPoints) {
+    // Jednostki z zamku można robić "na dług" - z tymi samymi hamulcami co sam zamek
+    // (zasada autora gry 2026-11-22): choć 1 punkt i tylko JEDNA rzecz na dług naraz.
+    // Bez tego dało się zrobić 29 jednostek przy 0 punktach w jednej turze!
+    if (game.buildPoints < 1) return { ok: false, reason: "Za mało punktów: potrzeba choć 1." };
+    if (hasDebt(game, game.current)) return { ok: false, reason: "Najpierw spłać dług (w następnej turze)." };
     if (cost - game.buildPoints > BUILD_POINTS) return { ok: false, reason: "Za mało punktów: nawet w 2 tury się nie uda." };
   } else if (cost > game.buildPoints) {
     return { ok: false, reason: "Za mało punktów: potrzeba " + cost + ", masz " + game.buildPoints + "." };
   }
 
   return { ok: true, reason: "" };
+}
+
+// Czy gracz ma coś na dług (niedokończony zamek albo niespłaconą jednostkę z zamku)?
+function hasDebt(game, owner) {
+  return game.objects.some(obj => obj.owner === owner && obj.debt > 0);
 }
 
 // Robi jednostkę (najpierw sprawdza, czy wolno). Zwraca { ok, reason }.
