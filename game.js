@@ -1627,6 +1627,7 @@ function drawUnitInfo(unit, left) {
   let attackState = "atak gotowy";
   const attacks = maxAttacks(game, unit);   // np. jeż: 15 na turę
   if (type.attack <= 0) attackState = "nie walczy";
+  else if (unit.debt) attackState = "dług " + unit.debt + " pkt";   // jednostka z zamku zrobiona na dług
   else if (unit.isNew) attackState = "nowa - czeka";
   else if (unit.hasAttacked) attackState = "atak użyty";
   else if (attacks > 1) attackState = "ataki: " + (attacks - (unit.attacksUsed || 0)) + "/" + attacks;

@@ -17,6 +17,7 @@ loadGameFile("data.js");
 loadGameFile("rules.js");
 loadGameFile("bot.js");
 loadGameFile("chat-filter.js");
+loadGameFile("drawings.js");   // tylko po to, żeby sprawdzić, że każda jednostka ma rysunek
 
 // --- Mini-tester ---
 let passed = 0;
@@ -1339,6 +1340,12 @@ function botStepWithInfo(game) {
   check("Kupno ulepszenia paladyna w zamku", buyUpgrade(game, greenCastle, "paladyn").ok);
   check("Paladyn → Ulepszony paladyn 9/5/1", paladin.type === "ulepszonyPaladyn" && paladin.hp === 9 && UNIT_TYPES.ulepszonyPaladyn.attack === 5);
   check("Stajnia zielonego robi teraz ulepszonego paladyna", getRecruitOptions(game, stable).includes("ulepszonyPaladyn") && !getRecruitOptions(game, stable).includes("paladyn"));
+}
+
+{
+  // Bez rysunku jednostka byłaby niewidzialna na planszy
+  const missing = Object.keys(UNIT_TYPES).filter(key => !UNIT_DRAWINGS[key]);
+  check("Każda jednostka ma rysunek" + (missing.length ? " (brak: " + missing.join(", ") + ")" : ""), missing.length === 0);
 }
 
 {

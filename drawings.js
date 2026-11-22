@@ -131,6 +131,77 @@ function drawJavelinBase(ctx, s) {
   inkDot(ctx, s, 0.5, 0.5, 0.1);
 }
 
+// --- Części rysunków jednostek z zamku ---
+
+// Słoń: szary (kwadrat na górze + podstawa 3×2) z kwadratem w kolorze gracza.
+// Kształt: [[1,0],[0,1],[1,1],[2,1],[0,2],[1,2],[2,2]]. bodyColor = kolor szarości (pancerz = ciemniejszy)
+function drawElephantBase(ctx, s, bodyColor) {
+  const playerColor = ctx.fillStyle;
+  ctx.fillStyle = bodyColor || "#b5b5b5";
+  colorPolygon(ctx, s, [[1, 0], [2, 0], [2, 1], [3, 1], [3, 3], [0, 3], [0, 1], [1, 1]]);
+  penLine(ctx, s, 1, 1, 2, 1);
+  ctx.fillStyle = playerColor;
+  colorRect(ctx, s, 1, 1.5, 1, 1);
+}
+
+// Łuk ")" z cięciwą: środek łuku (x, y), promień r (w kratkach)
+function drawBow(ctx, s, x, y, r) {
+  ctx.beginPath();
+  ctx.arc(x * s, y * s, r * s, -1.0, 1.0);
+  ctx.stroke();
+  const endX = x + r * Math.cos(1.0);
+  const endY = r * Math.sin(1.0);
+  penLine(ctx, s, endX, y - endY, endX, y + endY);
+}
+
+// Pancerz: dwie falki (jak u ciężkiej kawalerii) w miejscu (x, y), szerokość w
+function drawArmor(ctx, s, x, y, w) {
+  penWave(ctx, s, x, y, w);
+  penWave(ctx, s, x, y + 0.2, w);
+}
+
+// Znaczek ulepszenia: mała czarna gwiazdka w punkcie (x, y)
+function drawUpgradeStar(ctx, s, x, y) {
+  const points = [];
+  for (let i = 0; i < 10; i++) {
+    const r = i % 2 === 0 ? 0.16 : 0.07;            // na zmianę: ramię gwiazdy i wcięcie
+    const angle = -Math.PI / 2 + i * Math.PI / 5;
+    points.push([x + Math.cos(angle) * r, y + Math.sin(angle) * r]);
+  }
+  inkPolygon(ctx, s, points);
+}
+
+// Czarny shuriken (gwiazdka z 4 ramionami) ze środkiem w punkcie (x, y)
+function drawShuriken(ctx, s, x, y) {
+  const big = 0.3;    // długość ramienia
+  const small = 0.08; // wcięcie między ramionami
+  inkPolygon(ctx, s, [
+    [x, y - big], [x + small, y - small], [x + big, y], [x + small, y + small],
+    [x, y + big], [x - small, y + small], [x - big, y], [x - small, y - small],
+  ]);
+}
+
+// Mini armatka: ciemny wózek z kwadratem w kolorze gracza, krótka lufa i dwa koła. Kształt 1×1.
+function drawMiniCannon(ctx, s) {
+  const playerColor = ctx.fillStyle;
+  ctx.fillStyle = "#3a3a3a";
+  colorRect(ctx, s, 0.08, 0.2, 0.84, 0.6);
+  ctx.fillStyle = playerColor;
+  colorRect(ctx, s, 0.3, 0.32, 0.4, 0.36);
+  penLine(ctx, s, 0.92, 0.5, 1, 0.5);                       // lufa
+  inkDot(ctx, s, 0.25, 0.86, 0.1);                          // koła
+  inkDot(ctx, s, 0.75, 0.86, 0.1);
+}
+
+// Skorpion (balista), kształt 1×2 w pionie: "korona" z zębami u góry i łuk balisty
+function drawScorpion(ctx, s) {
+  colorPolygon(ctx, s, [[0, 2], [0, 0.4], [0.2, 0.7], [0.35, 0.15], [0.5, 0.6], [0.65, 0.15], [0.8, 0.7], [1, 0.4], [1, 2]]);
+  ctx.beginPath();                                          // łuk balisty "︵"
+  ctx.arc(0.5 * s, 1.55 * s, 0.38 * s, Math.PI, 0);
+  ctx.stroke();
+  penArrow(ctx, s, 0.5, 1.9, 0.5, 1.05);                    // bełt w górę
+}
+
 // =====================================================
 //  RYSUNKI WSZYSTKICH JEDNOSTEK
 //  (klucze takie same jak w UNIT_TYPES w data.js)
@@ -254,6 +325,184 @@ const UNIT_DRAWINGS = {
     colorPolygon(ctx, s, [[0, 0], [1, 0], [1, 1], [2, 1], [2, 2], [0, 2]]);
     // włócznia po skosie - grot wystaje w pusty prawy górny róg (to pole jest wolne)
     penArrow(ctx, s, 0.25, 1.75, 1.75, 0.25);
+  },
+
+  // Ulepszony paladyn (zielony): paladyn z czarną tarczą
+  ulepszonyPaladyn: (ctx, s) => {
+    drawSmallL(ctx, s);
+    penArrow(ctx, s, 1.5, 1.8, 1.5, 0.25);
+    inkDot(ctx, s, 0.55, 1.5, 0.22);                // tarcza
+  },
+
+  // ----- Zamek: jednostki specjalne krajów -----
+  miniArmatka: (ctx, s) => {
+    drawMiniCannon(ctx, s);
+  },
+  ulepszonaMiniArmatka: (ctx, s) => {
+    drawMiniCannon(ctx, s);
+    drawUpgradeStar(ctx, s, 0.2, 0.18);
+  },
+  skorpion: (ctx, s) => {
+    drawScorpion(ctx, s);
+  },
+  ulepszonySkorpion: (ctx, s) => {
+    drawScorpion(ctx, s);
+    drawUpgradeStar(ctx, s, 0.5, 0.85);
+  },
+  // Łucznik kompozytowy: koło (łucznik) z łukiem o dwóch wygięciach
+  lucznikKompozytowy: (ctx, s) => {
+    colorCircle(ctx, s, 0.35, 0.5, 0.3);
+    drawBow(ctx, s, 0.45, 0.5, 0.48);
+    drawBow(ctx, s, 0.55, 0.5, 0.3);
+  },
+  ulepszonyLucznikKomp: (ctx, s) => {
+    colorCircle(ctx, s, 0.35, 0.5, 0.3);
+    drawBow(ctx, s, 0.45, 0.5, 0.48);
+    drawBow(ctx, s, 0.55, 0.5, 0.3);
+    drawUpgradeStar(ctx, s, 0.18, 0.18);
+  },
+  // Armatka turbo: kreska z poprzeczkami na końcach ┤●├ i koło w kolorze gracza w środku
+  armatkaTurbo: (ctx, s) => {
+    penLine(ctx, s, 0.05, 0.5, 0.95, 0.5);
+    penLine(ctx, s, 0.05, 0.3, 0.05, 0.7);
+    penLine(ctx, s, 0.95, 0.3, 0.95, 0.7);
+    colorCircle(ctx, s, 0.5, 0.5, 0.25);
+  },
+  ulepszonaArmatkaTurbo: (ctx, s) => {
+    penLine(ctx, s, 0.05, 0.5, 0.95, 0.5);
+    penLine(ctx, s, 0.05, 0.3, 0.05, 0.7);
+    penLine(ctx, s, 0.95, 0.3, 0.95, 0.7);
+    colorCircle(ctx, s, 0.5, 0.5, 0.25);
+    drawUpgradeStar(ctx, s, 0.2, 0.18);
+  },
+  // Słoń z balistą: słoń z łukiem balisty na głowie
+  slonZBalista: (ctx, s) => {
+    drawElephantBase(ctx, s);
+    ctx.beginPath();
+    ctx.arc(1.5 * s, 0.75 * s, 0.4 * s, Math.PI, 0);
+    ctx.stroke();
+    penArrow(ctx, s, 1.5, 0.95, 1.5, 0.1);
+  },
+  // Podwójny halabardnik: dwa daszki nad kwadratem z X (jak halabardnik, ale na jednym polu)
+  podwojnyHalabardnik: (ctx, s) => {
+    colorRect(ctx, s, 0.1, 0.45, 0.8, 0.5);
+    colorPolygon(ctx, s, [[0.1, 0.45], [0.3, 0.05], [0.5, 0.45]]);
+    colorPolygon(ctx, s, [[0.5, 0.45], [0.7, 0.05], [0.9, 0.45]]);
+    penLine(ctx, s, 0.1, 0.45, 0.9, 0.95);
+    penLine(ctx, s, 0.9, 0.45, 0.1, 0.95);
+  },
+  ulepszonyPodwHalabardnik: (ctx, s) => {
+    colorRect(ctx, s, 0.1, 0.45, 0.8, 0.5);
+    colorPolygon(ctx, s, [[0.1, 0.45], [0.3, 0.05], [0.5, 0.45]]);
+    colorPolygon(ctx, s, [[0.5, 0.45], [0.7, 0.05], [0.9, 0.45]]);
+    penLine(ctx, s, 0.1, 0.45, 0.9, 0.95);
+    penLine(ctx, s, 0.9, 0.45, 0.1, 0.95);
+    drawUpgradeStar(ctx, s, 0.5, 0.7);
+  },
+  // Płonący oszczepnik: oszczepnik (kwadrat z kropką) z płomykiem u góry
+  plonacyOszczepnik: (ctx, s) => {
+    drawJavelinBase(ctx, s);
+    const playerColor = ctx.fillStyle;
+    ctx.fillStyle = "#ff7a1a";                     // pomarańczowy płomień
+    colorPolygon(ctx, s, [[0.35, 0.35], [0.4, 0.15], [0.5, 0.25], [0.6, 0.05], [0.68, 0.35]]);
+    ctx.fillStyle = playerColor;
+  },
+  // Opancerzony słoń trykacz: ciemny pancerz i kieł z przodu
+  slonTrykacz: (ctx, s) => {
+    drawElephantBase(ctx, s, "#8a8a8a");
+    drawArmor(ctx, s, 0.15, 1.3, 0.7);
+    drawArmor(ctx, s, 2.15, 1.3, 0.7);
+    penLine(ctx, s, 1.2, 0.8, 0.85, 0.2);          // kły
+    penLine(ctx, s, 1.8, 0.8, 2.15, 0.2);
+  },
+  // Shurikeniarz: kwadrat z dwoma shurikenami na górnych rogach.
+  // Shurikeny lekko wystają poza kratkę, ale nie zajmują dodatkowych pól (wg autora gry).
+  shurikeniarz: (ctx, s) => {
+    colorRect(ctx, s, 0, 0, 1, 1);
+    drawShuriken(ctx, s, 0.12, 0.12);
+    drawShuriken(ctx, s, 0.88, 0.12);
+  },
+  // Kawaleria z łukiem: małe L z łukiem
+  kawaleriaZLukiem: (ctx, s) => {
+    drawSmallL(ctx, s);
+    drawBow(ctx, s, 1.2, 1.4, 0.5);
+  },
+  // Ułan z pancerzem płytowym: ułan z falkami pancerza
+  ulanZPancerzem: (ctx, s) => {
+    colorPolygon(ctx, s, [[0, 0], [1, 0], [1, 1], [2, 1], [2, 2], [0, 2]]);
+    penArrow(ctx, s, 0.25, 1.75, 1.75, 0.25);
+    drawArmor(ctx, s, 0.1, 1.55, 0.6);
+  },
+  // Słoń z taranem: brązowa belka taranu przez głowę
+  slonZTaranem: (ctx, s) => {
+    drawElephantBase(ctx, s);
+    const playerColor = ctx.fillStyle;
+    ctx.fillStyle = "#8d6e63";
+    colorRect(ctx, s, 1.35, 0.05, 0.3, 0.9);
+    ctx.fillStyle = playerColor;
+  },
+  // Mamut: duży szary słoń (1 + podstawa 3×3); na górze brązowa głowa,
+  // a pod nią dwa kwadraty w kolorze gracza, jeden za drugim (wg autora gry)
+  mamut: (ctx, s) => {
+    const playerColor = ctx.fillStyle;
+    ctx.fillStyle = "#b5b5b5";                     // szare ciało
+    colorPolygon(ctx, s, [[1, 0], [2, 0], [2, 1], [3, 1], [3, 4], [0, 4], [0, 1], [1, 1]]);
+    ctx.fillStyle = "#8d6e63";                     // brązowa głowa
+    colorRect(ctx, s, 1, 0, 1, 1);
+    ctx.fillStyle = playerColor;                   // dwa kwadraty w kolorze gracza
+    colorRect(ctx, s, 1, 1, 1, 1);
+    colorRect(ctx, s, 1, 2, 1, 1);
+  },
+  // Słoń opancerzony: ciemny pancerz z falkami
+  slonOpancerzony: (ctx, s) => {
+    drawElephantBase(ctx, s, "#8a8a8a");
+    drawArmor(ctx, s, 0.15, 1.3, 0.7);
+    drawArmor(ctx, s, 2.15, 1.3, 0.7);
+  },
+  ulepszonySlonOpanc: (ctx, s) => {
+    drawElephantBase(ctx, s, "#8a8a8a");
+    drawArmor(ctx, s, 0.15, 1.3, 0.7);
+    drawArmor(ctx, s, 2.15, 1.3, 0.7);
+    drawUpgradeStar(ctx, s, 1.5, 0.5);
+  },
+  // Super łucznik: koło z czerwonym listkiem (piórem)
+  superLucznik: (ctx, s) => {
+    colorCircle(ctx, s, 0.45, 0.55, 0.38);
+    const playerColor = ctx.fillStyle;
+    ctx.fillStyle = "#d63031";
+    colorPolygon(ctx, s, [[0.6, 0.3], [0.95, 0.05], [0.8, 0.45]]);
+    ctx.fillStyle = playerColor;
+  },
+  ulepszonySuperLucznik: (ctx, s) => {
+    colorCircle(ctx, s, 0.45, 0.55, 0.38);
+    const playerColor = ctx.fillStyle;
+    ctx.fillStyle = "#d63031";
+    colorPolygon(ctx, s, [[0.6, 0.3], [0.95, 0.05], [0.8, 0.45]]);
+    ctx.fillStyle = playerColor;
+    drawUpgradeStar(ctx, s, 0.45, 0.58);
+  },
+  // Kawaleria z łukiem 2: małe L z łukiem i strzałą
+  kawaleriaZLukiem2: (ctx, s) => {
+    drawSmallL(ctx, s);
+    drawBow(ctx, s, 1.2, 1.4, 0.5);
+    penArrow(ctx, s, 0.3, 1.4, 1.5, 1.4);
+  },
+  ulepszonaKawaleriaZLukiem2: (ctx, s) => {
+    drawSmallL(ctx, s);
+    drawBow(ctx, s, 1.2, 1.4, 0.5);
+    penArrow(ctx, s, 0.3, 1.4, 1.5, 1.4);
+    drawUpgradeStar(ctx, s, 1.5, 0.4);
+  },
+  // Opancerzony paladyn: paladyn z falkami pancerza
+  opancerzonyPaladyn: (ctx, s) => {
+    drawSmallL(ctx, s);
+    penArrow(ctx, s, 1.5, 1.8, 1.5, 0.25);
+    drawArmor(ctx, s, 0.15, 1.45, 0.6);
+  },
+  // Zwiadowca: kwadrat z łukiem
+  zwiadowca: (ctx, s) => {
+    colorRect(ctx, s, 0, 0, 1, 1);
+    drawBow(ctx, s, 0.35, 0.5, 0.45);
   },
 
   // ----- TAJNE (tylko z kodu w EDYTORZE) -----
