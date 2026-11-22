@@ -271,6 +271,10 @@ const UNIT_TYPES = {
 // --- Tajne kody (tylko w EDYTORZE, wpisywane w okienko czatu) ---
 // kod -> jaka jednostka się pojawia.
 // Wielkość liter MA znaczenie: działa "IAmNotTusk", a "iamnottusk" już nie (zasada autora gry)
+// Tajny kod ery: od razu następna era, BEZ wymaganych budynków i BEZ końca tury
+// (zasady autora gry: wspólny limit "jeden kod na turę" z jednostkami z kodów)
+const ERA_CODE = "all-i-want-for-christmas-is-next-age";
+
 const CHEAT_CODES = {
   "IAmNotTusk": "jez",
   "AK-47_cat": "kotAk",

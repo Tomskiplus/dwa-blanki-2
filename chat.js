@@ -121,7 +121,7 @@ function submitChat() {
 
   // Tajne kody sprawdzamy PRZED strażnikiem - "AK-47_cat" ma cyfry,
   // więc strażnik by go zablokował. Kod nigdy nie trafia do czatu.
-  if (cheatCodeUnit(typed) || isDesignCode(typed)) {
+  if (cheatCodeUnit(typed) || isDesignCode(typed) || isEraCode(typed)) {
     handleCheatCode(typed);
     return;
   }
@@ -179,6 +179,19 @@ function handleCheatCode(typed) {
   // (a w turze bota kod dałby jednostkę... botowi!)
   if (isBotGame()) {
     showChatNotice("Kody działają tylko w edytorze.");
+    return;
+  }
+
+  // Kod ery: następna era od razu (bez budynków), a tura trwa dalej
+  if (isEraCode(typed)) {
+    const player = game.players[game.current];
+    const eraResult = useEraCode(game);
+    if (!eraResult.ok) {
+      showChatNotice(eraResult.reason);   // np. "To już ostatnia era."
+      return;
+    }
+    addChatMessage("", "#1e8449", "🎄 " + player.colorName + " wchodzi do " + ERA_GENITIVE[eraResult.era] + "!", false);
+    closeChat();
     return;
   }
 

@@ -1358,6 +1358,30 @@ function botStepWithInfo(game) {
 }
 
 // =====================================================
+//  KOD ERY: all-i-want-for-christmas-is-next-age
+//  Następna era bez budynków, tura trwa dalej, wspólny limit z kodami jednostek
+// =====================================================
+
+{
+  const game = createGame(2, "mala");
+  check("Kod ery: wielkość liter ma znaczenie, spacje na brzegach nie",
+    !isEraCode("ALL-I-WANT-FOR-CHRISTMAS-IS-NEXT-AGE") && isEraCode("  all-i-want-for-christmas-is-next-age "));
+  const result = useEraCode(game);
+  check("Kod ery: gracz 0 wchodzi do ery 2 bez koszar", result.ok && result.era === 2 && game.players[0].era === 2);
+  check("Kod ery: tura się NIE kończy", game.current === 0);
+  check("Kod ery: drugi kod w tej turze odrzucony (wspólny limit z jeżem, kotem i żabą)",
+    !useCheatCode(game, "IAmNotTusk").ok && !useEraCode(game).ok);
+  endTurn(game);
+  endTurn(game);   // znowu tura gracza 0
+  check("Kod ery: w następnej turze działa znowu (era 3)", useEraCode(game).ok && game.players[0].era === 3);
+  game.players[0].era = MAX_ERA;
+  game.codeUsedThisTurn = false;
+  const last = useEraCode(game);
+  check("Kod ery: w ostatniej erze nie działa",
+    !last.ok && last.reason === "To już ostatnia era." && game.players[0].era === MAX_ERA);
+}
+
+// =====================================================
 //  WYNIK
 // =====================================================
 console.log("");

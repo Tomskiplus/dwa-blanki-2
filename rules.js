@@ -416,6 +416,24 @@ function useCheatCode(game, text) {
   return { ok: true, reason: "", unit: unit };
 }
 
+// Czy ten tekst to kod ery? (wielkość liter ma znaczenie, spacje na brzegach - nie)
+function isEraCode(text) {
+  return String(text).trim() === ERA_CODE;
+}
+
+// Kod ery: gracz, który ma turę, wchodzi do następnej ery.
+// Inaczej niż przycisk NASTĘPNA ERA: nie trzeba budynków i tura się NIE kończy.
+// Zwraca { ok, reason, era } - era = nowa era gracza
+function useEraCode(game) {
+  if (game.codeUsedThisTurn) return { ok: false, reason: "Kod już użyty w tej turze.", era: null };
+  const player = game.players[game.current];
+  if (player.era >= MAX_ERA) return { ok: false, reason: "To już ostatnia era.", era: null };
+
+  player.era++;
+  game.codeUsedThisTurn = true;   // wspólny limit z jeżem, kotem i żabą
+  return { ok: true, reason: "", era: player.era };
+}
+
 // Szuka wolnego miejsca na kształt jak najbliżej podanych kratek (np. ratusza).
 // Sprawdza całą planszę: najpierw bez obrotu, potem obrócony o 90°.
 // Przy remisie wygrywa miejsce, którego środek jest najbliżej środka celu
