@@ -242,6 +242,8 @@ Ostatni rysunek w 3. wierszu (żółty kwadrat z włócznią) – **nie robimy**
 - Zamek (gotowy, nie w budowie) robi jednostki **swojego kraju** jak koszary: klik → lista → stawiasz obok.
 - **Koszt = liczba kratek**; gdy brakuje punktów – **dług** jak przy zamku (reszta z następnej tury).
   Jednostka pojawia się od razu (jak każda nowa – rusza się dopiero w następnej turze).
+  Hamulce długu jak przy zamku (ustalone 2026-11-22): trzeba mieć **choć 1 punkt** i na dług
+  może być **tylko jedna rzecz naraz** – kolejna dopiero po spłacie w następnej turze.
 - **Ulepszenia** jednostek z zamku: w **uniwersytecie**, 4 punkty; nazwa po ulepszeniu „Ulepszona …”.
 - **Ulepszony paladyn** (zielony): ulepszenie paladyna kupowane **w zamku** (4 pkt) – paladyni zielonego → 9 / 5 / 1.
 - **Kształty:** 1 kratka – mini armatka, łucznik kompozytowy, armatka turbo, podwójny halabardnik, płonący oszczepnik,
