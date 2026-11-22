@@ -41,10 +41,10 @@ Zamek robi jednostki swojego kraju (19 typów + 6 ulepszonych wersji), z długie
 
 #### Automated
 
-- [x] 2.1 Testy przechodzą: `node tests/run-tests.js`
-- [x] 2.2 Zrzut ekranu: galeria jednostek z zamku i menu zamku granatowego
+- [x] 2.1 Testy przechodzą: `node tests/run-tests.js` — 4cd743a
+- [x] 2.2 Zrzut ekranu: galeria jednostek z zamku i menu zamku granatowego — 4cd743a
 
 #### Manual
 
-- [x] 2.3 Zamek robi jednostki swojego kraju; mamut z długiem; ulepszenia w uniwersytecie
-- [x] 2.4 Rysunki wyglądają jak w zeszycie
+- [x] 2.3 Zamek robi jednostki swojego kraju; mamut z długiem; ulepszenia w uniwersytecie — 4cd743a
+- [x] 2.4 Rysunki wyglądają jak w zeszycie — 4cd743a
